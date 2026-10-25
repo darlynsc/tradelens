@@ -534,29 +534,57 @@ input.jimglink:focus{border-color:var(--cyan);}
     <div class="last-sync" id="lastSync">Sin conexión</div>
     <div id="connBadge" style="font-size:10px;padding:4px 10px;border:1px solid transparent;border-radius:20px;color:var(--muted);">Sin conexión</div>
     <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Cambiar tema">🌙</button>
+    <button class="btn" id="btnAccount" style="font-size:11px;padding:6px 12px;" onclick="openAccount()" title="Usuario y contraseña">👤 Cuenta</button>
     <button class="btn btn-danger" id="btnDisconnect" style="display:none;font-size:11px;padding:6px 12px;" onclick="clearSession()">✕ Desconectar</button>
   </div>
 </header>
 
 <!-- CONNECT PANEL -->
 <div class="connect-panel" id="connectPanel">
-  <h2>Conectar a servidor nube</h2>
-  <p>No se detectó el EA local (o estás fuera de casa). Ingresa tu URL de servidor y token.<br>
+  <h2>Iniciar sesión</h2>
+  <p>Entra con tu usuario y contraseña. Verás los últimos datos que la EA subió a la nube, aunque la EA o la PC estén apagadas.<br>
   Si estás en casa con MT5 abierto, recarga la página — el dashboard intentará conectarse automáticamente vía WebSocket local.</p>
   <div class="connect-grid">
     <div class="field">
-      <label>URL del Servidor</label>
-      <input id="serverURL" type="text" placeholder="https://tu-servidor.onrender.com" value=""/>
+      <label>Usuario</label>
+      <input id="loginUser" type="text" autocomplete="username" autocapitalize="none" placeholder="tu usuario"/>
     </div>
     <div class="field">
-      <label>Token Secreto</label>
-      <input id="serverToken" type="password" placeholder="MI_TOKEN_SECRETO"/>
+      <label>Contraseña</label>
+      <input id="loginPass" type="password" autocomplete="current-password" placeholder="••••••••" onkeydown="if(event.key==='Enter')loginCloud()"/>
     </div>
-    <button class="btn btn-connect" onclick="connectServer()">⚡ Conectar</button>
+    <button class="btn btn-connect" onclick="loginCloud()">⚡ Entrar</button>
   </div>
+  <details style="margin-top:18px;">
+    <summary style="cursor:pointer;font-size:11px;color:var(--muted);">Primera vez / recuperar acceso / avanzado</summary>
+    <p style="margin-top:12px;">Crea o restablece tu usuario con la llave maestra (el valor de <code>SECRET_TOKEN</code> en Render).</p>
+    <div class="connect-grid" style="grid-template-columns:1fr 1fr;">
+      <div class="field"><label>URL del Servidor</label>
+        <input id="serverURL" type="text" placeholder="https://tu-servidor.onrender.com" value=""/></div>
+      <div class="field"><label>Llave maestra (SECRET_TOKEN)</label>
+        <input id="serverToken" type="password" placeholder="MI_TOKEN_SECRETO"/></div>
+      <div class="field"><label>Nuevo usuario</label>
+        <input id="setupUser" type="text" autocapitalize="none" placeholder="mínimo 3 caracteres"/></div>
+      <div class="field"><label>Nueva contraseña</label>
+        <input id="setupPass" type="password" placeholder="mínimo 8 caracteres"/></div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-connect" onclick="setupUser()">👤 Crear / restablecer usuario</button>
+      <button class="btn btn-demo" onclick="connectServer()">🔑 Entrar solo con la llave maestra</button>
+    </div>
+  </details>
   <div id="msgBox"></div>
   <div class="btn-row">
     <button class="btn btn-demo" onclick="loadDemo()">🎮 Demo con datos de ejemplo</button>
+  </div>
+</div>
+
+<!-- ACCOUNT MODAL -->
+<div class="jmodal-overlay" id="acctOverlay">
+  <div class="jmodal" style="max-width:440px;">
+    <button class="jmodal-close" onclick="closeAccount()">✕</button>
+    <div class="jmodal-date">👤 Mi cuenta</div>
+    <div id="acctBody" style="margin-top:14px;"></div>
   </div>
 </div>
 
@@ -770,6 +798,7 @@ input.jimglink:focus{border-color:var(--cyan);}
 
 <script>
 // ── CONFIG ─────────────────────────────────────────────────────────────────────
+const DEFAULT_SERVER = 'https://tradelens-server.onrender.com';
 let serverURL = '', serverToken = '', pollTimer = null;
 let charts = {};
 let lastDealCount = -1;
@@ -859,6 +888,7 @@ window.addEventListener('DOMContentLoaded', async () => {
       localWSActive = true;
       updateConnectionBadge('ws', true);
       showMsg('', '');
+      if(loadSession()) syncJournal(); // el journal sigue sincronizándose con la nube
       return;
     }
   }
@@ -871,6 +901,134 @@ window.addEventListener('DOMContentLoaded', async () => {
   }
 });
 
+
+// ── USUARIO Y CONTRASEÑA ───────────────────────────────────────────────────────
+function cloudBase() {
+  const v = (document.getElementById('serverURL')?.value || '').trim().replace(/\/$/,'');
+  return v || serverURL || DEFAULT_SERVER;
+}
+async function authPost(path, body, withToken) {
+  const url = cloudBase() + path + (withToken ? `?token=${encodeURIComponent(serverToken)}` : '');
+  const r = await fetch(url, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
+  let j = {}; try { j = await r.json(); } catch(_){}
+  if(!r.ok) throw new Error(j.error || `Error ${r.status}`);
+  return j;
+}
+function startCloudSession(base, token) {
+  serverURL = base; serverToken = token;
+  saveSession();
+  updateConnectionBadge('cloud', true);
+  fetchAndRender(true);
+  syncJournal();
+}
+async function loginCloud() {
+  const username = document.getElementById('loginUser').value.trim();
+  const password = document.getElementById('loginPass').value;
+  if(!username || !password) { showMsg('Escribe usuario y contraseña.', 'error'); return; }
+  showMsg('Entrando... (si el servidor estaba dormido puede tardar hasta 1 minuto)', '');
+  try {
+    const j = await authPost('/auth/login', { username, password });
+    document.getElementById('loginPass').value = '';
+    startCloudSession(cloudBase(), j.token);
+  } catch(e) { showMsg(e.message, 'error'); }
+}
+async function setupUser() {
+  const master = document.getElementById('serverToken').value.trim();
+  const username = document.getElementById('setupUser').value.trim();
+  const password = document.getElementById('setupPass').value;
+  if(!master || !username || !password) { showMsg('Completa llave maestra, usuario y contraseña nuevos.', 'error'); return; }
+  showMsg('Guardando usuario...', '');
+  try {
+    const j = await authPost('/auth/setup', { master, username, password });
+    document.getElementById('setupPass').value = '';
+    document.getElementById('serverToken').value = '';
+    startCloudSession(cloudBase(), j.token);
+  } catch(e) { showMsg(e.message, 'error'); }
+}
+function sessionExpired() {
+  try { localStorage.removeItem('tl_token'); } catch(_){}
+  serverToken = '';
+  if(sseSource){ sseSource.close(); sseSource=null; }
+  document.getElementById('dashboard').classList.remove('on');
+  document.getElementById('connectPanel').style.display='';
+  document.getElementById('btnDisconnect').style.display='none';
+  updateConnectionBadge('', false);
+  document.getElementById('lastSync').textContent='Sin conexión';
+  showMsg('Sesión vencida o contraseña cambiada. Inicia sesión de nuevo.', 'error');
+}
+
+// ── MODAL "MI CUENTA" ──────────────────────────────────────────────────────────
+const _inp = 'width:100%;background:var(--s2);border:1px solid var(--b2);color:var(--text);padding:9px 12px;border-radius:8px;font-family:var(--font-mono);font-size:12px;outline:none;margin-bottom:10px;';
+const _lbl = 'font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin:4px 0 6px;display:block;';
+function openAccount() {
+  const body = document.getElementById('acctBody');
+  const logged = serverToken && serverToken.startsWith('s1.');
+  if(logged) {
+    let who = ''; try { who = JSON.parse(atob(serverToken.split('.')[1].replace(/-/g,'+').replace(/_/g,'/'))).u; } catch(_){}
+    body.innerHTML = `
+      <div style="font-size:12px;color:var(--muted);margin-bottom:14px;">Sesión iniciada como <strong style="color:var(--cyan)">${who||'—'}</strong>. Deja vacío lo que no quieras cambiar.</div>
+      <label style="${_lbl}">Contraseña actual (obligatoria)</label>
+      <input id="acCur" type="password" autocomplete="current-password" style="${_inp}"/>
+      <label style="${_lbl}">Nuevo usuario</label>
+      <input id="acUser" type="text" autocapitalize="none" placeholder="${who}" style="${_inp}"/>
+      <label style="${_lbl}">Nueva contraseña (mín. 8)</label>
+      <input id="acNew" type="password" autocomplete="new-password" style="${_inp}"/>
+      <div id="acMsg" style="font-size:12px;min-height:16px;margin-bottom:10px;"></div>
+      <button class="btn btn-connect" onclick="changeAccount()">💾 Guardar cambios</button>
+      <div style="font-size:10px;color:var(--muted);margin-top:12px;">Al cambiar la contraseña se cierran las sesiones abiertas en tus otros dispositivos.</div>`;
+  } else {
+    body.innerHTML = `
+      <div style="font-size:12px;color:var(--muted);margin-bottom:14px;">Inicia sesión en la nube para sincronizar tu journal entre dispositivos.</div>
+      <label style="${_lbl}">Usuario</label>
+      <input id="acLUser" type="text" autocapitalize="none" autocomplete="username" style="${_inp}"/>
+      <label style="${_lbl}">Contraseña</label>
+      <input id="acLPass" type="password" autocomplete="current-password" style="${_inp}" onkeydown="if(event.key==='Enter')acctLogin()"/>
+      <div id="acMsg" style="font-size:12px;min-height:16px;margin-bottom:10px;"></div>
+      <button class="btn btn-connect" onclick="acctLogin()">⚡ Entrar</button>`;
+  }
+  document.getElementById('acctOverlay').classList.add('open');
+}
+function closeAccount() { document.getElementById('acctOverlay').classList.remove('open'); }
+function acMsg(t, bad) { const e=document.getElementById('acMsg'); if(e){ e.textContent=t; e.style.color=bad?'var(--red)':'var(--green)'; } }
+async function acctLogin() {
+  try {
+    const j = await authPost('/auth/login', { username: document.getElementById('acLUser').value.trim(), password: document.getElementById('acLPass').value });
+    serverURL = serverURL || DEFAULT_SERVER; serverToken = j.token; saveSession(); syncJournal();
+    closeAccount(); document.getElementById('btnDisconnect').style.display='block';
+  } catch(e) { acMsg(e.message, true); }
+}
+async function changeAccount() {
+  const currentPassword = document.getElementById('acCur').value;
+  const newUsername = document.getElementById('acUser').value.trim();
+  const newPassword = document.getElementById('acNew').value;
+  if(!currentPassword) { acMsg('Escribe tu contraseña actual.', true); return; }
+  if(!newUsername && !newPassword) { acMsg('No hay nada que cambiar.', true); return; }
+  try {
+    const j = await authPost('/auth/change', { currentPassword, newUsername: newUsername||undefined, newPassword: newPassword||undefined }, true);
+    serverToken = j.token; saveSession();
+    if(sseSource) startSSE();
+    acMsg('✅ Guardado. Usuario: ' + j.username, false);
+    document.getElementById('acCur').value=''; document.getElementById('acNew').value='';
+  } catch(e) { acMsg(e.message, true); }
+}
+
+// ── ESTADO DE LA EA (según el último dato recibido en la nube) ─────────────────
+let _lastEaTs = null;
+function setSyncLabel(data) {
+  const ts = data && data.server_time ? new Date(data.server_time) : null;
+  _lastEaTs = (ts && !isNaN(ts)) ? ts : null;
+  refreshSyncLabel();
+}
+function refreshSyncLabel() {
+  const el = document.getElementById('lastSync'); if(!el || !serverToken) return;
+  if(!_lastEaTs) { el.textContent = `Actualizado: ${new Date().toLocaleTimeString()}`; return; }
+  const mins = (Date.now() - _lastEaTs) / 60000;
+  const when = mins < 1440 ? _lastEaTs.toLocaleTimeString() : _lastEaTs.toLocaleString();
+  el.textContent = mins >= 5 ? `🟠 EA desconectada · último dato: ${_lastEaTs.toLocaleString()}` : `🟢 EA en vivo · ${when}`;
+  document.getElementById('footerSync').textContent = _lastEaTs.toLocaleString();
+}
+setInterval(refreshSyncLabel, 30000);
+
 // ── SESSION PERSISTENCE ────────────────────────────────────────────────────────
 function saveSession() {
   try { localStorage.setItem('tl_url', serverURL); localStorage.setItem('tl_token', serverToken); } catch(_){}
@@ -881,9 +1039,10 @@ function loadSession() {
     const t = localStorage.getItem('tl_token');
     if(u && t) { serverURL=u; serverToken=t;
       document.getElementById('serverURL').value=u;
-      document.getElementById('serverToken').value=t;
       return true; }
+    if(u) document.getElementById('serverURL').value=u;
   } catch(_){}
+  if(!document.getElementById('serverURL').value) document.getElementById('serverURL').value = DEFAULT_SERVER;
   return false;
 }
 function clearSession() {
@@ -905,7 +1064,7 @@ function connectServer() {
   serverURL   = document.getElementById('serverURL').value.trim().replace(/\/$/,'');
   serverToken = document.getElementById('serverToken').value.trim();
   if(!serverURL||!serverToken){ showMsg('Completa URL y Token.','error'); return; }
-  showMsg('Conectando...','');
+  showMsg('Conectando... (si el servidor estaba dormido puede tardar hasta 1 minuto)','');
   updateConnectionBadge('cloud', true);
   fetchAndRender(true);
 }
@@ -913,6 +1072,8 @@ function connectServer() {
 async function fetchAndRender(force) {
   try {
     const r = await fetch(`${serverURL}/data?token=${encodeURIComponent(serverToken)}`);
+    if(r.status===401) { sessionExpired(); return; }
+    if(r.status===404) { showMsg('Aún no hay datos en la nube. Conecta la EA a MT5 al menos una vez.', 'error'); return; }
     if(!r.ok) throw new Error(`Error ${r.status}`);
     const data = await r.json();
     const deals = (data.deals||[]).filter(d=>d.entry!=='BALANCE');
@@ -922,8 +1083,7 @@ async function fetchAndRender(force) {
       showMsg('','');
       saveSession();
       document.getElementById('connectPanel').style.display='none';
-      document.getElementById('lastSync').textContent=`Actualizado: ${new Date().toLocaleTimeString()}`;
-      document.getElementById('footerSync').textContent=new Date().toLocaleTimeString();
+      setSyncLabel(data);
       renderAll(data);
     }
     if(force) { startSSE(); syncJournal(); }
@@ -942,10 +1102,9 @@ function startSSE() {
       // Actualizar SIEMPRE que llegue un evento del EA (cierre, apertura, balance, deal)
       if(msg.deals_count !== undefined) lastDealCount = msg.deals_count;
       fetch(`${serverURL}/data?token=${encodeURIComponent(serverToken)}`)
-        .then(r=>r.json())
+        .then(r=>{ if(r.status===401){ sessionExpired(); throw new Error('401'); } return r.json(); })
         .then(data=>{
-          document.getElementById('lastSync').textContent=`Actualizado: ${new Date().toLocaleTimeString()}`;
-          document.getElementById('footerSync').textContent=new Date().toLocaleTimeString();
+          setSyncLabel(data);
           renderAll(data);
         }).catch(_=>{});
     } catch(_){}
