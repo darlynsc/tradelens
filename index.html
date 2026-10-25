@@ -376,6 +376,8 @@ input.jimglink:focus{border-color:var(--cyan);}
 .jbtn-save:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(0,229,255,0.25);}
 .jbtn-summary{background:rgba(181,123,255,0.15);color:var(--purple);border:1px solid rgba(181,123,255,0.3);padding:9px 20px;border-radius:8px;font-family:var(--font-head);font-weight:600;font-size:12px;cursor:pointer;transition:.2s;}
 .jbtn-summary:hover{background:rgba(181,123,255,0.25);}
+.jbtn-del{background:rgba(255,51,85,0.12);color:var(--red);border:1px solid rgba(255,51,85,0.35);padding:9px 20px;border-radius:8px;font-family:var(--font-head);font-weight:600;font-size:12px;cursor:pointer;transition:.2s;margin-right:auto;}
+.jbtn-del:hover{background:rgba(255,51,85,0.22);}
 .cal-day.has-note{position:relative;}
 .cal-day.has-note::after{content:'📝';position:absolute;top:3px;right:3px;font-size:8px;opacity:0.8;}
 
@@ -502,7 +504,7 @@ input.jimglink:focus{border-color:var(--cyan);}
   .jtags{gap:6px;}
   .jtag{padding:5px 10px;font-size:10px;}
   .jbtn-row{flex-direction:column-reverse;gap:8px;}
-  .jbtn-save,.jbtn-summary{width:100%;text-align:center;padding:11px;}
+  .jbtn-save,.jbtn-summary,.jbtn-del{width:100%;text-align:center;padding:11px;margin-right:0;}
 
   /* Monthly summary modal */
   .sum-modal{padding:20px 16px;}
@@ -767,6 +769,7 @@ input.jimglink:focus{border-color:var(--cyan);}
       <input class="jimglink" id="jimgLink" type="text" placeholder="https://i.imgur.com/..." oninput="previewImg()"/>
       <div class="jimgpreview" id="jimgPreview"><img id="jimgImg" src="" alt="screenshot"/></div>
       <div class="jbtn-row">
+        <button class="jbtn-del" id="jbtnDel" onclick="deleteJournal()">🗑️ Eliminar journal</button>
         <button class="jbtn-summary" onclick="openMonthlySummary()">📊 Resumen del Mes con AI</button>
         <button class="jbtn-save" onclick="saveJournal()">💾 Guardar</button>
       </div>
@@ -1784,7 +1787,7 @@ function _renderCalendarForMonth(sessions, year, month) {
     const cnt = dayCnt[k] || 0;
     const isWeekend = [0,6].includes(d.getDay());
     const cls = pnl === undefined ? (isWeekend ? 'empty' : 'be') : pnl > 0 ? 'win' : 'loss';
-    const hasNote = journalData[k] ? 'has-note' : '';
+    const hasNote = journalHas(k) ? 'has-note' : '';
     const isToday = k === today ? 'today-marker' : '';
     let inner = '';
     if(pnl !== undefined){
@@ -1901,6 +1904,10 @@ function saveJournalToStorage() {
 }
 loadJournalData();
 
+// Un día "sin journal" = sin etiqueta, sin nota y sin screenshot.
+// Al eliminar se guarda una entrada vacía con fecha nueva, para que la eliminación también se sincronice.
+function journalHas(day) { const e = journalData[day]; return !!(e && (e.tag || e.note || e.img)); }
+
 // ── SINCRONIZACIÓN DEL JOURNAL CON LA NUBE ─────────────────────────────────────
 // El journal vive en el servidor; localStorage queda como copia local/offline.
 // Gana siempre la versión con `saved` más reciente (PC o teléfono).
@@ -1984,6 +1991,7 @@ function openJournal(dateStr, daySessions) {
   document.getElementById('jnoteText').value = entry.note || '';
   document.getElementById('jimgLink').value = entry.img || '';
   previewImg();
+  document.getElementById('jbtnDel').style.display = journalHas(dateStr) ? '' : 'none';
   document.getElementById('jmodalOverlay').classList.add('open');
 }
 
@@ -1993,8 +2001,24 @@ function closeJournal() {
 
 function selectTag(el) {
   const tag = el.dataset.tag;
+  const wasSelected = el.classList.contains('sel-'+tag);
   document.querySelectorAll('.jtag').forEach(t => t.className='jtag');
-  el.classList.add('sel-'+tag);
+  if(!wasSelected) el.classList.add('sel-'+tag); // tocar de nuevo la opción activa la deselecciona
+}
+
+function deleteJournal() {
+  if(!currentJournalDate) return;
+  if(!confirm('¿Eliminar el journal de este día? Se borrará la etiqueta, la nota y el link del screenshot en todos tus dispositivos.')) return;
+  journalData[currentJournalDate] = { tag:'', note:'', img:'', saved: new Date().toISOString() };
+  saveJournalToStorage();
+  journalDirty.add(currentJournalDate); saveDirty();
+  pushJournalEntry(currentJournalDate);
+  document.querySelectorAll('.jtag').forEach(t => t.className='jtag');
+  document.getElementById('jnoteText').value = '';
+  document.getElementById('jimgLink').value = '';
+  previewImg();
+  closeJournal();
+  if(_journalSessions.length) renderCalendar(_journalSessions);
 }
 
 function saveJournal() {
@@ -2027,7 +2051,7 @@ async function openMonthlySummary() {
   el.innerHTML = `<div class="sum-loading"><div class="sum-dot"></div><div class="sum-dot"></div><div class="sum-dot"></div><span>Analizando tu journal con AI...</span></div>`;
 
   // Build journal digest
-  const entries = Object.entries(journalData).sort((a,b)=>a[0].localeCompare(b[0]));
+  const entries = Object.entries(journalData).filter(([d])=>journalHas(d)).sort((a,b)=>a[0].localeCompare(b[0]));
   if(!entries.length) {
     el.innerHTML = '<div style="color:var(--muted);font-size:12px;padding:12px 0;">No tienes entradas de journal todavía. Haz click en un día del calendario para añadir notas.</div>';
     return;
@@ -2139,7 +2163,7 @@ function renderCoach(m, sessions, balance, deposit) {
   if(m.comms/Math.abs(m.total||1)>0.3) tips.push({c:'w',l:'Comisiones Elevadas',t:`Las comisiones representan más del 30% del P&L. Considera negociar spreads o reducir frecuencia.`});
 
   // ── Journal reminder
-  const journalCount = Object.keys(journalData).length;
+  const journalCount = Object.keys(journalData).filter(journalHas).length;
   const sessionDates = [...new Set(sessions.map(s=>s.date))].length;
   if(journalCount < sessionDates * 0.5) tips.push({c:'p',l:'Journal Incompleto 📓',t:`Tienes notas en ${journalCount} de ${sessionDates} días con operativas. Haz click en cualquier día del calendario para añadir tu análisis. El resumen mensual AI será más útil cuantas más notas tengas.`});
 
