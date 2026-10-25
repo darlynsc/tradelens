@@ -713,7 +713,7 @@ input.jimglink:focus{border-color:var(--cyan);}
 
   <!-- EXPORT CSV -->
   <div style="display:flex;justify-content:flex-end;margin-bottom:20px;">
-    <button class="btn-csv" onclick="exportCSV()">⬇️ Export CSV — Todas las sesiones</button>
+    <button class="btn-csv" onclick="exportCSV()">⬇️ Export CSV — Todos los trades</button>
   </div>
 
   <!-- COACH -->
@@ -926,7 +926,7 @@ async function fetchAndRender(force) {
       document.getElementById('footerSync').textContent=new Date().toLocaleTimeString();
       renderAll(data);
     }
-    if(force) startSSE();
+    if(force) { startSSE(); syncJournal(); }
   } catch(e) {
     showMsg('No se pudo conectar: '+e.message,'error');
   }
@@ -950,6 +950,7 @@ function startSSE() {
         }).catch(_=>{});
     } catch(_){}
   };
+  sseSource.addEventListener('journal', () => syncJournal());
   sseSource.onerror = () => {
     sseSource.close(); sseSource=null;
     pollTimer = setTimeout(()=>fetchAndRender(true), 15000);
@@ -1045,8 +1046,31 @@ function buildSessions(deals) {
   return sessions.sort((a,b)=>a.startT-b.startT);
 }
 
+// ── DÍAS (1 día = 1 sesión) ────────────────────────────────────────────────────
+// Agrupa los trades (posiciones) por fecha. Cada día cuenta como UNA sesión,
+// sin importar cuántos trades se hayan abierto ese día.
+function buildDays(trades) {
+  const map={};
+  for(const t of trades){ (map[t.date]=map[t.date]||[]).push(t); }
+  return Object.entries(map).map(([date,ts])=>({
+    id:date, date, trades:ts.length,
+    sym:[...new Set(ts.map(t=>t.sym))].join('/'),
+    entries:ts.reduce((a,t)=>a+t.entries,0),
+    totalVol:+ts.reduce((a,t)=>a+t.totalVol,0).toFixed(2),
+    maxVol:Math.max(...ts.map(t=>t.maxVol)),
+    durMin:ts.reduce((a,t)=>a+t.durMin,0),
+    grossPnl:+ts.reduce((a,t)=>a+t.grossPnl,0).toFixed(2),
+    comm:+ts.reduce((a,t)=>a+t.comm,0).toFixed(2),
+    netPnl:+ts.reduce((a,t)=>a+t.netPnl,0).toFixed(2),
+    maxFloatDD:+ts.reduce((a,t)=>a+t.maxFloatDD,0).toFixed(2),
+    maxFloatWin:+ts.reduce((a,t)=>a+t.maxFloatWin,0).toFixed(2),
+    startT:Math.min(...ts.map(t=>t.startT))
+  })).sort((a,b)=>a.startT-b.startT);
+}
+
 // ── METRICS ────────────────────────────────────────────────────────────────────
-function calcMetrics(sessions) {
+function calcMetrics(sessions, trades) {
+  const T = trades || sessions; // T = trades individuales (para símbolos, duración, entradas)
   const n=sessions.length;
   if(!n) return null;
   const pnls=sessions.map(s=>s.netPnl);
@@ -1076,15 +1100,16 @@ function calcMetrics(sessions) {
   }
   for(const p of pnls){if(p>0){cWS++;cLS=0;mxWS=Math.max(mxWS,cWS);}else if(p<0){cLS++;cWS=0;mxLS=Math.max(mxLS,cLS);}else{cWS=0;cLS=0;}}
   const comms=sessions.reduce((a,s)=>a+Math.abs(s.comm),0);
-  const avgDur=sessions.reduce((a,s)=>a+s.durMin,0)/n;
-  const avgEntries=sessions.reduce((a,s)=>a+s.entries,0)/n;
-  const avgMaxVol=sessions.reduce((a,s)=>a+s.maxVol,0)/n;
-  const totalDD=sessions.reduce((a,s)=>a+s.maxFloatDD,0)/n;
+  const nT=T.length||1;
+  const avgDur=T.reduce((a,s)=>a+s.durMin,0)/nT;
+  const avgEntries=T.reduce((a,s)=>a+s.entries,0)/nT;
+  const avgMaxVol=T.reduce((a,s)=>a+s.maxVol,0)/nT;
+  const totalDD=T.reduce((a,s)=>a+s.maxFloatDD,0)/nT;
   const rf=maxDD>0?total/maxDD:0;
   const sharpe=(()=>{ const mean=total/n; const std=Math.sqrt(pnls.reduce((a,p)=>a+(p-mean)**2,0)/n); return std>0?mean/std*Math.sqrt(252):0; })();
   // Symbol breakdown
   const symMap={};
-  sessions.forEach(s=>{ symMap[s.sym]=(symMap[s.sym]||0)+s.netPnl; });
+  T.forEach(s=>{ symMap[s.sym]=(symMap[s.sym]||0)+s.netPnl; });
   return {n,total,wins:wins.length,losses:losses.length,avgWin,avgLoss,winPct,rr,pf,exp,equity,pnls,
     mxWS,mxLS,currentStreak,currentStreakType,comms,maxDD,peak,grossWin,grossLoss,rf,sharpe,
     avgDur,avgEntries,avgMaxVol,avgFloatDD:totalDD,symMap};
@@ -1097,23 +1122,24 @@ function renderAll(data) {
   requestNotificationPermission();
   const acc=data.account||{};
   const deals=(data.deals||[]).filter(d=>d.entry!=='BALANCE');
-  const sessions=buildSessions(deals);
-  _journalSessions = sessions;
-  const m=calcMetrics(sessions);
+  const trades=buildSessions(deals);   // cada posición = 1 trade
+  const sessions=buildDays(trades);    // cada día = 1 sesión
+  _journalSessions = trades;
+  const m=calcMetrics(sessions, trades);
   if(!m) return;
   const balance = acc.balance || 0;
-  renderAccBar(acc, sessions);
+  renderAccBar(acc, trades);
   renderKPIs(m, acc);
   renderStreaks(m);
   renderCharts(m, sessions);
   renderSymbols(m);
-  renderCalendar(sessions);
+  renderCalendar(trades);
   renderRiskScaling(balance);
   const dep = parseFloat(document.getElementById('riskDeposit')?.value) || balance || 1000;
   renderCoach(m, sessions, balance, dep);
   renderROIProjection(m, sessions, balance);
   checkDailyDrawdown(sessions, balance);
-  _lastSessions = sessions; _lastBalance = balance;
+  _lastSessions = sessions; _lastTrades = trades; _lastBalance = balance;
 }
 
 // ── ACCOUNT BAR ────────────────────────────────────────────────────────────────
@@ -1715,6 +1741,62 @@ function saveJournalToStorage() {
 }
 loadJournalData();
 
+// ── SINCRONIZACIÓN DEL JOURNAL CON LA NUBE ─────────────────────────────────────
+// El journal vive en el servidor; localStorage queda como copia local/offline.
+// Gana siempre la versión con `saved` más reciente (PC o teléfono).
+let journalDirty = new Set();
+try { JSON.parse(localStorage.getItem('tl_journal_dirty')||'[]').forEach(d=>journalDirty.add(d)); } catch(_){}
+function saveDirty() { try { localStorage.setItem('tl_journal_dirty', JSON.stringify([...journalDirty])); } catch(_){} }
+function journalUrl(path) { return `${serverURL}${path}?token=${encodeURIComponent(serverToken)}`; }
+let _journalSyncing = false;
+
+async function pushJournalEntry(day) {
+  const e = journalData[day];
+  if(!e || !serverURL || !serverToken) return false;
+  try {
+    const r = await fetch(journalUrl('/journal/'+day), {
+      method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(e)
+    });
+    if(!r.ok) return false;
+    journalDirty.delete(day); saveDirty();
+    return true;
+  } catch(_) { return false; }
+}
+
+async function syncJournal() {
+  if(!serverURL || !serverToken || _journalSyncing) return;
+  _journalSyncing = true;
+  try {
+    const r = await fetch(journalUrl('/journal'));
+    if(!r.ok) return;
+    const remote = (await r.json()).entries || {};
+    const editing = document.getElementById('jmodalOverlay')?.classList.contains('open');
+    let changed = false;
+    // 1) Traer lo más nuevo del servidor
+    for(const [day, e] of Object.entries(remote)) {
+      const l = journalData[day];
+      if(!l || (e.saved||'') > (l.saved||'')) {
+        if(editing && day === currentJournalDate) continue; // no pisar lo que estás editando
+        journalData[day] = e; journalDirty.delete(day); changed = true;
+      }
+    }
+    // 2) Subir lo local que el servidor no tiene o tiene más viejo
+    for(const [day, l] of Object.entries(journalData)) {
+      const e = remote[day];
+      if(!e || (l.saved||'') > (e.saved||'')) journalDirty.add(day);
+    }
+    saveDirty();
+    for(const day of [...journalDirty]) await pushJournalEntry(day);
+    if(changed) {
+      saveJournalToStorage();
+      if(typeof _calAllSessions !== 'undefined' && _calAllSessions.length) _renderCalendarForMonth(_calAllSessions, _calViewYear, _calViewMonth);
+    }
+  } catch(_) {
+  } finally { _journalSyncing = false; }
+}
+document.addEventListener('visibilitychange', () => { if(!document.hidden) syncJournal(); });
+setInterval(syncJournal, 60000);
+
 function openJournal(dateStr, daySessions) {
   currentJournalDate = dateStr;
   const entry = journalData[dateStr] || {};
@@ -1728,7 +1810,7 @@ function openJournal(dateStr, daySessions) {
   const dayWins = daySessions.filter(s=>s.netPnl>0).length;
   document.getElementById('jmodalStats').innerHTML = `
     <div class="jstat"><div class="jstat-l">P&L del Día</div><div class="jstat-v ${dayPnl>=0?'pos':'neg'}" style="color:${dayPnl>=0?'var(--green)':'var(--red)'}">${fmt$(dayPnl)}</div></div>
-    <div class="jstat"><div class="jstat-l">Sesiones</div><div class="jstat-v" style="color:var(--cyan)">${dayTrades}</div></div>
+    <div class="jstat"><div class="jstat-l">Trades</div><div class="jstat-v" style="color:var(--cyan)">${dayTrades}</div></div>
     <div class="jstat"><div class="jstat-l">Win Rate</div><div class="jstat-v" style="color:var(--cyan)">${dayTrades?((dayWins/dayTrades)*100).toFixed(0):0}%</div></div>
     <div class="jstat"><div class="jstat-l">Avg P&L</div><div class="jstat-v" style="color:${dayPnl>=0?'var(--green)':'var(--red)'}">${fmt$(dayTrades?dayPnl/dayTrades:0)}</div></div>
   `;
@@ -1762,6 +1844,8 @@ function saveJournal() {
   const img = document.getElementById('jimgLink').value.trim();
   journalData[currentJournalDate] = { tag, note, img, saved: new Date().toISOString() };
   saveJournalToStorage();
+  journalDirty.add(currentJournalDate); saveDirty();
+  pushJournalEntry(currentJournalDate);
   closeJournal();
   // Refresh calendar to show note badge
   if(_journalSessions.length) renderCalendar(_journalSessions);
@@ -1800,7 +1884,7 @@ async function openMonthlySummary() {
   const digest = entries.map(([date, e]) => {
     const pnl = (sessByDate[date]||[]).reduce((a,s)=>a+s.netPnl,0);
     const cnt = (sessByDate[date]||[]).length;
-    return `${date} | P&L: ${pnl>=0?'+':''}$${pnl.toFixed(2)} | ${cnt} sesión(es) | Etiqueta: ${tagLabels[e.tag]||'Sin etiqueta'} | Nota: ${e.note||'(sin nota)'}`;
+    return `${date} | P&L: ${pnl>=0?'+':''}$${pnl.toFixed(2)} | ${cnt} trade(s) | Etiqueta: ${tagLabels[e.tag]||'Sin etiqueta'} | Nota: ${e.note||'(sin nota)'}`;
   }).join('\n');
 
   try {
@@ -1885,7 +1969,7 @@ function renderCoach(m, sessions, balance, deposit) {
   }
 
   // ── Scaling behavior
-  if(m.avgEntries>2) tips.push({c:'p',l:'Scaling Activo 📈',t:`Promedio de ${m.avgEntries.toFixed(1)} entradas por sesión. Tu estilo de scaling funciona — asegúrate de que cada scale-in tiene justificación técnica clara.`});
+  if(m.avgEntries>2) tips.push({c:'p',l:'Scaling Activo 📈',t:`Promedio de ${m.avgEntries.toFixed(1)} entradas por trade. Tu estilo de scaling funciona — asegúrate de que cada scale-in tiene justificación técnica clara.`});
 
   // ── Sharpe
   if(m.sharpe>=1) tips.push({c:'g',l:'Sharpe Ratio Bueno ✅',t:`Sharpe ${m.sharpe.toFixed(2)} — Retorno ajustado al riesgo por encima de 1. Performance sólida y consistente.`});
@@ -1911,14 +1995,14 @@ function renderCoach(m, sessions, balance, deposit) {
 }
 
 // ── THEME TOGGLE ───────────────────────────────────────────────────────────────
-let _lastSessions = [], _lastBalance = 0;
+let _lastSessions = [], _lastTrades = [], _lastBalance = 0;
 function toggleTheme() {
   const isLight = document.body.classList.toggle('light');
   document.getElementById('themeToggle').textContent = isLight ? '☀️' : '🌙';
   try { localStorage.setItem('tl_theme', isLight ? 'light' : 'dark'); } catch(_){}
   // Rebuild charts with updated colors
   if(_lastSessions.length) {
-    const m = calcMetrics(_lastSessions);
+    const m = calcMetrics(_lastSessions, _lastTrades);
     if(m) renderCharts(m, _lastSessions);
   }
 }
@@ -1985,9 +2069,9 @@ function renderROIProjection(m, sessions, balance) {
 
 // ── EXPORT CSV ─────────────────────────────────────────────────────────────────
 function exportCSV() {
-  if(!_lastSessions.length) { alert('No hay sesiones cargadas.'); return; }
+  if(!_lastTrades.length) { alert('No hay trades cargados.'); return; }
   const headers = ['Fecha','Símbolo','Entradas','Volumen Total','Avg Entry','Exit Price','Gross P&L','Comisión','Net P&L','Duración (min)','Max Float DD','Max Float Win'];
-  const rows = _lastSessions.map(s => [
+  const rows = _lastTrades.map(s => [
     s.date, s.sym, s.entries, s.totalVol, s.avgEntry, s.exitPx,
     s.grossPnl.toFixed(2), s.comm.toFixed(2), s.netPnl.toFixed(2),
     s.durMin, s.maxFloatDD, s.maxFloatWin
@@ -1997,7 +2081,7 @@ function exportCSV() {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `TradeLens_sesiones_${new Date().toISOString().split('T')[0]}.csv`;
+  a.download = `TradeLens_trades_${new Date().toISOString().split('T')[0]}.csv`;
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
   URL.revokeObjectURL(url);
 }
