@@ -846,7 +846,7 @@ function connectLocalWS(onFirstData) {
         document.getElementById('connectPanel').style.display='none';
         document.getElementById('btnDisconnect').style.display='block';
         document.getElementById('dashboard').classList.add('on');
-        document.getElementById('lastSync').textContent=`⚡ Local · ${new Date().toLocaleTimeString()}`;
+        document.getElementById('lastSync').textContent='⚡ Servidor local';
         document.getElementById('footerSync').textContent=new Date().toLocaleTimeString();
         renderAll(data);
         if(onFirstData) { onFirstData(); onFirstData = null; }
@@ -1022,12 +1022,13 @@ function setSyncLabel(data) {
 function refreshSyncLabel() {
   const el = document.getElementById('lastSync'); if(!el || !serverToken) return;
   if(!_lastEaTs) { el.textContent = `Actualizado: ${new Date().toLocaleTimeString()}`; return; }
-  const mins = (Date.now() - _lastEaTs) / 60000;
-  const when = mins < 1440 ? _lastEaTs.toLocaleTimeString() : _lastEaTs.toLocaleString();
-  el.textContent = mins >= 5 ? `🟠 EA desconectada · último dato: ${_lastEaTs.toLocaleString()}` : `🟢 EA en vivo · ${when}`;
+  // La EA solo envía datos cuando pasa algo (trade, cambio de equity), así que no se puede saber
+  // si está "en vivo". Mostramos únicamente cuándo llegó el último dato.
+  const sameDay = _lastEaTs.toDateString() === new Date().toDateString();
+  const txt = sameDay ? _lastEaTs.toLocaleTimeString() : _lastEaTs.toLocaleString();
+  el.textContent = `Último dato: ${txt}`;
   document.getElementById('footerSync').textContent = _lastEaTs.toLocaleString();
 }
-setInterval(refreshSyncLabel, 30000);
 
 // ── SESSION PERSISTENCE ────────────────────────────────────────────────────────
 function saveSession() {
