@@ -70,6 +70,49 @@ header{
 @keyframes blink{0%,100%{opacity:1}50%{opacity:0.3}}
 .last-sync{font-size:10px;color:var(--muted);}
 
+/* MENÚ HAMBURGUESA */
+.header-right{min-width:0;}
+.menu-wrap{position:relative;flex-shrink:0;}
+.menu-btn{
+  background:var(--s2);border:1px solid var(--b2);color:var(--text);
+  width:40px;height:40px;border-radius:10px;cursor:pointer;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;transition:.2s;padding:0;
+}
+.menu-btn:hover,.menu-btn[aria-expanded="true"]{border-color:var(--cyan);}
+.menu-btn span{display:block;width:18px;height:2px;border-radius:2px;background:var(--text);}
+.menu-pop{
+  display:none;position:absolute;right:0;top:calc(100% + 8px);min-width:210px;z-index:300;
+  background:var(--s1);border:1px solid var(--b2);border-radius:12px;padding:6px;
+  box-shadow:0 12px 40px rgba(0,0,0,0.55);
+}
+.menu-pop.open{display:block;}
+.menu-item{
+  display:flex;align-items:center;gap:10px;width:100%;text-align:left;
+  background:none;border:none;color:var(--text);font-family:var(--font-mono);font-size:13px;
+  padding:12px 14px;border-radius:8px;cursor:pointer;transition:.15s;
+}
+.menu-item:hover{background:var(--s2);color:var(--cyan);}
+.menu-item.danger{color:var(--red);}
+.menu-item.danger:hover{background:rgba(255,51,85,0.1);color:var(--red);}
+.menu-sep{height:1px;background:var(--b1);margin:4px 6px;}
+
+/* JOURNAL: imágenes subidas */
+.jimg-label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin:14px 0 6px;}
+.jimg-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
+.jimg-add{background:rgba(0,229,255,0.1);color:var(--cyan);border:1px solid rgba(0,229,255,0.3);padding:9px 16px;border-radius:8px;font-family:var(--font-head);font-weight:600;font-size:12px;cursor:pointer;transition:.2s;}
+.jimg-add:hover{background:rgba(0,229,255,0.18);}
+.jimg-add[disabled]{opacity:.5;cursor:default;}
+.jimg-trade{background:var(--s2);border:1px solid var(--b2);color:var(--text);padding:8px 10px;border-radius:8px;font-family:var(--font-mono);font-size:11px;max-width:100%;}
+.jimg-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;margin-top:10px;}
+.jimg-item{position:relative;border:1px solid var(--b2);border-radius:8px;overflow:hidden;background:var(--s2);aspect-ratio:4/3;}
+.jimg-item img{width:100%;height:100%;object-fit:cover;display:block;cursor:zoom-in;}
+.jimg-item .jimg-x{position:absolute;top:4px;right:4px;width:24px;height:24px;border-radius:50%;border:none;background:rgba(0,0,0,0.7);color:#fff;cursor:pointer;font-size:13px;line-height:1;}
+.jimg-item .jimg-badge{position:absolute;left:4px;bottom:4px;font-size:9px;padding:2px 6px;border-radius:10px;background:rgba(0,0,0,0.7);color:#fff;}
+.jimg-msg{font-size:11px;margin-top:8px;min-height:14px;}
+.jimg-viewer{position:fixed;inset:0;background:rgba(0,0,0,0.92);z-index:400;display:none;align-items:center;justify-content:center;padding:16px;}
+.jimg-viewer.open{display:flex;}
+.jimg-viewer img{max-width:100%;max-height:100%;object-fit:contain;}
+
 /* CONNECT PANEL */
 .connect-panel{
   background:var(--s1);border:1px solid var(--b1);border-radius:16px;
@@ -412,7 +455,10 @@ input.jimglink:focus{border-color:var(--cyan);}
   .wrap{padding:12px 14px;}
 
   /* Header */
-  header{padding:12px 0 16px;margin-bottom:16px;flex-wrap:wrap;gap:10px;}
+  header{padding:12px 0 16px;margin-bottom:16px;gap:10px;flex-wrap:nowrap;}
+  .header-right{gap:10px;}
+  #connBadge{display:none;}
+  .menu-pop{right:0;min-width:200px;max-width:calc(100vw - 28px);}
   .logo-mark{width:36px;height:36px;font-size:16px;}
   .logo-text h1{font-size:18px;}
   .logo-text p{display:none;}
@@ -535,9 +581,15 @@ input.jimglink:focus{border-color:var(--cyan);}
   <div class="header-right">
     <div class="last-sync" id="lastSync">Sin conexión</div>
     <div id="connBadge" style="font-size:10px;padding:4px 10px;border:1px solid transparent;border-radius:20px;color:var(--muted);">Sin conexión</div>
-    <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Cambiar tema">🌙</button>
-    <button class="btn" id="btnAccount" style="font-size:11px;padding:6px 12px;" onclick="openAccount()" title="Usuario y contraseña">👤 Cuenta</button>
-    <button class="btn btn-danger" id="btnDisconnect" style="display:none;font-size:11px;padding:6px 12px;" onclick="clearSession()">✕ Desconectar</button>
+    <div class="menu-wrap" id="menuWrap">
+      <button class="menu-btn" id="menuBtn" aria-label="Menú" aria-haspopup="true" aria-expanded="false" onclick="toggleMenu(event)"><span></span><span></span><span></span></button>
+      <div class="menu-pop" id="menuPop" role="menu">
+        <button class="menu-item" id="btnAccount" role="menuitem" onclick="menuAction('account')">👤 Cuenta</button>
+        <button class="menu-item" id="themeToggle" role="menuitem" onclick="menuAction('theme')">☀️ Modo claro</button>
+        <div class="menu-sep"></div>
+        <button class="menu-item danger" id="btnDisconnect" role="menuitem" style="display:none;" onclick="menuAction('logout')">✕ Desconectar</button>
+      </div>
+    </div>
   </div>
 </header>
 
@@ -621,8 +673,17 @@ input.jimglink:focus{border-color:var(--cyan);}
   <div class="sec-label green">Performance & Estadísticas</div>
   <div class="kpi-grid" id="kpi2"></div>
 
+  <!-- NIVEL CAMPAÑA -->
+  <div class="sec-label purple">Por Campaña (idea operativa · scaling in)</div>
+  <div class="kpi-grid" id="kpiC"></div>
+  <div id="campNote" style="font-size:10px;color:var(--muted);line-height:1.6;margin:-6px 0 18px;"></div>
+
+  <!-- NIVEL DÍA -->
+  <div class="sec-label green">Por Día Operativo (sesión)</div>
+  <div class="kpi-grid" id="kpiD"></div>
+
   <!-- RACHA ACTUAL + MAX RACHAS -->
-  <div class="sec-label purple">Rachas</div>
+  <div class="sec-label purple">Rachas de Días Operativos</div>
   <div class="streak-row" id="streakRow"></div>
 
   <!-- EQUITY CURVE -->
@@ -636,7 +697,7 @@ input.jimglink:focus{border-color:var(--cyan);}
   <!-- DRAWDOWN + PROGRESS BARS -->
   <div class="charts-2" style="margin-bottom:16px;">
     <div class="chart-box">
-      <div class="chart-title">Drawdown Flotante</div>
+      <div class="chart-title">Drawdown — Resultados Realizados (diario)</div>
       <canvas id="ddChart"></canvas>
     </div>
     <div class="chart-box">
@@ -648,25 +709,33 @@ input.jimglink:focus{border-color:var(--cyan);}
   <!-- WIN/LOSS + DAY + MONTHLY -->
   <div class="charts-2" style="margin-bottom:16px;">
     <div class="chart-box">
-      <div class="chart-title">Distribución Win / Loss</div>
+      <div class="chart-title">Distribución Win / Loss — por posición</div>
       <canvas id="wlChart"></canvas>
     </div>
     <div class="chart-box">
-      <div class="chart-title">P&L por Día de la Semana</div>
+      <div class="chart-title" id="dayChartTitle">P&L por Día — Semana Actual</div>
       <canvas id="dayChart"></canvas>
     </div>
   </div>
   <!-- MONTHLY BAR -->
   <div class="chart-box span2" style="margin-bottom:16px;">
     <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:14px;">
-      <div class="chart-title" style="margin-bottom:0;">Rendimiento Mensual</div>
-      <div style="display:flex;gap:12px;font-size:10px;color:var(--muted);">
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+        <div class="chart-title" style="margin-bottom:0;">Rendimiento Mensual</div>
+        <div class="cal-nav">
+          <button class="cal-nav-btn" id="monthPrevBtn" onclick="monthNavYear(-1)" title="Año anterior">&#8249;</button>
+          <span class="cal-month-label" id="monthYearLabel" style="min-width:48px;">—</span>
+          <button class="cal-nav-btn" id="monthNextBtn" onclick="monthNavYear(1)" title="Año siguiente">&#8250;</button>
+        </div>
+      </div>
+      <div style="display:flex;gap:12px;font-size:10px;color:var(--muted);flex-wrap:wrap;">
         <span id="monthlyWinCount" style="color:var(--green);"></span>
         <span id="monthlyLossCount" style="color:var(--red);"></span>
         <span id="monthlyBestMonth"></span>
       </div>
     </div>
     <canvas id="monthlyChart" style="max-height:220px;"></canvas>
+    <div id="monthlyEmpty" style="display:none;text-align:center;padding:36px 0;font-size:12px;color:var(--muted);">Sin meses operados todavía</div>
   </div>
 
   <!-- MEJOR / PEOR SÍMBOLO -->
@@ -685,11 +754,11 @@ input.jimglink:focus{border-color:var(--cyan);}
   <!-- CALENDAR -->
   <div class="cal-wrap">
     <div class="cal-header">
-      <div class="chart-title">Calendario de P&L — Sesiones</div>
+      <div class="chart-title">Calendario de P&L — Resultado Neto por Día</div>
       <div class="cal-nav">
         <button class="cal-nav-btn" onclick="calNavMonth(-1)" title="Mes anterior">&#8249;</button>
         <span class="cal-month-label" id="calMonthLabel">—</span>
-        <button class="cal-nav-btn" onclick="calNavMonth(1)" title="Mes siguiente">&#8250;</button>
+        <button class="cal-nav-btn" id="calNextBtn" onclick="calNavMonth(1)" title="Mes siguiente">&#8250;</button>
       </div>
     </div>
     <div class="cal-consistency" id="calConsistency"></div>
@@ -743,7 +812,7 @@ input.jimglink:focus{border-color:var(--cyan);}
 
   <!-- EXPORT CSV -->
   <div style="display:flex;justify-content:flex-end;margin-bottom:20px;">
-    <button class="btn-csv" onclick="exportCSV()">⬇️ Export CSV — Todos los trades</button>
+    <button class="btn-csv" onclick="exportCSV()">⬇️ Export CSV — Todas las posiciones</button>
   </div>
 
   <!-- COACH -->
@@ -765,9 +834,15 @@ input.jimglink:focus{border-color:var(--cyan);}
       </div>
       <div class="jnote-label">Notas de la sesión</div>
       <textarea class="jnote" id="jnoteText" placeholder="Describe qué viste en el mercado, por qué entraste, cómo escalaste, qué salió bien o mal..."></textarea>
-      <div class="jimglink-label">Link de screenshot (opcional — sube a Imgur o Drive y pega el link)</div>
-      <input class="jimglink" id="jimgLink" type="text" placeholder="https://i.imgur.com/..." oninput="previewImg()"/>
-      <div class="jimgpreview" id="jimgPreview"><img id="jimgImg" src="" alt="screenshot"/></div>
+      <div class="jimg-label">Capturas (opcional)</div>
+      <div class="jimg-actions">
+        <button class="jimg-add" id="jimgAddBtn" type="button" onclick="document.getElementById('jimgFile').click()">📷 Subir imagen</button>
+        <select class="jimg-trade" id="jimgTrade" title="Operación relacionada (opcional)"></select>
+      </div>
+      <input type="file" id="jimgFile" accept="image/jpeg,image/png,image/webp,image/gif" multiple style="display:none" onchange="onImgPicked(this)"/>
+      <div class="jimg-msg" id="jimgMsg"></div>
+      <div class="jimg-grid" id="jimgGrid"></div>
+      <div id="jimgLegacy" style="margin-top:8px;font-size:10px;color:var(--muted);"></div>
       <div class="jbtn-row">
         <button class="jbtn-del" id="jbtnDel" onclick="deleteJournal()">🗑️ Eliminar journal</button>
         <button class="jbtn-summary" onclick="openMonthlySummary()">📊 Resumen del Mes con AI</button>
@@ -784,6 +859,8 @@ input.jimglink:focus{border-color:var(--cyan);}
       <div id="sumContent"></div>
     </div>
   </div>
+
+  <div class="jimg-viewer" id="jimgViewer" onclick="closeImgViewer()"><img id="jimgViewerImg" alt="captura"/></div>
 
   <div style="text-align:center;padding:20px 0;font-size:10px;color:var(--muted);">
     TradeLens Analytics · Actualización por evento (solo cuando cambia tu operativa) · <span id="footerSync">—</span>
@@ -805,6 +882,17 @@ const DEFAULT_SERVER = 'https://tradelens-server.onrender.com';
 let serverURL = '', serverToken = '', pollTimer = null;
 let charts = {};
 let lastDealCount = -1;
+let _brokerToday='', _lastAcc={}, _dataAgeSec=null, _isDemo=false;
+// Fecha "de hoy" coherente con las sesiones: fecha del servidor del bróker, avanzada con el reloj real.
+// offset = hora del bróker (EA) − hora real del envío; así el día cambia solo aunque la EA no envíe datos.
+let _brokerOffsetMs=null;
+function todayStr(){
+  if(_brokerOffsetMs==null) return ymd(new Date());
+  return new Date(Date.now()+_brokerOffsetMs).toISOString().slice(0,10);
+}
+const ymd=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+const fx=(v,d=2)=>(v==null||!isFinite(v))?'n/d':v.toFixed(d);
+const fxPF=v=>v==null?'n/d':(v===Infinity?'∞':v.toFixed(2));
 let sseSource = null;
 
 // ── HYBRID: WebSocket local ────────────────────────────────────────────────────
@@ -1103,6 +1191,7 @@ function startSSE() {
     try {
       const msg = JSON.parse(e.data);
       if(msg.reason === 'init') return; // estado inicial, no re-renderizar
+      if(msg.reason === 'heartbeat'){ if(msg.account){ Object.assign(_lastAcc,msg.account); _dataAgeSec=0; renderAccBar(_lastAcc,_lastTrades,_isDemo); checkDailyDrawdown(); } return; }
       // Actualizar SIEMPRE que llegue un evento del EA (cierre, apertura, balance, deal)
       if(msg.deals_count !== undefined) lastDealCount = msg.deals_count;
       fetch(`${serverURL}/data?token=${encodeURIComponent(serverToken)}`)
@@ -1129,7 +1218,7 @@ function showMsg(txt, type) {
 
 // ── DEMO ───────────────────────────────────────────────────────────────────────
 function loadDemo() {
-  const data = generateDemo();
+  const data = generateDemo(); data._demo = true;
   lastDealCount = (data.deals||[]).filter(d=>d.entry!=='BALANCE').length;
   document.getElementById('connectPanel').style.display='none';
   document.getElementById('lastSync').textContent=`Demo · ${new Date().toLocaleTimeString()}`;
@@ -1177,7 +1266,8 @@ function generateDemo() {
 }
 
 // ── SESSIONS ───────────────────────────────────────────────────────────────────
-function buildSessions(deals) {
+function buildSessions(deals, openIds, exc) {
+  openIds=openIds||new Set(); exc=exc||{};
   const posMap={};
   for(const d of deals){ if(!posMap[d.position_id]) posMap[d.position_id]=[]; posMap[d.position_id].push(d); }
   const sessions=[];
@@ -1185,97 +1275,189 @@ function buildSessions(deals) {
     ds.sort((a,b)=>a.time-b.time);
     const entries=ds.filter(d=>d.entry==='IN'||d.entry==='INOUT');
     const exits=ds.filter(d=>d.entry==='OUT'||d.entry==='INOUT');
-    if(!entries.length) continue;
-    const sym=entries[0].symbol;
-    const totalVol=entries.reduce((a,b)=>a+b.volume,0);
-    const avgEntry=entries.reduce((a,b)=>a+b.price*b.volume,0)/totalVol;
-    const exitPx=exits.length?exits.reduce((a,b)=>a+b.price*b.volume,0)/exits.reduce((a,b)=>a+b.volume,0):0;
+    if(!exits.length||openIds.has(String(pid))) continue; // solo operaciones cerradas
+    const ref=entries.length?entries:exits; // sin deal de entrada (abierta antes del historial): se usa la salida
+    const sym=ref[0].symbol;
+    const totalVol=ref.reduce((a,b)=>a+b.volume,0);
+    const avgEntry=entries.length?entries.reduce((a,b)=>a+b.price*b.volume,0)/totalVol:0;
+    const exVol=exits.reduce((a,b)=>a+b.volume,0);
+    const exitPx=exVol?exits.reduce((a,b)=>a+b.price*b.volume,0)/exVol:0;
     const grossPnl=ds.reduce((a,b)=>a+b.profit,0);
     const comm=ds.reduce((a,b)=>a+b.commission,0);
     const swap=ds.reduce((a,b)=>a+b.swap,0);
     const netPnl=grossPnl+comm+swap;
-    const startT=entries[0].time;
-    const endT=exits.length?exits[exits.length-1].time:entries[entries.length-1].time;
+    const startT=ref[0].time;
+    const endT=exits[exits.length-1].time;
     const durMin=Math.round((endT-startT)/60);
-    const maxVol=Math.max(...entries.map((_,i)=>entries.slice(0,i+1).reduce((a,b)=>a+b.volume,0)));
-    const date=new Date(startT*1000).toISOString().split('T')[0];
-    const maxFloatDD=+(Math.abs(netPnl)*Math.random()*1.8).toFixed(2);
-    const maxFloatWin=+(Math.abs(netPnl)*(1+Math.random())).toFixed(2);
-    sessions.push({id:pid,date,sym,entries:entries.length,avgEntry:+avgEntry.toFixed(5),
+    const maxVol=entries.length?Math.max(...entries.map((_,i)=>entries.slice(0,i+1).reduce((a,b)=>a+b.volume,0))):totalVol;
+    // Fecha operativa = día del servidor del bróker en que se CIERRA la posición (resultado realizado).
+    // Los deals llevan hora del servidor codificada como epoch: toISOString() la lee sin convertir zona.
+    const date=new Date(endT*1000).toISOString().split('T')[0];
+    const x=exc[pid]; // MAE/MFE solo si la EA los midió desde la apertura (ob=1); nunca estimados
+    const xok=x&&+x.ob===1;
+    const maxFloatDD=xok?+Math.abs(+x.mae||0).toFixed(2):null;
+    const maxFloatWin=xok?+(+x.mfe||0).toFixed(2):null;
+    const risk0=xok&&+x.risk>0?+x.risk:null; // solo si la EA vio la apertura y ya había SL
+    sessions.push({id:pid,date,sym,side:ref[0].type,entries:entries.length,avgEntry:+avgEntry.toFixed(5),
       exitPx:+exitPx.toFixed(5),totalVol:+totalVol.toFixed(2),maxVol:+maxVol.toFixed(2),
-      durMin,grossPnl:+grossPnl.toFixed(2),comm:+comm.toFixed(2),netPnl:+netPnl.toFixed(2),
-      maxFloatDD,maxFloatWin,startT});
+      durMin,grossPnl:+grossPnl.toFixed(2),comm:+comm.toFixed(2),swap:+swap.toFixed(2),netPnl:+netPnl.toFixed(2),
+      risk0,r:risk0?+(netPnl/risk0).toFixed(2):null,maxFloatDD,maxFloatWin,startT,endT,partialHistory:!entries.length});
   }
   return sessions.sort((a,b)=>a.startT-b.startT);
 }
 
-// ── DÍAS (1 día = 1 sesión) ────────────────────────────────────────────────────
-// Agrupa los trades (posiciones) por fecha. Cada día cuenta como UNA sesión,
-// sin importar cuántos trades se hayan abierto ese día.
+// ── NIVEL DÍA (1 día operativo = 1 sesión) ─────────────────────────────────────
+// Regla única de fecha: el resultado REALIZADO de una posición (profit + comisión + swap) se asigna
+// al día del servidor del bróker en que se CIERRA. Una posición que cruza la medianoche o tiene varios
+// cierres cuenta una sola vez, en su día de cierre; no se crean días ficticios. Los flotantes no entran.
+// Día neutral = neto exactamente 0 (ni ganador ni perdedor; corta la racha activa).
 function buildDays(trades) {
   const map={};
   for(const t of trades){ (map[t.date]=map[t.date]||[]).push(t); }
-  return Object.entries(map).map(([date,ts])=>({
-    id:date, date, trades:ts.length,
-    sym:[...new Set(ts.map(t=>t.sym))].join('/'),
-    entries:ts.reduce((a,t)=>a+t.entries,0),
-    totalVol:+ts.reduce((a,t)=>a+t.totalVol,0).toFixed(2),
-    maxVol:Math.max(...ts.map(t=>t.maxVol)),
-    durMin:ts.reduce((a,t)=>a+t.durMin,0),
-    grossPnl:+ts.reduce((a,t)=>a+t.grossPnl,0).toFixed(2),
-    comm:+ts.reduce((a,t)=>a+t.comm,0).toFixed(2),
-    netPnl:+ts.reduce((a,t)=>a+t.netPnl,0).toFixed(2),
-    maxFloatDD:+ts.reduce((a,t)=>a+t.maxFloatDD,0).toFixed(2),
-    maxFloatWin:+ts.reduce((a,t)=>a+t.maxFloatWin,0).toFixed(2),
-    startT:Math.min(...ts.map(t=>t.startT))
-  })).sort((a,b)=>a.startT-b.startT);
+  return Object.entries(map).map(([date,ts])=>{
+    const net=+ts.reduce((a,t)=>a+t.netPnl,0).toFixed(2);
+    return {id:date,date,trades:ts.length,
+      sym:[...new Set(ts.map(t=>t.sym))].join('/'),
+      entries:ts.reduce((a,t)=>a+t.entries,0),
+      totalVol:+ts.reduce((a,t)=>a+t.totalVol,0).toFixed(2),
+      grossPnl:+ts.reduce((a,t)=>a+t.grossPnl,0).toFixed(2),
+      comm:+ts.reduce((a,t)=>a+t.comm,0).toFixed(2),
+      netPnl:net, cls:net>0?'win':net<0?'loss':'be',
+      wins:ts.filter(t=>t.netPnl>0).length, losses:ts.filter(t=>t.netPnl<0).length,
+      tradeObjs:ts, startT:Math.min(...ts.map(t=>t.startT))};
+  }).sort((a,b)=>a.date<b.date?-1:1);
+}
+
+// ── NIVEL CAMPAÑA (idea operativa con scaling in) ──────────────────────────────
+// Regla verificable con el historial: posiciones del MISMO símbolo y MISMO sentido cuyas vidas se
+// solapan en el tiempo (una se abrió mientras otra seguía abierta) pertenecen a la misma campaña.
+// Una posición neteada con varias entradas (mismo position_id) ya es una sola unidad.
+// No se agrupa nada más. Si la EA midió la campaña con exactamente el mismo conjunto de posiciones,
+// se usan sus MAE/MFE del resultado combinado; si no, n/d.
+function buildCampaigns(trades, campaignsEA) {
+  const groups={};
+  for(const t of trades){ (groups[t.sym+'|'+t.side]=groups[t.sym+'|'+t.side]||[]).push(t); }
+  const out=[];
+  for(const arr of Object.values(groups)){
+    arr.sort((a,b)=>a.startT-b.startT);
+    let cur=null;
+    for(const t of arr){
+      if(cur && t.startT<=cur.endT){ cur.ts.push(t); cur.endT=Math.max(cur.endT,t.endT); }
+      else { if(cur) out.push(cur); cur={ts:[t],endT:t.endT}; }
+    }
+    if(cur) out.push(cur);
+  }
+  const eaMap={}; (campaignsEA||[]).forEach(c=>{ eaMap[String(c.pids.split(';').filter(Boolean).sort().join(';'))]=c; });
+  return out.map(c=>{
+    const ts=c.ts.sort((a,b)=>a.startT-b.startT);
+    const net=+ts.reduce((a,t)=>a+t.netPnl,0).toFixed(2);
+    const risks=ts.map(t=>t.risk0);
+    const riskKnown=risks.every(r=>r!=null&&r>0);
+    const risk0=riskKnown?+risks.reduce((a,b)=>a+b,0).toFixed(2):null;
+    const ea=eaMap[ts.map(t=>String(t.id)).sort().join(';')];
+    const eaOk=ea&&+ea.ob===1;
+    const endT=Math.max(...ts.map(t=>t.endT));
+    return {id:ts[0].id,positions:ts.length,ids:ts.map(t=>t.id),sym:ts[0].sym,side:ts[0].side,
+      date:new Date(endT*1000).toISOString().split('T')[0],startT:ts[0].startT,endT,
+      entries:ts.reduce((a,t)=>a+t.entries,0),totalVol:+ts.reduce((a,t)=>a+t.totalVol,0).toFixed(2),
+      netPnl:net,risk0,r:risk0?+(net/risk0).toFixed(2):null,
+      mae:eaOk?+Math.abs(+ea.mae||0).toFixed(2):null, mfe:eaOk?+(+ea.mfe||0).toFixed(2):null,
+      scaled:ts.length>1||ts.some(t=>t.entries>1)};
+  }).sort((a,b)=>a.startT-b.startT);
+}
+
+// ── RACHAS DE DÍAS OPERATIVOS ──────────────────────────────────────────────────
+// Solo cuenta días con actividad, según su resultado neto. Los días sin operaciones no existen
+// en la serie (no rompen la racha). Un día neutral (neto 0) corta la racha activa.
+function calcDayStreaks(days) {
+  const best={win:null,loss:null};
+  let run=null; const closeRun=()=>{
+    if(!run||run.type==='be') return;
+    if(!best[run.type]||run.count>best[run.type].count) best[run.type]={...run};
+  };
+  for(const d of days){
+    const type=d.netPnl>0?'win':d.netPnl<0?'loss':'be';
+    if(run&&run.type===type&&type!=='be'){ run.count++; run.net=+(run.net+d.netPnl).toFixed(2); run.end=d.date; }
+    else { closeRun(); run={type,count:type==='be'?0:1,net:type==='be'?0:d.netPnl,start:d.date,end:d.date}; }
+  }
+  const current=run&&run.type!=='be'?{...run}:{type:'none',count:0,net:0,start:null,end:null};
+  closeRun();
+  return {current,bestWin:best.win,bestLoss:best.loss};
 }
 
 // ── METRICS ────────────────────────────────────────────────────────────────────
-function calcMetrics(sessions, trades) {
-  const T = trades || sessions; // T = trades individuales (para símbolos, duración, entradas)
-  const n=sessions.length;
+// Tres niveles, nunca mezclados:
+//  · POSICIÓN (T): win rate, PF, expectancy, medias, payoff, R, MAE/MFE y rachas de posiciones.
+//  · CAMPAÑA  (C): mismas métricas sobre el neto combinado de cada idea (scaling in).
+//  · DÍA      (D): clasificación diaria, rachas de días, curva realizada, drawdown, RF y Sharpe diario.
+const _sum=a=>a.reduce((x,y)=>x+y,0);
+function statBlock(pn){ // estadísticas sobre una lista de resultados netos (posiciones o campañas)
+  const n=pn.length; if(!n) return null;
+  const wins=pn.filter(p=>p>0), losses=pn.filter(p=>p<0);
+  const grossWin=_sum(wins), grossLoss=Math.abs(_sum(losses));
+  const avgWin=wins.length?grossWin/wins.length:null;
+  const avgLoss=losses.length?-grossLoss/losses.length:null;
+  return {n,wins:wins.length,losses:losses.length,be:n-wins.length-losses.length,grossWin,grossLoss,avgWin,avgLoss,
+    winPct:wins.length/n*100,
+    rr:(avgWin!=null&&avgLoss!=null)?avgWin/Math.abs(avgLoss):null,
+    pf:grossLoss>0?grossWin/grossLoss:(grossWin>0?Infinity:null),
+    exp:_sum(pn)/n,total:_sum(pn)};
+}
+function calcMetrics(days, trades, balance, extra) {
+  const T=trades||[]; const n=T.length;
   if(!n) return null;
-  const pnls=sessions.map(s=>s.netPnl);
-  const total=pnls.reduce((a,b)=>a+b,0);
-  const wins=sessions.filter(s=>s.netPnl>0);
-  const losses=sessions.filter(s=>s.netPnl<0);
-  const avgWin=wins.length?wins.reduce((a,s)=>a+s.netPnl,0)/wins.length:0;
-  const avgLoss=losses.length?losses.reduce((a,s)=>a+s.netPnl,0)/losses.length:0;
-  const winPct=n?wins.length/n*100:0;
-  const rr=avgLoss!==0?Math.abs(avgWin/avgLoss):0;
-  const grossWin=wins.reduce((a,s)=>a+s.netPnl,0);
-  const grossLoss=Math.abs(losses.reduce((a,s)=>a+s.netPnl,0));
-  const pf=grossLoss>0?grossWin/grossLoss:grossWin>0?99:0;
-  const exp=(winPct/100)*avgWin-((100-winPct)/100)*Math.abs(avgLoss);
-  let peak=0,maxDD=0,run=0; const equity=[];
-  for(const p of pnls){run+=p;equity.push(run);if(run>peak)peak=run;const dd=peak-run;if(dd>maxDD)maxDD=dd;}
-  let mxWS=0,mxLS=0,cWS=0,cLS=0;
-  // Racha actual (desde el final hacia atrás)
-  let currentStreak=0, currentStreakType='none';
-  const rev=[...pnls].reverse();
-  if(rev.length){
-    currentStreakType=rev[0]>0?'win':rev[0]<0?'loss':'none';
-    for(const p of rev){
-      if((p>0&&currentStreakType==='win')||(p<0&&currentStreakType==='loss')) currentStreak++;
-      else break;
-    }
+  extra=extra||{};
+  const P=statBlock(T.map(t=>t.netPnl));                       // nivel posición
+  const camps=extra.campaigns||[];
+  const C=statBlock(camps.map(c=>c.netPnl));                   // nivel campaña
+  const D=days||[]; const dpn=D.map(s=>s.netPnl);              // nivel día
+  const total=P.total;
+  // racha de POSICIONES (estadística distinta de las rachas de días)
+  let mxPW=0,mxPL=0,cW=0,cL=0;
+  for(const t of T){const p=t.netPnl;if(p>0){cW++;cL=0;mxPW=Math.max(mxPW,cW);}else if(p<0){cL++;cW=0;mxPL=Math.max(mxPL,cL);}else{cW=0;cL=0;}}
+  // curva REALIZADA diaria y su drawdown (RF sobre la misma curva)
+  let acc=0,peak=0,maxDD=0; const equity=dpn.map(p=>(acc+=p));
+  for(const e of equity){ if(e>peak)peak=e; if(peak-e>maxDD)maxDD=peak-e; }
+  const rf=maxDD>0?total/maxDD:null;
+  // Sharpe diario: retorno del día = neto del día / capital al inicio del día (balance previo + depósitos/retiros hasta ese día).
+  // Solo días con operaciones (sin días ficticios a 0), σ muestral, √252, rf=0. n/d si falta la base de capital.
+  const cash=(extra.cashflows||[]).map(c=>({d:new Date(c.time*1000).toISOString().split('T')[0],a:+c.amount||0}));
+  const cashKnown=extra.cashflows!==undefined;
+  const cashTotal=_sum(cash.map(c=>c.a));
+  const initial=balance!=null?balance-total-cashTotal:null;
+  let sharpe=null;
+  if(initial!=null&&D.length>=2){
+    let cum=0,ok=true;
+    const rets=D.map(d=>{
+      const base=initial+cum+_sum(cash.filter(c=>c.d<=d.date).map(c=>c.a));
+      if(!(base>0)) ok=false;
+      const r=d.netPnl/base; cum+=d.netPnl; return r;});
+    if(ok){ const mean=_sum(rets)/rets.length, sd=Math.sqrt(_sum(rets.map(r=>(r-mean)**2))/(rets.length-1));
+      if(sd>0) sharpe=mean/sd*Math.sqrt(252); }
   }
-  for(const p of pnls){if(p>0){cWS++;cLS=0;mxWS=Math.max(mxWS,cWS);}else if(p<0){cLS++;cWS=0;mxLS=Math.max(mxLS,cLS);}else{cWS=0;cLS=0;}}
-  const comms=sessions.reduce((a,s)=>a+Math.abs(s.comm),0);
-  const nT=T.length||1;
-  const avgDur=T.reduce((a,s)=>a+s.durMin,0)/nT;
-  const avgEntries=T.reduce((a,s)=>a+s.entries,0)/nT;
-  const avgMaxVol=T.reduce((a,s)=>a+s.maxVol,0)/nT;
-  const totalDD=T.reduce((a,s)=>a+s.maxFloatDD,0)/nT;
-  const rf=maxDD>0?total/maxDD:0;
-  const sharpe=(()=>{ const mean=total/n; const std=Math.sqrt(pnls.reduce((a,p)=>a+(p-mean)**2,0)/n); return std>0?mean/std*Math.sqrt(252):0; })();
-  // Symbol breakdown
-  const symMap={};
-  T.forEach(s=>{ symMap[s.sym]=(symMap[s.sym]||0)+s.netPnl; });
-  return {n,total,wins:wins.length,losses:losses.length,avgWin,avgLoss,winPct,rr,pf,exp,equity,pnls,
-    mxWS,mxLS,currentStreak,currentStreakType,comms,maxDD,peak,grossWin,grossLoss,rf,sharpe,
-    avgDur,avgEntries,avgMaxVol,avgFloatDD:totalDD,symMap};
+  const dates=T.map(t=>t.date).sort(); const span=Math.max(1,Math.round((Date.parse(dates[n-1])-Date.parse(dates[0]))/864e5)+1);
+  const exs=T.filter(t=>t.maxFloatDD!=null), rs=T.filter(t=>t.r!=null);
+  const cex=camps.filter(c=>c.mae!=null), crs=camps.filter(c=>c.r!=null);
+  const symMap={}; T.forEach(s=>{ symMap[s.sym]=(symMap[s.sym]||0)+s.netPnl; });
+  const dayWins=D.filter(d=>d.netPnl>0).length, dayLosses=D.filter(d=>d.netPnl<0).length;
+  return {
+    // posición
+    n,total,wins:P.wins,losses:P.losses,be:P.be,avgWin:P.avgWin,avgLoss:P.avgLoss,winPct:P.winPct,rr:P.rr,pf:P.pf,exp:P.exp,
+    grossWin:P.grossWin,grossLoss:P.grossLoss,mxPW,mxPL,
+    avgMAE:exs.length?_sum(exs.map(t=>t.maxFloatDD))/exs.length:null,avgMFE:exs.length?_sum(exs.map(t=>t.maxFloatWin))/exs.length:null,excN:exs.length,
+    avgR:rs.length?_sum(rs.map(t=>t.r))/rs.length:null,rN:rs.length,
+    comms:_sum(T.map(t=>Math.abs(t.comm))),swaps:_sum(T.map(t=>t.swap||0)),
+    avgDur:_sum(T.map(t=>t.durMin))/n,avgEntries:_sum(T.map(t=>t.entries))/n,avgMaxVol:_sum(T.map(t=>t.maxVol))/n,tpd:n/span,symMap,
+    // campaña
+    C,cN:camps.length,scaledN:camps.filter(c=>c.scaled).length,
+    cAvgPos:camps.length?_sum(camps.map(c=>c.positions))/camps.length:null,
+    cAvgMAE:cex.length?_sum(cex.map(c=>c.mae))/cex.length:null,cAvgMFE:cex.length?_sum(cex.map(c=>c.mfe))/cex.length:null,cExcN:cex.length,
+    cAvgR:crs.length?_sum(crs.map(c=>c.r))/crs.length:null,cRN:crs.length,
+    // día
+    days:D.length,dayWins,dayLosses,dayBE:D.length-dayWins-dayLosses,dayWinPct:D.length?dayWins/D.length*100:null,
+    streaks:calcDayStreaks(D),equity,pnls:dpn,maxDD,peak,rf,sharpe,sharpeProvisional:D.length<20,cashKnown,
+    maxTradesDay:D.length?Math.max(...D.map(d=>d.trades)):0,avgTradesDay:D.length?n/D.length:0
+  };
 }
 
 // ── RENDER ALL ─────────────────────────────────────────────────────────────────
@@ -1285,38 +1467,51 @@ function renderAll(data) {
   requestNotificationPermission();
   const acc=data.account||{};
   const deals=(data.deals||[]).filter(d=>d.entry!=='BALANCE');
-  const trades=buildSessions(deals);   // cada posición = 1 trade
-  const sessions=buildDays(trades);    // cada día = 1 sesión
-  _journalSessions = trades;
-  const m=calcMetrics(sessions, trades);
-  if(!m) return;
+  _isDemo=!!data._demo; _lastAcc=acc;
+  if(data.timestamp && !data._demo){
+    const ref = data.server_time ? Date.parse(data.server_time) : Date.now();
+    _brokerOffsetMs = isFinite(ref) ? Math.round((data.timestamp*1000 - ref)/900000)*900000 : null;
+  } else _brokerOffsetMs = null;
+  _brokerToday = todayStr();
+  _dataAgeSec = data.server_time ? Math.max(0,Math.round((Date.now()-Date.parse(data.server_time))/1000)) : null;
+  const openIds=new Set((data.positions||[]).map(p=>String(p.ticket)));
+  const trades=buildSessions(deals,openIds,data.excursions);   // nivel posición: cada posición CERRADA
+  const sessions=buildDays(trades);                            // nivel día: 1 día operativo = 1 sesión
+  const campaigns=buildCampaigns(trades,data.campaigns);       // nivel campaña (scaling in)
+  _journalSessions = sessions;
+  const m=calcMetrics(sessions, trades, acc.balance, {campaigns,cashflows:data.cashflows});
+  if(!m){ renderAccBar(acc,[],_isDemo); document.getElementById('kpi1').innerHTML='<div class="kpi"><div class="kpi-label">Sin operaciones cerradas</div><div class="kpi-sub">No hay datos para calcular métricas.</div></div>'; document.getElementById('kpi2').innerHTML=''; ['kpiC','kpiD','streakRow','campNote'].forEach(i=>{const e=document.getElementById(i); if(e) e.innerHTML='';}); return; }
+  m.openCount=openIds.size;
   const balance = acc.balance || 0;
-  renderAccBar(acc, trades);
+  renderAccBar(acc, trades, _isDemo);
   renderKPIs(m, acc);
+  renderLevelKPIs(m);
   renderStreaks(m);
   renderCharts(m, sessions);
   renderSymbols(m);
-  renderCalendar(trades);
+  renderCalendar(sessions);
   renderRiskScaling(balance);
   const dep = parseFloat(document.getElementById('riskDeposit')?.value) || balance || 1000;
-  renderCoach(m, sessions, balance, dep);
+  renderCoach(m, sessions, balance, dep, campaigns);
   renderROIProjection(m, sessions, balance);
   checkDailyDrawdown(sessions, balance);
-  _lastSessions = sessions; _lastTrades = trades; _lastBalance = balance;
+  _lastSessions = sessions; _lastTrades = trades; _lastBalance = balance; _lastM = m; _lastCampaigns = campaigns;
 }
+let _lastCampaigns = [];
 
 // ── ACCOUNT BAR ────────────────────────────────────────────────────────────────
-function renderAccBar(acc, sessions) {
-  const today=new Date().toISOString().split('T')[0];
-  const todayPnl=(sessions||[]).filter(s=>s.date===today).reduce((a,s)=>a+s.netPnl,0);
+function renderAccBar(acc, trades, isDemo) {
+  const today=todayStr();
+  const todayPnl=(trades||[]).filter(s=>s.date===today).reduce((a,s)=>a+s.netPnl,0);
   const fields=[
     {l:'Cuenta',v:acc.number||'—',cls:'neu'},
     {l:'Broker',v:acc.broker||'—',cls:''},
     {l:'Balance',v:fmt$(acc.balance),cls:'neu'},
-    {l:'Apalancamiento',v:'1:'+(acc.leverage||'—'),cls:''},
-    {l:'Moneda',v:acc.currency||'USD',cls:''},
+    {l:'Equity',v:acc.equity==null?'n/d':fmt$(acc.equity),cls:'neu'},
+    {l:'Apalanc. · Moneda',v:'1:'+(acc.leverage||'—')+' · '+(acc.currency||'USD'),cls:''},
     {l:'P&L Realizado Hoy',v:fmt$(todayPnl),cls:todayPnl>=0?'pos':'neg'},
   ];
+  if(isDemo) fields.push({l:'Modo',v:'DEMO · datos simulados',cls:'neg'});
   document.getElementById('accBar').innerHTML=fields.map((f,i)=>`
     ${i>0?'<div class="acc-sep"></div>':''}
     <div class="acc-item"><div class="al">${f.l}</div><div class="av ${f.cls}">${f.v}</div></div>
@@ -1324,61 +1519,88 @@ function renderAccBar(acc, sessions) {
 }
 
 // ── KPIs ───────────────────────────────────────────────────────────────────────
-function renderKPIs(m, acc) {
-  const g1=[
-    {l:'P&L Neto Total',v:fmt$(m.total),cls:m.total>=0?'pos':'neg',c:m.total>=0?'g':'r',icon:'💰',sub:`${m.wins} ganadoras de ${m.n} sesiones`},
-    {l:'Win Rate',v:m.winPct.toFixed(1)+'%',cls:m.winPct>=50?'pos':'neg',c:m.winPct>=50?'g':'r',icon:'🎯',sub:'Sesiones ganadoras / Total'},
-    {l:'Profit Factor',v:m.pf>=99?'∞':m.pf.toFixed(2),cls:m.pf>=1.5?'pos':m.pf>=1?'warn':'neg',c:m.pf>=1.5?'g':m.pf>=1?'w':'r',icon:'⚖️',sub:'Ganancia bruta / Pérdida bruta'},
-    {l:'Max Drawdown',v:fmt$(-m.maxDD),cls:'neg',c:'r',icon:'📉',sub:`Sharpe: ${m.sharpe.toFixed(2)} · RF: ${m.rf.toFixed(2)}`},
-    {l:'Sharpe Ratio',v:m.sharpe.toFixed(2),cls:m.sharpe>=1?'pos':m.sharpe>=0?'warn':'neg',c:m.sharpe>=1?'g':'w',icon:'📐',sub:'Retorno ajustado al riesgo'},
-    {l:'Expectancy',v:fmt$(m.exp),cls:m.exp>=0?'pos':'neg',c:m.exp>=0?'g':'r',icon:'🧮',sub:'Valor esperado por sesión'},
-  ];
-  const g2=[
-    {l:'Avg P&L por Sesión',v:fmt$(m.total/m.n),cls:m.total/m.n>=0?'pos':'neg',c:m.total/m.n>=0?'g':'r',icon:'📊',sub:'P&L neto / Nº sesiones'},
-    {l:'Avg Sesión Ganadora',v:fmt$(m.avgWin),cls:'pos',c:'g',icon:'🏆',sub:'Promedio sesiones con profit'},
-    {l:'Avg Sesión Perdedora',v:fmt$(m.avgLoss),cls:'neg',c:'r',icon:'🛑',sub:'Promedio sesiones con loss'},
-    {l:'Reward:Risk',v:m.rr.toFixed(2)+':1',cls:m.rr>=2?'pos':m.rr>=1?'warn':'neg',c:m.rr>=2?'g':m.rr>=1?'w':'r',icon:'⚡',sub:'Avg Win / |Avg Loss|'},
-    {l:'Comisiones Totales',v:fmt$(-m.comms),cls:'neg',c:'w',icon:'🏦',sub:`${fmt$(m.comms/m.n)} por sesión`},
-    {l:'Sesiones Totales',v:m.n,cls:'neu',c:'c',icon:'📋',sub:`W:${m.wins}  L:${m.losses}  BE:${m.n-m.wins-m.losses}`},
-  ];
-  function rg(id,data){ document.getElementById(id).innerHTML=data.map(k=>`
+function kpiGrid(id,data){ document.getElementById(id).innerHTML=data.map(k=>`
     <div class="kpi ${k.c}">
       <div class="kpi-icon">${k.icon}</div>
       <div class="kpi-label">${k.l}</div>
       <div class="kpi-val ${k.cls}">${k.v}</div>
       <div class="kpi-sub">${k.sub}</div>
     </div>`).join(''); }
-  rg('kpi1',g1); rg('kpi2',g2);
+const _cl=(v,g,w)=>v==null?'neu':v>=g?'pos':v>=w?'warn':'neg', _cc=(v,g,w)=>v==null?'c':v>=g?'g':v>=w?'w':'r';
+
+// Nivel POSICIÓN: cada tarjeta indica su unidad de análisis.
+function renderKPIs(m, acc) {
+  const cl=_cl, cc=_cc;
+  const g1=[
+    {l:'Resultado Neto',v:fmt$(m.total),cls:m.total>=0?'pos':'neg',c:m.total>=0?'g':'r',icon:'💰',sub:`Cerradas · ${m.n} posiciones · ${m.cN} campañas · ${m.days} días`},
+    {l:'Win Rate · por posición',v:m.winPct.toFixed(1)+'%',cls:m.winPct>=50?'pos':'neg',c:m.winPct>=50?'g':'r',icon:'🎯',sub:`${m.wins}G / ${m.losses}P / ${m.be}N de ${m.n} posiciones`},
+    {l:'Profit Factor · por posición',v:fxPF(m.pf),cls:cl(m.pf,1.5,1),c:cc(m.pf,1.5,1),icon:'⚖️',sub:'Bruto ganado / bruto perdido de posiciones (neto de costes)'},
+    {l:'Drawdown Máx. · curva realizada diaria',v:fmt$(-m.maxDD),cls:'neg',c:'r',icon:'📉',sub:`Sobre el P&L realizado por día · Recovery Factor: ${fx(m.rf)} (misma curva) · DD de equity: n/d`},
+    {l:'Expectancy · por posición',v:fmt$(m.exp),cls:m.exp>=0?'pos':'neg',c:m.exp>=0?'g':'r',icon:'🧮',sub:'Neto medio por posición cerrada'},
+    {l:'Posiciones',v:m.n,cls:'neu',c:'c',icon:'📋',sub:`Cerradas · ${m.openCount||0} abierta(s) excluida(s) · ${m.avgTradesDay.toFixed(1)}/día`},
+  ];
+  const g2=[
+    {l:'Ganancia media · por posición',v:m.avgWin==null?'n/d':fmt$(m.avgWin),cls:'pos',c:'g',icon:'🏆',sub:'Por posición ganadora'},
+    {l:'Pérdida media · por posición',v:m.avgLoss==null?'n/d':fmt$(m.avgLoss),cls:'neg',c:'r',icon:'🛑',sub:'Por posición perdedora'},
+    {l:'Payoff · por posición',v:m.rr==null?'n/d':m.rr.toFixed(2)+':1',cls:cl(m.rr,2,1),c:cc(m.rr,2,1),icon:'⚡',sub:'Ganancia media / |pérdida media| de posiciones'},
+    {l:'Costes',v:fmt$(-m.comms+m.swaps),cls:'neg',c:'w',icon:'🏦',sub:`Comisión ${fmt$(-m.comms)} · Swap ${fmt$(m.swaps)}`},
+    {l:'Sharpe · diario'+(m.sharpeProvisional?' · prov.':''),v:fx(m.sharpe),cls:m.sharpe==null?'neu':m.sharpe>=1?'pos':m.sharpe>=0?'warn':'neg',c:m.sharpe==null?'c':m.sharpe>=1?'g':'w',icon:'📐',sub:`${m.days} días con actividad · neto diario / capital al inicio del día${m.cashKnown?' (depósitos/retiros ajustados)':' (sin datos de depósitos/retiros)'} · rf=0 · √252${m.sharpeProvisional?' · muestra <20 días':''}`},
+    {l:'MAE / MFE medio · por posición',v:m.avgMAE==null?'n/d':`${fmt$(-m.avgMAE)} / ${fmt$(m.avgMFE)}`,cls:'neu',c:'c',icon:'↔️',sub:m.excN?`Muestreado por la EA desde la apertura (puede omitir extremos entre muestras) · ${m.excN} de ${m.n}${m.avgR!=null?' · R medio '+m.avgR.toFixed(2)+' ('+m.rN+')':''}`:'n/d: la EA no midió ninguna posición completa desde su apertura'},
+    {l:'Racha máx. de posiciones',v:`${m.mxPW}G / ${m.mxPL}P`,cls:'neu',c:'c',icon:'🔗',sub:'Posiciones consecutivas. NO son rachas de días ni de ideas'},
+  ];
+  kpiGrid('kpi1',g1); kpiGrid('kpi2',g2);
 }
 
-// ── STREAKS ────────────────────────────────────────────────────────────────────
-function renderStreaks(m) {
-  const curType = m.currentStreakType;
-  const curCls = curType==='win'?'current-win':curType==='loss'?'current-loss':'current-neutral';
-  const curIcon = curType==='win'?'🔥':curType==='loss'?'❄️':'—';
-  const curLabel = curType==='win'?'Racha Ganadora Actual':curType==='loss'?'Racha Perdedora Actual':'Sin racha activa';
-  const curColor = curType==='win'?'pos':curType==='loss'?'neg':'neu';
+// Nivel CAMPAÑA y nivel DÍA
+function renderLevelKPIs(m) {
+  const C=m.C;
+  if(!C){ kpiGrid('kpiC',[{l:'Campañas',v:'n/d',cls:'neu',c:'c',icon:'🧩',sub:'Sin posiciones cerradas'}]); }
+  else kpiGrid('kpiC',[
+    {l:'Campañas',v:m.cN,cls:'neu',c:'c',icon:'🧩',sub:`${m.scaledN} con scaling in · ${m.cAvgPos.toFixed(1)} posiciones por campaña (media)`},
+    {l:'Win Rate · por campaña',v:C.winPct.toFixed(1)+'%',cls:C.winPct>=50?'pos':'neg',c:C.winPct>=50?'g':'r',icon:'🎯',sub:`${C.wins}G / ${C.losses}P / ${C.be}N de ${C.n} campañas`},
+    {l:'Profit Factor · por campaña',v:fxPF(C.pf),cls:_cl(C.pf,1.5,1),c:_cc(C.pf,1.5,1),icon:'⚖️',sub:'Neto combinado de cada campaña'},
+    {l:'Expectancy · por campaña',v:fmt$(C.exp),cls:C.exp>=0?'pos':'neg',c:C.exp>=0?'g':'r',icon:'🧮',sub:'Resultado medio por idea operativa'},
+    {l:'Ganancia / Pérdida media · por campaña',v:`${C.avgWin==null?'n/d':fmt$(C.avgWin)} / ${C.avgLoss==null?'n/d':fmt$(C.avgLoss)}`,cls:'neu',c:'c',icon:'⚡',sub:`Payoff por campaña: ${C.rr==null?'n/d':C.rr.toFixed(2)+':1'}`},
+    {l:'R medio · por campaña',v:m.cAvgR==null?'n/d':m.cAvgR.toFixed(2)+' R',cls:'neu',c:'c',icon:'📏',sub:m.cRN?`${m.cRN} de ${m.cN} campañas con riesgo inicial conocido en todas sus posiciones`:'n/d: riesgo inicial no registrado (la EA exige SL al abrir)'},
+    {l:'MAE / MFE medio · por campaña',v:m.cAvgMAE==null?'n/d':`${fmt$(-m.cAvgMAE)} / ${fmt$(m.cAvgMFE)}`,cls:'neu',c:'c',icon:'↔️',sub:m.cExcN?`Extremos del resultado combinado (no suma de MAE/MFE) · ${m.cExcN} de ${m.cN}`:'n/d: no se pudo reconstruir con fiabilidad'},
+  ]);
+  document.getElementById('campNote').innerHTML='Una campaña agrupa posiciones del <strong>mismo símbolo y sentido</strong> que se solapan en el tiempo (scaling in). Es una reconstrucción con datos reales de apertura/cierre; no se agrupa nada más. Métricas distintas de las de posición.';
+  const dBest=m.pnls.length?Math.max(...m.pnls):null, dWorst=m.pnls.length?Math.min(...m.pnls):null;
+  kpiGrid('kpiD',[
+    {l:'Días operados',v:m.days,cls:'neu',c:'c',icon:'📅',sub:`${m.avgTradesDay.toFixed(1)} posiciones/día (máx. ${m.maxTradesDay}) · 1 día = 1 sesión`},
+    {l:'Win Rate · por día',v:m.dayWinPct==null?'n/d':m.dayWinPct.toFixed(1)+'%',cls:m.dayWinPct>=50?'pos':'neg',c:m.dayWinPct>=50?'g':'r',icon:'🎯',sub:`${m.dayWins} ganadores / ${m.dayLosses} perdedores / ${m.dayBE} neutrales (neto del día)`},
+    {l:'Mejor / Peor día',v:dBest==null?'n/d':`${fmt$(dBest)} / ${fmt$(dWorst)}`,cls:'neu',c:'c',icon:'🗓️',sub:'Resultado neto realizado diario'},
+    {l:'Drawdown de equity',v:'n/d',cls:'neu',c:'c',icon:'📉',sub:'La EA no registra una serie de equity histórica; el drawdown mostrado es el de resultados realizados'},
+  ]);
+}
 
+// ── STREAKS (días operativos) ──────────────────────────────────────────────────
+function renderStreaks(m) {
+  const S=m.streaks, cur=S.current;
+  const curCls = cur.type==='win'?'current-win':cur.type==='loss'?'current-loss':'current-neutral';
+  const curIcon = cur.type==='win'?'🔥':cur.type==='loss'?'❄️':'—';
+  const curLabel = cur.type==='win'?'Racha Actual: Días Ganadores':cur.type==='loss'?'Racha Actual: Días Perdedores':'Sin racha activa';
+  const curColor = cur.type==='win'?'pos':cur.type==='loss'?'neg':'neu';
+  const rng=r=>r?`${r.start}${r.end!==r.start?' → '+r.end:''}`:'';
+  const unit=n=>n===1?'día':'días';
+  const rec=(r,col,ttl,sub)=>`
+      <div>
+        <div class="streak-label" style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:4px;">${ttl}</div>
+        <div style="font-size:28px;font-weight:700;color:${col};">${r?r.count+' '+unit(r.count):'—'}</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:4px;">${r?`${sub} · ${fmt$(r.net)} neto<br>${rng(r)}`:'Sin registro'}</div>
+      </div>`;
   document.getElementById('streakRow').innerHTML = `
     <div class="streak-card ${curCls}">
       <div class="streak-icon">${curIcon}</div>
       <div class="streak-info">
         <div class="streak-label">${curLabel}</div>
-        <div class="streak-val ${curColor}">${m.currentStreak} ses.</div>
-        <div class="streak-sub">Sesiones consecutivas actualmente</div>
+        <div class="streak-val ${curColor}">${cur.count} ${unit(cur.count)}</div>
+        <div class="streak-sub">${cur.count?`${fmt$(cur.net)} neto acumulado · ${rng(cur)}`:'Último día operado neutral o sin datos'}<br>Días operativos consecutivos según su resultado neto</div>
       </div>
     </div>
-    <div class="streak-card" style="display:grid;grid-template-columns:1fr 1fr;gap:0;">
-      <div style="padding-right:16px;border-right:1px solid var(--b1);">
-        <div class="streak-label" style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:4px;">🔥 Mejor Racha</div>
-        <div style="font-size:28px;font-weight:700;color:var(--green);">${m.mxWS} ses.</div>
-        <div style="font-size:10px;color:var(--muted);margin-top:4px;">Máx. ganadoras consecutivas</div>
-      </div>
-      <div style="padding-left:16px;">
-        <div class="streak-label" style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:4px;">❄️ Peor Racha</div>
-        <div style="font-size:28px;font-weight:700;color:var(--red);">${m.mxLS} ses.</div>
-        <div style="font-size:10px;color:var(--muted);margin-top:4px;">Máx. perdedoras consecutivas</div>
-      </div>
+    <div class="streak-card" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+      ${rec(S.bestWin,'var(--green)','🔥 Récord de días ganadores','Consecutivos')}
+      ${rec(S.bestLoss,'var(--red)','❄️ Récord de días perdedores','Consecutivos')}
     </div>`;
 }
 
@@ -1420,9 +1642,9 @@ function renderCharts(m, sessions) {
     return sessions.length / Math.max(dates.length, 1);
   })() : 1;
   const lastEquity = m.equity.length ? m.equity[m.equity.length - 1] : 0;
-  const proj30 = lastEquity + m.exp * sessPerDay * 30;
-  const proj60 = lastEquity + m.exp * sessPerDay * 60;
-  const proj90 = lastEquity + m.exp * sessPerDay * 90;
+  const proj30 = lastEquity + m.exp * m.tpd * 30;
+  const proj60 = lastEquity + m.exp * m.tpd * 60;
+  const proj90 = lastEquity + m.exp * m.tpd * 90;
   // Build projection dataset: starts at last real equity point
   const histLen = m.equity.length;
   const projLabels = ['30d','60d','90d'];
@@ -1500,23 +1722,23 @@ function renderCharts(m, sessions) {
 
   // PROGRESS BARS
   const progs=[
-    {l:'Win Rate',v:m.winPct,max:100,c:'g',fv:v=>v.toFixed(1)+'%',
-     info:'Porcentaje de sesiones que cierran en positivo sobre el total.',
+    {l:'Win Rate (posiciones)',v:m.winPct,max:100,c:'g',fv:v=>v.toFixed(1)+'%',
+     info:'Porcentaje de posiciones cerradas en positivo sobre el total de posiciones (no de días ni de campañas).',
      rec:'Mantenlo por encima del 50%. Con un buen R:R puedes ser rentable desde el 40%, pero lo saludable es ≥ 50%.'},
-    {l:'Profit Factor',v:Math.min(m.pf,5),max:5,c:'c',fv:_=>m.pf>=99?'∞':m.pf.toFixed(2),
+    {l:'Profit Factor (posiciones)',v:Math.min(m.pf==null?0:m.pf,5),max:5,c:'c',fv:_=>fxPF(m.pf),
      info:'Ganancias brutas totales dividido entre pérdidas brutas totales.',
      rec:'Por encima de 1.0 el sistema es rentable. Lo saludable es ≥ 1.5. Por encima de 2.0 es excelente.'},
-    {l:'Reward:Risk',v:Math.min(m.rr,5),max:5,c:m.rr>=2?'g':m.rr>=1?'w':'r',fv:_=>m.rr.toFixed(2)+':1',
-     info:'Promedio de ganancia en sesiones ganadoras dividido entre el promedio de pérdida en sesiones perdedoras.',
+    {l:'Reward:Risk (posiciones)',v:Math.min(m.rr==null?0:m.rr,5),max:5,c:m.rr>=2?'g':m.rr>=1?'w':'r',fv:_=>fx(m.rr)+':1',
+     info:'Ganancia media de las posiciones ganadoras dividida entre la pérdida media de las perdedoras (por posición).',
      rec:'El mínimo aceptable es 1:1. Lo saludable es ≥ 1.5:1. El ideal para un sistema sólido es ≥ 2:1.'},
-    {l:'Sharpe Ratio',v:Math.max(0,Math.min(m.sharpe,3)),max:3,c:m.sharpe>=1?'g':'w',fv:_=>m.sharpe.toFixed(2),
-     info:'Mide el retorno obtenido por cada unidad de riesgo (volatilidad) asumida.',
+    {l:'Sharpe (diario)',v:Math.max(0,Math.min(m.sharpe==null?0:m.sharpe,3)),max:3,c:m.sharpe>=1?'g':'w',fv:_=>fx(m.sharpe),
+     info:'Sharpe diario: retorno neto de cada día operado sobre el capital al inicio del día, anualizado con √252. No usa posiciones individuales.',
      rec:'Por encima de 1.0 es bueno. Por encima de 2.0 es muy sólido. Menos de 0.5 indica resultados inconsistentes.'},
-    {l:'Recovery Factor',v:Math.max(0,Math.min(m.rf,10)),max:10,c:m.rf>=3?'g':'c',fv:_=>m.rf.toFixed(2),
-     info:'P&L neto total dividido entre el máximo drawdown. Qué tan bien se recupera el sistema tras sus peores rachas.',
+    {l:'Recovery Factor (curva diaria)',v:Math.max(0,Math.min(m.rf==null?0:m.rf,10)),max:10,c:m.rf>=3?'g':'c',fv:_=>fx(m.rf),
+     info:'P&L neto realizado dividido entre el máximo drawdown de la MISMA curva de resultados realizados diaria.',
      rec:'Por encima de 1.0 el sistema se recupera. Lo saludable es ≥ 3.0. Por encima de 5.0 es excelente.'},
-    {l:'Expectancy',v:Math.max(0,m.exp),max:Math.max(Math.abs(m.exp)||1,1),c:m.exp>=0?'g':'r',fv:_=>'$'+m.exp.toFixed(2),
-     info:'Ganancia o pérdida promedio esperada por sesión, combinando win rate y promedios de ganancia/pérdida.',
+    {l:'Expectancy (por posición)',v:Math.max(0,m.exp),max:Math.max(Math.abs(m.exp)||1,1),c:m.exp>=0?'g':'r',fv:_=>'$'+m.exp.toFixed(2),
+     info:'Resultado medio esperado por posición cerrada (no por campaña ni por día).',
      rec:'Tiene que ser positivo para que el sistema sea matemáticamente rentable. Cuanto mayor, mejor.'},
   ];
   document.getElementById('progBars').innerHTML=progs.map(p=>`
@@ -1584,103 +1806,122 @@ function renderCharts(m, sessions) {
     plugins:[doughnutLabelPlugin]
   });
 
-  // DAY
-  const dayPnl=Array(7).fill(0);
-  sessions.forEach(s=>{const d=new Date(s.date+'T12:00:00');dayPnl[d.getDay()]+=s.netPnl;});
+  // P&L POR DÍA DE LA SEMANA — solo la semana actual (Dom→Sáb, igual que el calendario).
+  // Un día sin operaciones queda sin dato (se dibuja "—"); nunca se rellena con semanas anteriores.
+  const dayNames7=['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+  const td=new Date(todayStr()+'T12:00:00');
+  const wkStart=new Date(td); wkStart.setDate(td.getDate()-td.getDay());
+  const wkDates=[...Array(7)].map((_,i)=>{const d=new Date(wkStart); d.setDate(wkStart.getDate()+i); return ymd(d);});
+  const byDate={}; sessions.forEach(s=>{ byDate[s.date]=s.netPnl; });
+  const weekVals=wkDates.map(k=>byDate[k]===undefined?null:byDate[k]);
+  const wkT=document.getElementById('dayChartTitle');
+  if(wkT) wkT.textContent=`P&L por Día — Semana Actual (${wkDates[0].slice(5).split('-').reverse().join('/')} – ${wkDates[6].slice(5).split('-').reverse().join('/')})`;
+  const noDataPlugin={id:'noData',afterDatasetsDraw(chart){
+    const {ctx,scales:{x,y}}=chart; ctx.save(); ctx.fillStyle=document.body.classList.contains('light')?'#3a5a7a':'#c0d4e0';
+    ctx.font='12px IBM Plex Mono'; ctx.textAlign='center'; ctx.textBaseline='middle';
+    weekVals.forEach((v,i)=>{ if(v===null) ctx.fillText('—',x.getPixelForValue(i),y.getPixelForValue(0)-10); });
+    ctx.restore(); }};
   dc('day');
   charts['day']=new Chart(document.getElementById('dayChart'),{
     type:'bar',
-    data:{labels:['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'],
-      datasets:[{data:dayPnl,backgroundColor:dayPnl.map(v=>v>=0?'rgba(0,229,255,0.55)':'rgba(255,51,85,0.55)'),borderRadius:6}]},
-    options:{...cOpts(v=>'$'+v.toFixed(0)),responsive:true,plugins:{legend:{display:false}},
-      scales:{x:{...cOpts().scales.x,grid:{display:false}},y:cOpts(v=>'$'+v.toFixed(0)).scales.y},animation:{duration:600}}
+    data:{labels:dayNames7.map((n,i)=>n+' '+wkDates[i].slice(8)),
+      datasets:[{data:weekVals,backgroundColor:weekVals.map(v=>v>=0?'rgba(0,229,255,0.55)':'rgba(255,51,85,0.55)'),borderRadius:6}]},
+    options:{...cOpts(v=>'$'+v.toFixed(0)),responsive:true,plugins:{legend:{display:false},
+        tooltip:{callbacks:{label:c=>c.parsed.y===null?' Sin operaciones':` Neto del día: ${fmt$(c.parsed.y)}`}}},
+      scales:{x:{...cOpts().scales.x,grid:{display:false}},y:cOpts(v=>'$'+v.toFixed(0)).scales.y},animation:{duration:600}},
+    plugins:[noDataPlugin]
   });
 
-  // MONTHLY
-  const monthMap={};
-  sessions.forEach(s=>{
-    const d=new Date(s.date+'T12:00:00');
-    const key=d.getFullYear()+'-'+(d.getMonth()+1).toString().padStart(2,'0');
-    monthMap[key]=(monthMap[key]||0)+s.netPnl;
-  });
-  const monthKeys=Object.keys(monthMap).sort();
-  const monthNames=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
-  const monthLabels=monthKeys.map(k=>{
-    const [yr,mo]=k.split('-');
-    return monthNames[parseInt(mo)-1]+' '+yr.slice(2);
-  });
-  const monthVals=monthKeys.map(k=>+monthMap[k].toFixed(2));
-  const monthColors=monthVals.map(v=>v>=0?'rgba(0,255,136,0.75)':'rgba(255,51,85,0.75)');
-  const monthBorderColors=monthVals.map(v=>v>=0?'rgba(0,255,136,1)':'rgba(255,51,85,1)');
-  const winMonths=monthVals.filter(v=>v>0).length;
-  const lossMonths=monthVals.filter(v=>v<0).length;
-  const bestMonthIdx=monthVals.indexOf(Math.max(...monthVals));
-  const worstMonthIdx=monthVals.indexOf(Math.min(...monthVals));
-  // Update stats badges
-  const bmEl=document.getElementById('monthlyBestMonth');
-  if(bmEl && monthKeys.length){
-    bmEl.innerHTML=`Mejor: <span style="color:var(--green)">${monthLabels[bestMonthIdx]} (+$${monthVals[bestMonthIdx].toFixed(0)})</span>`;
-  }
-  const wmEl=document.getElementById('monthlyWinCount');
-  if(wmEl) wmEl.textContent=`✅ ${winMonths} mes${winMonths!==1?'es':''}`;
-  const lmEl=document.getElementById('monthlyLossCount');
-  if(lmEl) lmEl.textContent=`❌ ${lossMonths} mes${lossMonths!==1?'es':''}`;
+  _monthDays = sessions;
+  renderMonthly();
+}
 
+// ── RENDIMIENTO MENSUAL (por año, solo meses operados) ─────────────────────────
+// Cada mes se identifica por año+mes y muestra SU neto (no acumulado). Un mes existe si tiene al menos
+// un día operado (posiciones cerradas), aunque su neto sea 0. Meses sin actividad y meses futuros se omiten.
+let _monthDays = [];
+let _monthYear = null; // null = año actual (sigue al calendario real); número = año consultado
+const MONTH_NAMES_S=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+function _monthAgg(){
+  const cur=todayStr().slice(0,7), map={};
+  _monthDays.forEach(d=>{ const k=d.date.slice(0,7); if(k>cur) return; map[k]=(map[k]||0)+d.netPnl; });
+  return map; // { 'YYYY-MM': neto }
+}
+function monthNavYear(delta){
+  const curY=+todayStr().slice(0,4), viewY=_monthYear??curY;
+  const years=[...new Set(Object.keys(_monthAgg()).map(k=>+k.slice(0,4)))].sort((a,b)=>a-b);
+  let target=null;
+  if(delta<0) target=[...years].reverse().find(y=>y<viewY)??null;      // año anterior con datos
+  else if(viewY<curY) target=years.find(y=>y>viewY&&y<curY)??curY;       // siguiente con datos o el actual; nunca futuro
+  if(target==null) return;
+  _monthYear = target>=curY ? null : target;
+  renderMonthly();
+}
+function renderMonthly(){
+  const curY=+todayStr().slice(0,4), viewY=_monthYear==null||_monthYear>=curY?curY:_monthYear;
+  if(_monthYear!=null && _monthYear>=curY) _monthYear=null;
+  const agg=_monthAgg();
+  const keys=Object.keys(agg).filter(k=>+k.slice(0,4)===viewY).sort(); // cronológico, solo meses operados
+  const years=[...new Set(Object.keys(agg).map(k=>+k.slice(0,4)))];
+  document.getElementById('monthYearLabel').textContent=viewY;
+  const pb=document.getElementById('monthPrevBtn'), nb=document.getElementById('monthNextBtn');
+  const canPrev=years.some(y=>y<viewY), canNext=viewY<curY;
+  pb.disabled=!canPrev; pb.style.opacity=canPrev?'':'.35'; pb.style.cursor=canPrev?'':'default';
+  nb.disabled=!canNext; nb.style.opacity=canNext?'':'.35'; nb.style.cursor=canNext?'':'default';
+  const vals=keys.map(k=>+agg[k].toFixed(2));
+  const labels=keys.map(k=>MONTH_NAMES_S[+k.slice(5)-1]+' '+k.slice(0,4));
+  const winM=vals.filter(v=>v>0).length, lossM=vals.filter(v=>v<0).length;
+  const bm=document.getElementById('monthlyBestMonth');
+  if(bm){ if(vals.length){ const bi=vals.indexOf(Math.max(...vals)); bm.innerHTML=`Mejor: <span style="color:${vals[bi]>=0?'var(--green)':'var(--red)'}">${labels[bi]} (${vals[bi]>=0?'+':'-'}$${Math.abs(vals[bi]).toFixed(0)})</span>`; } else bm.innerHTML=''; }
+  const wm=document.getElementById('monthlyWinCount'); if(wm) wm.textContent=vals.length?`✅ ${winM} mes${winM!==1?'es':''}`:'';
+  const lm=document.getElementById('monthlyLossCount'); if(lm) lm.textContent=vals.length?`❌ ${lossM} mes${lossM!==1?'es':''}`:'';
+  const cv=document.getElementById('monthlyChart'), em=document.getElementById('monthlyEmpty');
   dc('monthly');
-  charts['monthly']=new Chart(document.getElementById('monthlyChart'),{
+  if(!vals.length){ cv.style.display='none'; em.style.display='block'; em.textContent=viewY===curY?'Sin meses operados todavía':`Sin meses operados en ${viewY}`; return; }
+  cv.style.display=''; em.style.display='none';
+  const isLight=document.body.classList.contains('light'), tick=isLight?'#3a5a7a':'#c0d4e0';
+  charts['monthly']=new Chart(cv,{
     type:'bar',
-    data:{
-      labels:monthLabels,
-      datasets:[{
-        label:'P&L Mensual',
-        data:monthVals,
-        backgroundColor:monthColors,
-        borderColor:monthBorderColors,
-        borderWidth:1,
-        borderRadius:5,
-        borderSkipped:false,
-      }]
-    },
-    options:{
-      responsive:true,
-      plugins:{
-        legend:{display:false},
-        tooltip:{
-          callbacks:{
-            label:ctx=>{
-              const v=ctx.parsed.y;
-              return ` ${v>=0?'+':''}$${v.toFixed(2)}`;
-            },
-            title:ctx=>ctx[0].label
-          }
-        }
-      },
-      scales:{
-        x:{
-          ticks:{color:'#c0d4e0',font:{size:10,family:'IBM Plex Mono'}},
-          grid:{display:false}
-        },
-        y:{
-          ticks:{color:'#c0d4e0',font:{size:9,family:'IBM Plex Mono'},callback:v=>(v>=0?'+':'')+' $'+v.toFixed(0)},
-          grid:{color:'rgba(22,32,48,0.6)'},
-          border:{dash:[4,4]}
-        }
-      },
-      animation:{duration:700}
-    }
+    data:{labels,datasets:[{label:'P&L Mensual',data:vals,
+      backgroundColor:vals.map(v=>v>=0?'rgba(0,255,136,0.75)':'rgba(255,51,85,0.75)'),
+      borderColor:vals.map(v=>v>=0?'rgba(0,255,136,1)':'rgba(255,51,85,1)'),borderWidth:1,borderRadius:5,borderSkipped:false}]},
+    options:{responsive:true,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` ${c.parsed.y>=0?'+':''}$${c.parsed.y.toFixed(2)}`,title:c=>c[0].label}}},
+      scales:{x:{ticks:{color:tick,font:{size:10,family:'IBM Plex Mono'}},grid:{display:false}},
+        y:{ticks:{color:tick,font:{size:9,family:'IBM Plex Mono'},callback:v=>(v>=0?'+':'')+' $'+v.toFixed(0)},grid:{color:isLight?'rgba(150,180,210,0.45)':'rgba(22,32,48,0.6)'},border:{dash:[4,4]}}},
+      animation:{duration:700}}
   });
 }
+
+// El día/semana/mes/año cambian solos: se comprueba cada minuto aunque la EA no envíe datos.
+let _lastTodayKey=null;
+setInterval(()=>{
+  const t=todayStr();
+  if(_lastTodayKey===null){ _lastTodayKey=t; return; }
+  if(t===_lastTodayKey) return;
+  const monthChanged=t.slice(0,7)!==_lastTodayKey.slice(0,7);
+  _lastTodayKey=t;
+  if(!_lastM||!_lastSessions.length) return;
+  if(monthChanged && typeof _calViewYear!=='undefined' && _calViewYear!==null) { _calAllSessions=_lastSessions; _renderCalendarForMonth(_calAllSessions,_calViewYear,_calViewMonth); }
+  renderCharts(_lastM,_lastSessions);   // semana y año actuales
+  renderAccBar(_lastAcc,_lastTrades,_isDemo);
+},60000);
+setTimeout(()=>{ _lastTodayKey=todayStr(); },0);
 
 // ── CALENDAR ───────────────────────────────────────────────────────────────────
 let _calAllSessions = [];
 let _calViewYear = null;
 let _calViewMonth = null; // 0-indexed
 
+// Límite de navegación: el mes de la fecha actual (calculada, nunca fija). Hacia el pasado no hay límite.
+function _calMax(){ const t=todayStr(); return {y:+t.slice(0,4), m:+t.slice(5,7)-1}; }
+function _calIsFuture(y,m){ const c=_calMax(); return y>c.y || (y===c.y && m>c.m); }
 function calNavMonth(delta) {
   if(_calViewMonth === null) return;
-  _calViewMonth += delta;
-  if(_calViewMonth < 0) { _calViewMonth = 11; _calViewYear--; }
-  else if(_calViewMonth > 11) { _calViewMonth = 0; _calViewYear++; }
+  let y=_calViewYear, m=_calViewMonth+delta;
+  if(m < 0) { m = 11; y--; } else if(m > 11) { m = 0; y++; }
+  if(_calIsFuture(y,m)) return; // bloqueo real, no solo visual
+  _calViewYear=y; _calViewMonth=m;
   _renderCalendarForMonth(_calAllSessions, _calViewYear, _calViewMonth);
 }
 
@@ -1716,19 +1957,18 @@ function renderCalendar(sessions) {
 }
 
 function _renderCalendarForMonth(sessions, year, month) {
+  if(_calIsFuture(year,month)){ const c=_calMax(); year=_calViewYear=c.y; month=_calViewMonth=c.m; } // nunca renderiza un mes futuro
+  const nb=document.getElementById('calNextBtn');
+  if(nb){ let ny=year, nm=month+1; if(nm>11){nm=0;ny++;} const blocked=_calIsFuture(ny,nm); nb.disabled=blocked; nb.style.opacity=blocked?'.35':''; nb.style.cursor=blocked?'default':''; }
   const monthNames = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
   // Label
   const labelEl = document.getElementById('calMonthLabel');
   if(labelEl) labelEl.textContent = monthNames[month] + ' ' + year;
 
   // Build day maps from all sessions
-  const dayPnl={}, dayCnt={}, daySessions={};
-  sessions.forEach(s=>{
-    dayPnl[s.date]=(dayPnl[s.date]||0)+s.netPnl;
-    dayCnt[s.date]=(dayCnt[s.date]||0)+1;
-    if(!daySessions[s.date]) daySessions[s.date]=[];
-    daySessions[s.date].push(s);
-  });
+  // `sessions` = días operativos (1 por fecha). El color depende SOLO del neto realizado del día.
+  const dayPnl={}, dayCnt={};
+  sessions.forEach(s=>{ dayPnl[s.date]=s.netPnl; dayCnt[s.date]=s.trades; });
 
   // Consistency stats for THIS month
   const prefix = year + '-' + String(month+1).padStart(2,'0');
@@ -1736,6 +1976,7 @@ function _renderCalendarForMonth(sessions, year, month) {
   const tradingDays = monthDates.length;
   const greenDays = monthDates.filter(k => dayPnl[k] > 0).length;
   const redDays = monthDates.filter(k => dayPnl[k] < 0).length;
+  const neutralDays = tradingDays - greenDays - redDays;
   const consistencyPct = tradingDays > 0 ? (greenDays / tradingDays * 100).toFixed(0) : 0;
   const monthPnl = monthDates.reduce((a,k) => a + dayPnl[k], 0);
 
@@ -1764,6 +2005,10 @@ function _renderCalendarForMonth(sessions, year, month) {
         <div class="cal-cons-v" style="color:var(--red)">${redDays}</div>
       </div>
       <div class="cal-cons-item">
+        <div class="cal-cons-l">Neutrales</div>
+        <div class="cal-cons-v" style="color:var(--muted)">${neutralDays}</div>
+      </div>
+      <div class="cal-cons-item">
         <div class="cal-cons-l">Consistencia</div>
         <div class="cal-cons-v" style="color:${consColor}">${consistencyPct}%</div>
       </div>
@@ -1777,28 +2022,28 @@ function _renderCalendarForMonth(sessions, year, month) {
   // Render the month grid
   const cal = document.getElementById('calGrid');
   cal.innerHTML = '';
-  const today = new Date().toISOString().split('T')[0];
+  const today = todayStr();
   // Fill leading empty cells
   for(let i = 0; i < firstDay.getDay(); i++) cal.innerHTML += '<div class="cal-day empty"></div>';
   // Fill days of month
   for(let d = new Date(firstDay); d <= lastDay; d.setDate(d.getDate()+1)){
-    const k = d.toISOString().split('T')[0];
+    const k = ymd(d);
     const pnl = dayPnl[k];
     const cnt = dayCnt[k] || 0;
     const isWeekend = [0,6].includes(d.getDay());
-    const cls = pnl === undefined ? (isWeekend ? 'empty' : 'be') : pnl > 0 ? 'win' : 'loss';
+    const cls = pnl === undefined ? (isWeekend ? 'empty' : 'be') : pnl > 0 ? 'win' : pnl < 0 ? 'loss' : 'be';
     const hasNote = journalHas(k) ? 'has-note' : '';
     const isToday = k === today ? 'today-marker' : '';
     let inner = '';
     if(pnl !== undefined){
       const abs = Math.abs(pnl);
       const str = abs>=1000 ? (pnl>=0?'+':'-')+'$'+(abs/1000).toFixed(1)+'k' : (pnl>=0?'+':'')+fmt$(pnl);
-      inner = `<div class="cal-pnl">${str}</div><div class="cal-trades">${cnt} trade${cnt!==1?'s':''}</div>`;
+      inner = `<div class="cal-pnl">${str}</div><div class="cal-trades">${cnt} pos.</div>`;
     }
     const clickable = pnl !== undefined
-      ? `onclick="openJournal('${k}', _journalSessions.filter(s=>s.date==='${k}'))" style="cursor:pointer;"`
+      ? `onclick="openJournal('${k}', _journalSessions.find(s=>s.date==='${k}'))" style="cursor:pointer;"`
       : '';
-    cal.innerHTML += `<div class="cal-day ${cls} ${hasNote} ${isToday}" ${clickable} title="${k}: ${pnl!==undefined?fmt$(pnl)+' · '+cnt+' operaciones — Click para journal':'Sin operaciones'}">
+    cal.innerHTML += `<div class="cal-day ${cls} ${hasNote} ${isToday}" ${clickable} title="${k}: ${pnl!==undefined?fmt$(pnl)+' neto del día · '+cnt+' posiciones — Click para journal':'Sin operaciones'}">
       <div class="cal-num">${d.getDate()}</div>${inner}</div>`;
   }
 }
@@ -1906,7 +2151,7 @@ loadJournalData();
 
 // Un día "sin journal" = sin etiqueta, sin nota y sin screenshot.
 // Al eliminar se guarda una entrada vacía con fecha nueva, para que la eliminación también se sincronice.
-function journalHas(day) { const e = journalData[day]; return !!(e && (e.tag || e.note || e.img)); }
+function journalHas(day) { const e = journalData[day]; return !!(e && (e.tag || e.note || e.img || (e.imgs && e.imgs.length))); }
 
 // ── SINCRONIZACIÓN DEL JOURNAL CON LA NUBE ─────────────────────────────────────
 // El journal vive en el servidor; localStorage queda como copia local/offline.
@@ -1964,7 +2209,16 @@ async function syncJournal() {
 document.addEventListener('visibilitychange', () => { if(!document.hidden) syncJournal(); });
 setInterval(syncJournal, 60000);
 
-function openJournal(dateStr, daySessions) {
+// Estado de imágenes del modal: ids ya guardados + archivos pendientes (aún sin subir)
+let jImgs = [];          // [{id, ref}] guardadas en el servidor
+let jPending = [];       // [{blob, url, ref, name}] seleccionadas, sin subir
+let jRemoved = [];       // ids quitadas antes de guardar (se borran del servidor al guardar)
+const IMG_MAX_BYTES = 5*1024*1024, IMG_MAX_PER_DAY = 8;
+const IMG_TYPES = ['image/jpeg','image/png','image/webp','image/gif'];
+function imgSrc(id){ return `${serverURL}/images/${id}?token=${encodeURIComponent(serverToken)}`; }
+function jimgMsg(t, bad){ const e=document.getElementById('jimgMsg'); if(e){ e.textContent=t||''; e.style.color=bad?'var(--red)':'var(--muted)'; } }
+
+function openJournal(dateStr, day) {
   currentJournalDate = dateStr;
   const entry = journalData[dateStr] || {};
   const d = new Date(dateStr + 'T12:00:00');
@@ -1972,31 +2226,41 @@ function openJournal(dateStr, daySessions) {
   const months = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
   document.getElementById('jmodalDate').textContent = `${days[d.getDay()]} ${d.getDate()} de ${months[d.getMonth()]} ${d.getFullYear()}`;
 
-  const dayPnl = daySessions.reduce((a,s)=>a+s.netPnl, 0);
-  const dayTrades = daySessions.length;
-  const dayWins = daySessions.filter(s=>s.netPnl>0).length;
+  // El día se clasifica por su neto realizado; las posiciones se muestran aparte.
+  day = day || {netPnl:0,trades:0,wins:0,losses:0,tradeObjs:[]};
+  const dayPnl = day.netPnl, nPos = day.trades;
+  const dayLbl = day.netPnl>0?'Día ganador':day.netPnl<0?'Día perdedor':'Día neutral';
   document.getElementById('jmodalStats').innerHTML = `
-    <div class="jstat"><div class="jstat-l">P&L del Día</div><div class="jstat-v ${dayPnl>=0?'pos':'neg'}" style="color:${dayPnl>=0?'var(--green)':'var(--red)'}">${fmt$(dayPnl)}</div></div>
-    <div class="jstat"><div class="jstat-l">Trades</div><div class="jstat-v" style="color:var(--cyan)">${dayTrades}</div></div>
-    <div class="jstat"><div class="jstat-l">Win Rate</div><div class="jstat-v" style="color:var(--cyan)">${dayTrades?((dayWins/dayTrades)*100).toFixed(0):0}%</div></div>
-    <div class="jstat"><div class="jstat-l">Avg P&L</div><div class="jstat-v" style="color:${dayPnl>=0?'var(--green)':'var(--red)'}">${fmt$(dayTrades?dayPnl/dayTrades:0)}</div></div>
+    <div class="jstat"><div class="jstat-l">Neto del Día</div><div class="jstat-v" style="color:${dayPnl>0?'var(--green)':dayPnl<0?'var(--red)':'var(--muted)'}">${fmt$(dayPnl)}</div></div>
+    <div class="jstat"><div class="jstat-l">Resultado</div><div class="jstat-v" style="color:var(--cyan)">${dayLbl}</div></div>
+    <div class="jstat"><div class="jstat-l">Posiciones</div><div class="jstat-v" style="color:var(--cyan)">${nPos} (${day.wins}G / ${day.losses}P)</div></div>
+    <div class="jstat"><div class="jstat-l">Media por posición</div><div class="jstat-v" style="color:${dayPnl>=0?'var(--green)':'var(--red)'}">${fmt$(nPos?dayPnl/nPos:0)}</div></div>
   `;
 
-  // Reset tags
   document.querySelectorAll('.jtag').forEach(t => t.className='jtag');
   if(entry.tag) {
     const el = document.querySelector(`.jtag[data-tag="${entry.tag}"]`);
     if(el) { el.classList.add('sel-'+entry.tag); }
   }
   document.getElementById('jnoteText').value = entry.note || '';
-  document.getElementById('jimgLink').value = entry.img || '';
-  previewImg();
+  // imágenes
+  jPending.forEach(p=>URL.revokeObjectURL(p.url));
+  jPending = []; jRemoved = [];
+  jImgs = (entry.imgs||[]).map(id=>({id,ref:(entry.imgRefs||{})[id]||''}));
+  const sel = document.getElementById('jimgTrade');
+  sel.innerHTML = '<option value="">Toda la sesión</option>' + (day.tradeObjs||[]).map(t=>`<option value="${t.id}">${t.sym} ${t.side} · ${fmt$(t.netPnl)} · #${t.id}</option>`).join('');
+  const legacy = document.getElementById('jimgLegacy');
+  legacy.innerHTML = entry.img ? `Enlace antiguo conservado: <a href="${encodeURI(entry.img)}" target="_blank" rel="noopener" style="color:var(--cyan)">abrir</a>` : '';
+  jimgMsg('');
+  renderImgGrid();
+  checkImageSupport();
   document.getElementById('jbtnDel').style.display = journalHas(dateStr) ? '' : 'none';
   document.getElementById('jmodalOverlay').classList.add('open');
 }
 
 function closeJournal() {
   document.getElementById('jmodalOverlay').classList.remove('open');
+  jPending.forEach(p=>URL.revokeObjectURL(p.url)); jPending = []; jRemoved = [];
 }
 
 function selectTag(el) {
@@ -2006,42 +2270,132 @@ function selectTag(el) {
   if(!wasSelected) el.classList.add('sel-'+tag); // tocar de nuevo la opción activa la deselecciona
 }
 
-function deleteJournal() {
+function renderImgGrid() {
+  const g = document.getElementById('jimgGrid');
+  const cloud = !!(serverURL && serverToken);
+  const parts = jImgs.map(i=>`<div class="jimg-item"><img src="${cloud?imgSrc(i.id):''}" alt="captura" onclick="openImgViewer(this.src)" onerror="this.alt='No se pudo cargar'"/><button class="jimg-x" type="button" title="Quitar" onclick="removeSavedImg('${i.id}')">✕</button>${i.ref?`<span class="jimg-badge">#${i.ref}</span>`:''}</div>`);
+  jPending.forEach((p,idx)=>parts.push(`<div class="jimg-item"><img src="${p.url}" alt="vista previa" onclick="openImgViewer(this.src)"/><button class="jimg-x" type="button" title="Quitar" onclick="removePendingImg(${idx})">✕</button><span class="jimg-badge">sin guardar</span></div>`));
+  g.innerHTML = parts.join('');
+  const btn = document.getElementById('jimgAddBtn');
+  btn.disabled = !cloud;
+  if(!cloud) jimgMsg('Inicia sesión en la nube (☰ → Cuenta) para subir capturas.', true);
+}
+function openImgViewer(src){ document.getElementById('jimgViewerImg').src = src; document.getElementById('jimgViewer').classList.add('open'); }
+function closeImgViewer(){ const v=document.getElementById('jimgViewer'); if(v){ v.classList.remove('open'); } }
+function removePendingImg(i){ const p=jPending.splice(i,1)[0]; if(p) URL.revokeObjectURL(p.url); renderImgGrid(); }
+function removeSavedImg(id){ jImgs=jImgs.filter(i=>i.id!==id); jRemoved.push(id); renderImgGrid(); }
+
+// Reduce y re-codifica en el navegador (quita EXIF, baja el peso); si falla, usa el original si cumple límites.
+function prepareImage(file) {
+  return new Promise(resolve => {
+    if(file.type === 'image/gif') return resolve(file);
+    const url = URL.createObjectURL(file), im = new Image();
+    im.onload = () => {
+      try {
+        const max = 1800, sc = Math.min(1, max/Math.max(im.width, im.height));
+        const c = document.createElement('canvas'); c.width = Math.round(im.width*sc); c.height = Math.round(im.height*sc);
+        c.getContext('2d').drawImage(im, 0, 0, c.width, c.height);
+        const type = file.type === 'image/png' ? 'image/png' : 'image/jpeg';
+        c.toBlob(b => { URL.revokeObjectURL(url); resolve(b && b.size < file.size ? b : file); }, type, 0.88);
+      } catch(_) { URL.revokeObjectURL(url); resolve(file); }
+    };
+    im.onerror = () => { URL.revokeObjectURL(url); resolve(file); };
+    im.src = url;
+  });
+}
+async function onImgPicked(input) {
+  const files = [...input.files]; input.value = '';
+  jimgMsg('');
+  for(const f of files) {
+    if(!IMG_TYPES.includes(f.type)) { jimgMsg(`"${f.name}": formato no permitido (usa JPG, PNG, WEBP o GIF).`, true); continue; }
+    if(jImgs.length + jPending.length >= IMG_MAX_PER_DAY) { jimgMsg(`Máximo ${IMG_MAX_PER_DAY} imágenes por día.`, true); break; }
+    const b = await prepareImage(f);
+    if(b.size > IMG_MAX_BYTES) { jimgMsg(`"${f.name}": supera 5 MB.`, true); continue; }
+    jPending.push({blob:b, url:URL.createObjectURL(b), ref:document.getElementById('jimgTrade').value, name:f.name});
+  }
+  renderImgGrid();
+}
+// Errores clasificados para saber QUÉ falló: ruta, permisos, validación, almacenamiento o conexión.
+async function uploadImage(day, p) {
+  let r;
+  try {
+    r = await fetch(`${serverURL}/journal/${day}/images?token=${encodeURIComponent(serverToken)}${p.ref?'&trade='+encodeURIComponent(p.ref):''}`,
+      { method:'POST', headers:{'Content-Type':p.blob.type||'application/octet-stream'}, body:p.blob });
+  } catch(_) { throw new Error('Conexión: no se pudo contactar con el servidor. Revisa tu internet o si Render está dormido.'); }
+  let j = {}; try { j = await r.json(); } catch(_){}
+  if(r.ok) return j;
+  if(r.status===404 && !j.error) throw new Error('Ruta no encontrada (404): el servidor desplegado no tiene /journal/:día/images. Despliega el server.js actualizado en Render.');
+  if(r.status===401) throw new Error('Permisos: sesión vencida o inválida. Vuelve a iniciar sesión.');
+  if([400,409,413,415].includes(r.status)) throw new Error('Validación: '+(j.error||('Error '+r.status)));
+  if(r.status>=500) throw new Error('Almacenamiento: '+(j.error||('Error '+r.status))+' Revisa DATABASE_URL y los logs de Render.');
+  throw new Error(j.error||('Error '+r.status));
+}
+// Al abrir el journal, comprueba que el servidor soporte imágenes y que sean persistentes.
+let _imgCfgChecked = '';
+async function checkImageSupport() {
+  if(!serverURL || !serverToken) return;
+  try {
+    const r = await fetch(`${serverURL}/journal-config?token=${encodeURIComponent(serverToken)}`);
+    if(r.status===404) { jimgMsg('⚠️ El servidor desplegado no soporta imágenes (falta /journal-config). Despliega el server.js actualizado.', true); return; }
+    if(!r.ok) return;
+    const c = await r.json();
+    if(!c.persistent) jimgMsg('⚠️ El servidor guarda las imágenes en disco temporal (sin DATABASE_URL): se perderán al reiniciar. Configura DATABASE_URL en Render.', true);
+  } catch(_) {}
+}
+async function deleteImageRemote(day, id) {
+  try { await fetch(`${serverURL}/journal/${day}/images/${id}?token=${encodeURIComponent(serverToken)}`, {method:'DELETE'}); } catch(_){}
+}
+
+async function deleteJournal() {
   if(!currentJournalDate) return;
-  if(!confirm('¿Eliminar el journal de este día? Se borrará la etiqueta, la nota y el link del screenshot en todos tus dispositivos.')) return;
-  journalData[currentJournalDate] = { tag:'', note:'', img:'', saved: new Date().toISOString() };
+  if(!confirm('¿Eliminar el journal de este día? Se borrará la etiqueta, la nota y las capturas en todos tus dispositivos.')) return;
+  const day = currentJournalDate, old = journalData[day] || {};
+  journalData[day] = { tag:'', note:'', img:'', imgs:[], saved: new Date().toISOString() };
   saveJournalToStorage();
-  journalDirty.add(currentJournalDate); saveDirty();
-  pushJournalEntry(currentJournalDate);
+  journalDirty.add(day); saveDirty();
+  await pushJournalEntry(day);
+  for(const id of (old.imgs||[])) await deleteImageRemote(day, id);
   document.querySelectorAll('.jtag').forEach(t => t.className='jtag');
   document.getElementById('jnoteText').value = '';
-  document.getElementById('jimgLink').value = '';
-  previewImg();
   closeJournal();
   if(_journalSessions.length) renderCalendar(_journalSessions);
 }
 
-function saveJournal() {
+async function saveJournal() {
   if(!currentJournalDate) return;
+  const day = currentJournalDate;
   const tag = document.querySelector('.jtag[class*="sel-"]')?.dataset.tag || '';
   const note = document.getElementById('jnoteText').value.trim();
-  const img = document.getElementById('jimgLink').value.trim();
-  journalData[currentJournalDate] = { tag, note, img, saved: new Date().toISOString() };
+  const old = journalData[day] || {};
+  const saveBtn = document.querySelector('.jbtn-save');
+  // 1) subir las imágenes nuevas; si alguna falla, no se pierde nada y se avisa
+  let hadFailures = false;
+  const uploaded = [], refs = {...(old.imgRefs||{})};
+  if(jPending.length) {
+    saveBtn.disabled = true; saveBtn.textContent = 'Subiendo...';
+    const failed = [];
+    for(const p of jPending) {
+      try { const j = await uploadImage(day, p); uploaded.push(j.id); if(p.ref) refs[j.id] = p.ref; }
+      catch(e) { failed.push(p); jimgMsg(`No se pudo subir "${p.name}": ${e.message}`, true); }
+    }
+    saveBtn.disabled = false; saveBtn.textContent = '💾 Guardar';
+    jPending.filter(p=>!failed.includes(p)).forEach(p=>URL.revokeObjectURL(p.url));
+    jPending = failed;
+    if(failed.length) { // se guardan nota/etiqueta y lo ya subido; las fallidas quedan pendientes para reintentar
+      jImgs = [...jImgs, ...uploaded.map(id=>({id,ref:refs[id]||''}))]; renderImgGrid();
+    }
+    hadFailures = failed.length > 0;
+  }
+  const imgs = [...jImgs.map(i=>i.id), ...uploaded];
+  journalData[day] = { tag, note, img: old.img||'', imgs, imgRefs: refs, saved: new Date().toISOString() };
   saveJournalToStorage();
-  journalDirty.add(currentJournalDate); saveDirty();
-  pushJournalEntry(currentJournalDate);
+  journalDirty.add(day); saveDirty();
+  await pushJournalEntry(day);
+  for(const id of jRemoved) deleteImageRemote(day, id);
+  jRemoved = [];
+  if(hadFailures) return; // dejar abierto el modal para reintentar
   closeJournal();
-  // Refresh calendar to show note badge
   if(_journalSessions.length) renderCalendar(_journalSessions);
-}
-
-function previewImg() {
-  const val = document.getElementById('jimgLink').value.trim();
-  const wrap = document.getElementById('jimgPreview');
-  const img = document.getElementById('jimgImg');
-  if(val && (val.startsWith('http://') || val.startsWith('https://'))) {
-    img.src = val; wrap.style.display='block';
-  } else { wrap.style.display='none'; }
 }
 
 // ── MONTHLY SUMMARY ────────────────────────────────────────────────────────────
@@ -2067,47 +2421,28 @@ async function openMonthlySummary() {
   const tagLabels = { ok:'Ejecuté bien', warn:'Dudé en algo', bad:'Cometí error', lesson:'Lección clave' };
   const digest = entries.map(([date, e]) => {
     const pnl = (sessByDate[date]||[]).reduce((a,s)=>a+s.netPnl,0);
-    const cnt = (sessByDate[date]||[]).length;
-    return `${date} | P&L: ${pnl>=0?'+':''}$${pnl.toFixed(2)} | ${cnt} trade(s) | Etiqueta: ${tagLabels[e.tag]||'Sin etiqueta'} | Nota: ${e.note||'(sin nota)'}`;
+    const cnt = (sessByDate[date]||[]).reduce((a,s)=>a+s.trades,0);
+    return `${date} | Neto del día: ${pnl>=0?'+':''}$${pnl.toFixed(2)} (${pnl>0?'día ganador':pnl<0?'día perdedor':'día neutral'}) | ${cnt} posición(es) | Etiqueta: ${tagLabels[e.tag]||'Sin etiqueta'} | Nota: ${e.note||'(sin nota)'}`;
   }).join('\n');
 
   try {
-    const resp = await fetch('https://api.anthropic.com/v1/messages', {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({
-        model:'claude-sonnet-4-20250514',
-        max_tokens:1000,
-        messages:[{
-          role:'user',
-          content:`Eres el coach de trading de un trader de MT5 que hace scaling in en posiciones. Analiza este journal de trading y genera un resumen mensual conciso y útil en español. 
-
-DATOS DEL JOURNAL:
-${digest}
-
-Estructura tu análisis así:
-1. 🏆 MEJORES DÍAS (top 3, qué los hizo especiales según las notas)
-2. ⚠️ DÍAS A REVISAR (los peores en P&L o con errores, qué patrón ves)
-3. 🔁 PATRONES QUE SE REPITEN (tanto positivos como negativos, basándote en las notas)
-4. 📌 LAS 3 ACCIONES CONCRETAS para el próximo mes
-
-Sé directo, específico a sus datos, sin relleno. Máximo 350 palabras.`
-        }]
-      })
-    });
-    const data = await resp.json();
-    const text = data.content?.map(c=>c.text||'').join('') || 'No se pudo generar el análisis.';
-    el.innerHTML = `<div class="sum-content">${text}</div>`;
+    if(!serverURL||!serverToken){ el.innerHTML='<div style="color:var(--muted);font-size:12px;">El resumen con IA requiere conexión al servidor en la nube.</div>'; return; }
+    const resp = await fetch(`${serverURL}/ai/summary`, { method:'POST', headers:{'Content-Type':'application/json','x-token':serverToken}, body: JSON.stringify({digest}) });
+    const data = await resp.json().catch(()=>({}));
+    const text = resp.ok ? (data.text||'No se pudo generar el análisis.') : (data.error||'Error del servidor de IA');
+    const box = document.createElement('div'); box.className='sum-content'; box.style.whiteSpace='pre-wrap'; box.textContent=text; el.replaceChildren(box);
   } catch(err) {
     el.innerHTML = `<div style="color:var(--red);font-size:12px;">Error al conectar con AI: ${err.message}</div>`;
   }
 }
 
-// ── COACH (mejorado) ────────────────────────────────────────────────────────────
-function renderCoach(m, sessions, balance, deposit) {
-  const tips=[];
+// ── COACH ──────────────────────────────────────────────────────────────────────
+// Cada consejo usa SU unidad: posición, campaña (scaling in) o día operativo. Nunca se califica un día
+// por sus posiciones sueltas ni se infiere sobreoperación solo por la cantidad de posiciones.
+function renderCoach(m, days, balance, deposit, campaigns) {
+  const tips=[]; const C=m.C;
 
-  // ── Risk scaling tip
+  // ── Escala de riesgo (plan del usuario)
   const dep = parseFloat(document.getElementById('riskDeposit')?.value) || deposit || 1000;
   const rPct = parseFloat(document.getElementById('riskPct')?.value) || 2.5;
   const thresh = parseFloat(document.getElementById('riskThreshold')?.value) || 25;
@@ -2120,57 +2455,76 @@ function renderCoach(m, sessions, balance, deposit) {
   const needed = (nextTarget - bal).toFixed(2);
   tips.push({c:'c',l:`Nivel de Riesgo ${lvl+1} 📊`,t:`Riesgo actual: <strong>$${(lvlTarget*rPct/100).toFixed(2)}/trade</strong> (${rPct}% de $${lvlTarget.toFixed(2)}). Llevas un <strong>${pctToNext}%</strong> del camino al Nivel ${lvl+2} — necesitas <strong>$${needed}</strong> más para escalar el riesgo a $${(nextTarget*rPct/100).toFixed(2)}/trade.`});
 
-  // ── Win rate
-  if(m.winPct<40) tips.push({c:'r',l:'Win Rate Bajo ⚠️',t:`${m.winPct.toFixed(1)}% — Menos del 40% de tus sesiones son ganadoras. Revisa tus condiciones de entrada.`});
-  else if(m.winPct>=55) tips.push({c:'g',l:'Win Rate Excelente ✅',t:`${m.winPct.toFixed(1)}% — Más de la mitad de tus sesiones terminan en verde. Mantén la disciplina.`});
+  // ── Resumen por niveles (evita leer una unidad como otra)
+  const dayTxt = m.days?`${m.dayWins} días ganadores, ${m.dayLosses} perdedores${m.dayBE?`, ${m.dayBE} neutrales`:''} (${m.dayWinPct.toFixed(0)}%)`:'sin días';
+  tips.push({c:'c',l:'Tres niveles de lectura 🧭',t:`<strong>Posiciones:</strong> ${m.wins}G/${m.losses}P de ${m.n} (${m.winPct.toFixed(0)}%). <strong>Campañas:</strong> ${C?`${C.wins}G/${C.losses}P de ${C.n} (${C.winPct.toFixed(0)}%)`:'n/d'}. <strong>Días:</strong> ${dayTxt}. Un día se juzga por su neto, no por cuántas posiciones cerraron en rojo.`});
 
-  // ── R:R
-  if(m.rr<1) tips.push({c:'r',l:'Reward:Risk Deficiente',t:`Ratio ${m.rr.toFixed(2)}:1 — Estás arriesgando más de lo que ganas. El objetivo mínimo es 1:1, ideal 2:1.`});
-  else if(m.rr>=2) tips.push({c:'g',l:'Reward:Risk Óptimo ✅',t:`${m.rr.toFixed(2)}:1 — Cada dólar de riesgo genera $${m.rr.toFixed(2)} de retorno potencial.`});
+  // ── Días (nivel sesión)
+  if(m.days>=5){
+    if(m.dayWinPct>=60) tips.push({c:'g',l:'Consistencia Diaria ✅',t:`${m.dayWinPct.toFixed(0)}% de tus días operados cierran en positivo según su resultado neto.`});
+    else if(m.dayWinPct<40) tips.push({c:'w',l:'Pocos Días Ganadores',t:`Solo ${m.dayWinPct.toFixed(0)}% de tus ${m.days} días cierran en positivo. Revisa en el journal qué tienen en común los días perdedores (mercado, horario, tamaño).`});
+  }
 
-  // ── Profit factor
-  if(m.pf<1) tips.push({c:'r',l:'Profit Factor < 1 ⚠️',t:`PF ${m.pf.toFixed(2)} — Las pérdidas brutas superan las ganancias. Sistema no rentable ahora.`});
-  else if(m.pf>=1.5) tips.push({c:'g',l:'Profit Factor Sólido ✅',t:`PF ${m.pf.toFixed(2)} — Por cada dólar perdido generas $${m.pf.toFixed(2)} en ganancias brutas.`});
+  // ── Rachas de DÍAS (no de posiciones)
+  const cur=m.streaks.current;
+  if(cur.type==='win'&&cur.count>=3) tips.push({c:'g',l:`Racha de ${cur.count} Días Ganadores 🔥`,t:`${cur.count} días operativos consecutivos con neto positivo (${fmt$(cur.net)}). Mantén el plan y el mismo criterio de riesgo.`});
+  if(cur.type==='loss'&&cur.count>=3) tips.push({c:'r',l:`Racha de ${cur.count} Días Perdedores ❄️`,t:`${cur.count} días operativos consecutivos con neto negativo (${fmt$(cur.net)}, ${cur.start} → ${cur.end}). Es una racha de días, no de posiciones. Revisa esos días en el journal antes de cambiar nada; los datos no indican por sí solos una causa ni justifican un cambio de riesgo.`});
+  const bl=m.streaks.bestLoss;
+  if(bl&&bl.count>=4&&!(cur.type==='loss'&&cur.count===bl.count)) tips.push({c:'p',l:'Peor Racha Histórica de Días',t:`Tu récord es de ${bl.count} días perdedores consecutivos (${fmt$(bl.net)}). Úsalo como referencia para dimensionar el drawdown que tu sistema ha tolerado.`});
 
-  // ── Expectancy
-  if(m.exp>=0) tips.push({c:'g',l:'Expectancy Positiva ✅',t:`$${m.exp.toFixed(2)} esperados por sesión. Sistema matemáticamente rentable si se ejecuta con consistencia.`});
-  else tips.push({c:'r',l:'Expectancy Negativa ⚠️',t:`-$${Math.abs(m.exp).toFixed(2)} por sesión en promedio. Necesitas mejorar Win Rate o Reward:Risk.`});
+  // ── Posiciones (solo informativo en scalping con scaling in)
+  if(m.winPct<40&&C&&C.exp>0) tips.push({c:'p',l:'Win Rate por Posición Bajo, Campañas Rentables',t:`${m.winPct.toFixed(1)}% de las posiciones cierran en verde, pero las campañas tienen expectancy de ${fmt$(C.exp)}. En scaling in es normal que algunas entradas cierren en pérdida; juzga la idea completa.`});
+  else if(m.winPct<40) tips.push({c:'w',l:'Win Rate por Posición Bajo',t:`${m.winPct.toFixed(1)}% de las posiciones son ganadoras${C?` y las campañas tienen expectancy de ${fmt$(C.exp)}`:''}. Compensarlo requiere un payoff alto.`});
 
-  // ── Rachas
-  if(m.currentStreak>=3&&m.currentStreakType==='win') tips.push({c:'g',l:`Racha de ${m.currentStreak} Ganadoras 🔥`,t:`Llevas ${m.currentStreak} sesiones ganadoras consecutivas. Buen momento para mantener el plan sin sobreoperar.`});
-  if(m.currentStreak>=3&&m.currentStreakType==='loss') tips.push({c:'r',l:`Racha de ${m.currentStreak} Perdedoras ❄️`,t:`Llevas ${m.currentStreak} sesiones perdedoras. Considera reducir el tamaño o tomar un descanso de un día.`});
+  if(m.rr!=null&&m.rr<1) tips.push({c:'w',l:'Payoff por Posición < 1',t:`Ganancia media / pérdida media de posiciones: ${fx(m.rr)}:1${C&&C.rr!=null?` · por campaña: ${fx(C.rr)}:1`:''}. Con win rate alto puede ser coherente; evalúalo junto a la expectancy.`});
+  else if(m.rr!=null&&m.rr>=2) tips.push({c:'g',l:'Payoff Sólido ✅',t:`${fx(m.rr)}:1 por posición.`});
 
-  // ── Best / worst day of week analysis
+  if(m.pf!=null&&m.pf<1) tips.push({c:'r',l:'Profit Factor < 1 (posiciones) ⚠️',t:`PF ${fxPF(m.pf)} — las pérdidas brutas por posición superan las ganancias.${C&&C.pf!=null?` Por campaña: PF ${fxPF(C.pf)}.`:''}`});
+  else if(m.pf!=null&&m.pf>=1.5) tips.push({c:'g',l:'Profit Factor Sólido ✅',t:`PF ${fxPF(m.pf)} por posición${C&&C.pf!=null?` · ${fxPF(C.pf)} por campaña`:''}.`});
+
+  if(m.exp>=0) tips.push({c:'g',l:'Expectancy Positiva ✅',t:`${fmt$(m.exp)} por posición${C?` · ${fmt$(C.exp)} por campaña`:''}. Son unidades distintas: la de campaña es la media por idea operativa.`});
+  else tips.push({c:'r',l:'Expectancy Negativa ⚠️',t:`${fmt$(m.exp)} por posición${C?` · ${fmt$(C.exp)} por campaña`:''}. Mejora win rate o payoff.`});
+
+  // ── Scaling in
+  if(m.cN){
+    if(m.scaledN>0) tips.push({c:'p',l:'Scaling In Identificado 📈',t:`${m.scaledN} de ${m.cN} campañas (${(m.scaledN/m.cN*100).toFixed(0)}%) añadieron posiciones; media de ${m.cAvgPos.toFixed(1)} posiciones por campaña. Muchas posiciones en un día no implican sobreoperación: lo relevante es el riesgo agregado de cada campaña.`});
+    if(m.cAvgMAE!=null) tips.push({c:'c',l:'Recorrido de Campañas',t:`MAE medio de campaña ${fmt$(-m.cAvgMAE)} y MFE medio ${fmt$(m.cAvgMFE)} (extremos del resultado combinado, muestreados por la EA; ${m.cExcN} de ${m.cN} campañas).`});
+  } else tips.push({c:'w',l:'Campañas no Disponibles',t:'No hay posiciones suficientes para reconstruir campañas; las conclusiones se limitan a posiciones y días.'});
+
+  // ── Límites de los datos (no inventar)
+  const lim=[];
+  if(!m.rN) lim.push('riesgo inicial por posición');
+  if(m.cN&&!m.cRN) lim.push('R por campaña');
+  if(!m.excN) lim.push('MAE/MFE');
+  lim.push('límites de exposición y de operaciones diarias');
+  tips.push({c:'w',l:'Qué No Puedo Evaluar 🔎',t:`Faltan datos de: ${lim.join(', ')}. Sin ellos no evalúo sobreoperación ni recomiendo cambios de riesgo; ${m.n} posiciones en ${m.days} días (${m.avgTradesDay.toFixed(1)}/día) es solo un dato descriptivo.`});
+
+  // ── Mejor / peor día de la semana (por días)
   const dayPnl = Array(7).fill(0), dayCnt = Array(7).fill(0);
-  sessions.forEach(s=>{ const d=new Date(s.date+'T12:00:00'); dayPnl[d.getDay()]+=s.netPnl; dayCnt[d.getDay()]++; });
+  days.forEach(s=>{ const d=new Date(s.date+'T12:00:00'); dayPnl[d.getDay()]+=s.netPnl; dayCnt[d.getDay()]++; });
   const dayNames=['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
   const tradingDays = dayPnl.map((p,i)=>({name:dayNames[i],pnl:p,cnt:dayCnt[i]})).filter(d=>d.cnt>0);
   if(tradingDays.length>=3){
     const best = [...tradingDays].sort((a,b)=>b.pnl-a.pnl)[0];
     const worst = [...tradingDays].sort((a,b)=>a.pnl-b.pnl)[0];
-    tips.push({c:'g',l:`Mejor Día: ${best.name} 🗓️`,t:`${best.name} es tu día más rentable con ${fmt$(best.pnl)} en ${best.cnt} sesión(es). Revisa qué condiciones de mercado se repetían ese día y replícalas.`});
-    if(worst.pnl < 0) tips.push({c:'w',l:`Peor Día: ${worst.name} ⚠️`,t:`${worst.name} acumula ${fmt$(worst.pnl)} en ${worst.cnt} sesión(es). Considera reducir el tamaño de posición o ser más selectivo ese día.`});
+    tips.push({c:'g',l:`Mejor Día: ${best.name} 🗓️`,t:`${best.name} suma ${fmt$(best.pnl)} en ${best.cnt} día(s) operado(s).`});
+    if(worst.pnl < 0) tips.push({c:'w',l:`Peor Día: ${worst.name} ⚠️`,t:`${worst.name} acumula ${fmt$(worst.pnl)} en ${worst.cnt} día(s) operado(s).`});
   }
 
-  // ── Scaling behavior
-  if(m.avgEntries>2) tips.push({c:'p',l:'Scaling Activo 📈',t:`Promedio de ${m.avgEntries.toFixed(1)} entradas por trade. Tu estilo de scaling funciona — asegúrate de que cada scale-in tiene justificación técnica clara.`});
+  // ── Sharpe diario
+  if(m.sharpe!=null){
+    if(m.sharpe>=1) tips.push({c:'g',l:'Sharpe Diario Bueno ✅',t:`Sharpe diario ${fx(m.sharpe)}${m.sharpeProvisional?' (provisional, <20 días)':''}.`});
+    else tips.push({c:'w',l:'Sharpe Diario Bajo',t:`Sharpe diario ${fx(m.sharpe)}${m.sharpeProvisional?' (provisional, <20 días)':''}: hay dispersión entre días.`});
+  }
 
-  // ── Sharpe
-  if(m.sharpe>=1) tips.push({c:'g',l:'Sharpe Ratio Bueno ✅',t:`Sharpe ${m.sharpe.toFixed(2)} — Retorno ajustado al riesgo por encima de 1. Performance sólida y consistente.`});
-  else tips.push({c:'w',l:'Sharpe Ratio Bajo',t:`Sharpe ${m.sharpe.toFixed(2)} — Hay volatilidad en tus resultados. Busca mayor consistencia entre sesiones.`});
+  if(m.comms/Math.abs(m.total||1)>0.3) tips.push({c:'w',l:'Comisiones Elevadas',t:`Las comisiones representan más del 30% del P&L neto.`});
 
-  // ── Commissions
-  if(m.comms/Math.abs(m.total||1)>0.3) tips.push({c:'w',l:'Comisiones Elevadas',t:`Las comisiones representan más del 30% del P&L. Considera negociar spreads o reducir frecuencia.`});
-
-  // ── Journal reminder
+  // ── Journal
   const journalCount = Object.keys(journalData).filter(journalHas).length;
-  const sessionDates = [...new Set(sessions.map(s=>s.date))].length;
-  if(journalCount < sessionDates * 0.5) tips.push({c:'p',l:'Journal Incompleto 📓',t:`Tienes notas en ${journalCount} de ${sessionDates} días con operativas. Haz click en cualquier día del calendario para añadir tu análisis. El resumen mensual AI será más útil cuantas más notas tengas.`});
+  if(journalCount < days.length * 0.5) tips.push({c:'p',l:'Journal Incompleto 📓',t:`Tienes notas en ${journalCount} de ${days.length} días operados. Toca un día del calendario para añadir notas y capturas.`});
 
-  // Sort by urgency: red (r) first, then warn (w), then rest
   const urgencyOrder = {r:0, w:1, p:2, c:3, g:4};
   tips.sort((a,b) => (urgencyOrder[a.c]??5) - (urgencyOrder[b.c]??5));
-
   document.getElementById('coachGrid').innerHTML=tips.map(t=>`
     <div class="coach-card ${t.c}">
       <div class="coach-label">${t.l}</div>
@@ -2179,42 +2533,64 @@ function renderCoach(m, sessions, balance, deposit) {
 }
 
 // ── THEME TOGGLE ───────────────────────────────────────────────────────────────
-let _lastSessions = [], _lastTrades = [], _lastBalance = 0;
+let _lastSessions = [], _lastTrades = [], _lastBalance = 0, _lastM = null;
+function setThemeLabel() {
+  const isLight = document.body.classList.contains('light');
+  document.getElementById('themeToggle').textContent = isLight ? '🌙 Modo oscuro' : '☀️ Modo claro';
+}
 function toggleTheme() {
   const isLight = document.body.classList.toggle('light');
-  document.getElementById('themeToggle').textContent = isLight ? '☀️' : '🌙';
+  setThemeLabel();
   try { localStorage.setItem('tl_theme', isLight ? 'light' : 'dark'); } catch(_){}
   // Rebuild charts with updated colors
-  if(_lastSessions.length) {
-    const m = calcMetrics(_lastSessions, _lastTrades);
-    if(m) renderCharts(m, _lastSessions);
-  }
+  if(_lastM && _lastSessions.length) renderCharts(_lastM, _lastSessions);
 }
 (function initTheme(){
   try {
     const t = localStorage.getItem('tl_theme');
-    if(t === 'light') { document.body.classList.add('light'); document.getElementById('themeToggle').textContent='☀️'; }
+    if(t === 'light') document.body.classList.add('light');
   } catch(_){}
+  setThemeLabel();
 })();
 
+// ── MENÚ (☰) ───────────────────────────────────────────────────────────────────
+function closeMenu() {
+  document.getElementById('menuPop').classList.remove('open');
+  document.getElementById('menuBtn').setAttribute('aria-expanded','false');
+}
+function toggleMenu(ev) {
+  if(ev) ev.stopPropagation();
+  const pop = document.getElementById('menuPop');
+  const open = pop.classList.toggle('open');
+  document.getElementById('menuBtn').setAttribute('aria-expanded', open ? 'true' : 'false');
+}
+function menuAction(what) {
+  closeMenu();
+  if(what === 'account') openAccount();
+  else if(what === 'theme') toggleTheme();
+  else if(what === 'logout') clearSession();
+}
+document.addEventListener('click', e => { if(!e.target.closest('#menuWrap')) closeMenu(); });
+document.addEventListener('keydown', e => { if(e.key === 'Escape') { closeMenu(); closeImgViewer(); } });
+
 // ── DAILY DRAWDOWN ALERT ───────────────────────────────────────────────────────
+// Mide (a) pérdida REALIZADA hoy y (b) caída de equity vs balance de inicio de día (incl. flotante).
+// No es drawdown desde el máximo intradía de equity. Día = fecha del servidor del bróker.
 function checkDailyDrawdown(sessionsArg, balanceArg) {
-  const sessions = sessionsArg || _lastSessions;
-  const balance = balanceArg || _lastBalance || 0;
-  if(!sessions.length || !balance) return;
-  const limitPct = parseFloat(document.getElementById('ddLimitPct')?.value) || 5;
-  const today = new Date().toISOString().split('T')[0];
-  const todayPnl = sessions.filter(s=>s.date===today).reduce((a,s)=>a+s.netPnl, 0);
-  const todayDD = todayPnl < 0 ? Math.abs(todayPnl) : 0;
-  const ddPct = balance > 0 ? (todayDD / balance * 100) : 0;
-  const banner = document.getElementById('ddAlertBanner');
-  const sub = document.getElementById('ddAlertSub');
-  if(ddPct >= limitPct) {
-    sub.innerHTML = `Drawdown de hoy: <strong style="color:var(--red)">-$${todayDD.toFixed(2)} (${ddPct.toFixed(2)}%)</strong> — Límite configurado: <strong>${limitPct}%</strong>. Considera pausar las operaciones por hoy.`;
+  const acc=_lastAcc||{}; const balance=(acc.balance)||balanceArg||_lastBalance||0;
+  const banner=document.getElementById('ddAlertBanner'), sub=document.getElementById('ddAlertSub');
+  if(!balance||!banner) return;
+  const limitPct=parseFloat(document.getElementById('ddLimitPct')?.value)||5;
+  const realized=(_lastTrades||[]).filter(s=>s.date===todayStr()).reduce((a,s)=>a+s.netPnl,0);
+  const base=balance-realized; // balance al inicio del día (aprox.: ignora depósitos/retiros del mismo día)
+  const limit=base*limitPct/100;
+  const realLoss=realized<0?-realized:0;
+  const eqLoss=acc.equity!=null?Math.max(0,base-acc.equity):null;
+  const used=eqLoss!=null?eqLoss:realLoss;
+  if(base>0&&used>=limit){
+    sub.innerHTML=`Pérdida del día (${eqLoss!=null?'equity vs balance de inicio, incl. flotante':'solo realizada'}): <strong style="color:var(--red)">-$${used.toFixed(2)} (${(used/base*100).toFixed(2)}%)</strong> · Realizada: -$${realLoss.toFixed(2)} · Límite: <strong>${limitPct}% = $${limit.toFixed(2)}</strong>`;
     banner.classList.add('show');
-  } else {
-    banner.classList.remove('show');
-  }
+  } else { banner.classList.remove('show'); }
 }
 
 // ── ROI PROJECTION ─────────────────────────────────────────────────────────────
@@ -2226,7 +2602,7 @@ function renderROIProjection(m, sessions, balance) {
   const base = balance || lastEquity || 0;
 
   function project(days) {
-    return lastEquity + m.exp * sessPerDay * days;
+    return lastEquity + m.exp * m.tpd * days;
   }
   const p30 = project(30), p60 = project(60), p90 = project(90);
 
@@ -2242,23 +2618,26 @@ function renderROIProjection(m, sessions, balance) {
     </div>`;
   }
   document.getElementById('roiCards').innerHTML = roiCard(30,p30)+roiCard(60,p60)+roiCard(90,p90);
-  const spd = sessPerDay.toFixed(1);
+  const spd = m.tpd.toFixed(2);
   const expSign = m.exp >= 0 ? '+' : '';
   document.getElementById('roiNote').innerHTML =
     `Base: <strong style="color:var(--cyan)">$${lastEquity.toFixed(2)}</strong> equity acumulada · ` +
-    `Expectancy: <strong style="color:${m.exp>=0?'var(--green)':'var(--red)'}">${expSign}$${m.exp.toFixed(2)}/sesión</strong> · ` +
-    `Ritmo: <strong>${spd} sesiones/día</strong> promedio histórico. ` +
-    `<span style="color:var(--muted);">La proyección asume que el rendimiento pasado se mantiene constante. Solo referencia.</span>`;
+    `Expectancy: <strong style="color:${m.exp>=0?'var(--green)':'var(--red)'}">${expSign}$${m.exp.toFixed(2)}/operación</strong> · ` +
+    `Ritmo: <strong>${spd} operaciones/día calendario</strong> (histórico). ` +
+    `<span style="color:var(--muted);">ESCENARIO HIPOTÉTICO (no es historial): expectativa por operación × ritmo histórico constante. No incluye varianza, drawdowns, costes futuros ni cambios de riesgo.</span>`;
 }
 
 // ── EXPORT CSV ─────────────────────────────────────────────────────────────────
 function exportCSV() {
   if(!_lastTrades.length) { alert('No hay trades cargados.'); return; }
-  const headers = ['Fecha','Símbolo','Entradas','Volumen Total','Avg Entry','Exit Price','Gross P&L','Comisión','Net P&L','Duración (min)','Max Float DD','Max Float Win'];
+  const campOf={}; _lastCampaigns.forEach(c=>c.ids.forEach(id=>{ campOf[id]=c.id; }));
+  const dayNet={}; _lastSessions.forEach(d=>{ dayNet[d.date]=d.netPnl; });
+  const headers = ['Fecha cierre','Símbolo','Entradas','Volumen Total','Avg Entry','Exit Price','Gross P&L','Comisión','Net P&L','Duración (min)','MAE (EA, medido desde apertura)','MFE (EA, medido desde apertura)','Riesgo inicial','R','Campaña','Neto del día'];
   const rows = _lastTrades.map(s => [
     s.date, s.sym, s.entries, s.totalVol, s.avgEntry, s.exitPx,
     s.grossPnl.toFixed(2), s.comm.toFixed(2), s.netPnl.toFixed(2),
-    s.durMin, s.maxFloatDD, s.maxFloatWin
+    s.durMin, s.maxFloatDD==null?'n/d':s.maxFloatDD, s.maxFloatWin==null?'n/d':s.maxFloatWin, s.risk0==null?'n/d':s.risk0, s.r==null?'n/d':s.r,
+    campOf[s.id]||'', dayNet[s.date]==null?'':dayNet[s.date]
   ]);
   const csv = [headers, ...rows].map(r => r.map(v => `"${v}"`).join(',')).join('\n');
   const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
