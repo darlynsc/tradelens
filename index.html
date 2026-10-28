@@ -98,7 +98,9 @@ header{
 
 /* JOURNAL: imágenes subidas */
 .jimg-label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin:14px 0 6px;}
-.jimg-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
+.jimg-actions{display:flex;gap:10px;align-items:center;flex-wrap:nowrap;}
+.jimg-actions .jimg-add{flex-shrink:0;}
+.jimg-actions .jimg-trade{flex:0 1 auto;width:auto;min-width:0;max-width:100%;}
 .jimg-add{background:rgba(0,229,255,0.1);color:var(--cyan);border:1px solid rgba(0,229,255,0.3);padding:9px 16px;border-radius:8px;font-family:var(--font-head);font-weight:600;font-size:12px;cursor:pointer;transition:.2s;}
 .jimg-add:hover{background:rgba(0,229,255,0.18);}
 .jimg-add[disabled]{opacity:.5;cursor:default;}
@@ -167,10 +169,10 @@ header{
 .kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px;margin-bottom:20px;}
 .kpi{
   background:var(--s1);border:1px solid var(--b1);border-radius:12px;
-  padding:18px 16px;position:relative;overflow:hidden;transition:transform .15s,box-shadow .15s;
+  padding:18px 16px;position:relative;transition:transform .15s,box-shadow .15s;outline:none;
 }
 .kpi:hover{transform:translateY(-2px);box-shadow:0 8px 32px rgba(0,0,0,0.5);}
-.kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;}
+.kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;border-radius:12px 12px 0 0;}
 .kpi.c::before{background:linear-gradient(90deg,var(--cyan),transparent);}
 .kpi.g::before{background:linear-gradient(90deg,var(--green),transparent);}
 .kpi.r::before{background:linear-gradient(90deg,var(--red),transparent);}
@@ -184,6 +186,17 @@ header{
 .kpi-val.warn{color:var(--warn);}
 .kpi-val.pur{color:var(--purple);}
 .kpi-sub{font-size:10px;color:var(--muted);margin-top:5px;}
+.kpi-sub:empty{display:none;}
+.kpi:hover,.kpi:focus{z-index:20;}
+.kpi-tip{display:none;position:absolute;z-index:60;left:0;bottom:calc(100% + 8px);width:250px;
+  background:rgba(8,13,18,0.97);border:1px solid rgba(0,229,255,0.35);border-radius:10px;padding:11px 13px;
+  box-shadow:0 8px 32px rgba(0,0,0,0.7);font-size:11px;line-height:1.6;color:#c0d4e0;font-weight:400;letter-spacing:0;text-transform:none;white-space:normal;cursor:default;}
+.kpi-tip-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:5px;}
+.kpi-tip-title{font-size:10px;font-weight:700;color:var(--cyan);text-transform:uppercase;letter-spacing:1px;}
+.kpi-tip-x{background:none;border:none;color:var(--cyan);font-size:13px;font-weight:700;line-height:1;cursor:pointer;padding:0 0 0 6px;flex-shrink:0;font-family:var(--font-mono);}
+.kpi-tip-x:hover{opacity:.7;}
+.kpi.tip-open .kpi-tip{display:block;}
+body.light .kpi-tip{background:rgba(255,255,255,0.98);color:#0a1a2a;border-color:rgba(0,119,170,0.4);box-shadow:0 8px 28px rgba(0,40,80,0.18);}
 .kpi-icon{position:absolute;right:14px;top:14px;font-size:18px;opacity:0.2;}
 
 /* STREAK CARDS */
@@ -242,15 +255,19 @@ canvas{max-height:200px;}
   font-style:normal;line-height:1;
   transition:border-color .15s,color .15s;
 }
-.metric-info:hover .metric-info-icon{border-color:var(--cyan);color:var(--cyan);}
+.metric-info-icon{cursor:pointer;}
+.metric-info:hover .metric-info-icon,.metric-info.open .metric-info-icon{border-color:var(--cyan);color:var(--cyan);}
 .metric-info-popup{
   display:none;position:absolute;bottom:calc(100% + 8px);left:0;
   background:rgba(8,13,18,0.97);border:1px solid rgba(0,229,255,0.3);
   border-radius:10px;padding:11px 13px;width:230px;z-index:50;
-  box-shadow:0 8px 32px rgba(0,0,0,0.7);pointer-events:none;
+  box-shadow:0 8px 32px rgba(0,0,0,0.7);cursor:default;
 }
-.metric-info:hover .metric-info-popup{display:block;}
-.metric-info-popup-title{font-size:10px;font-weight:700;color:var(--cyan);margin-bottom:5px;text-transform:uppercase;letter-spacing:1px;}
+.metric-info.open .metric-info-popup{display:block;}
+.metric-info-popup-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:5px;}
+.metric-info-popup-title{font-size:10px;font-weight:700;color:var(--cyan);text-transform:uppercase;letter-spacing:1px;}
+.metric-info-x{background:none;border:none;color:var(--cyan);font-size:13px;font-weight:700;line-height:1;cursor:pointer;padding:0 0 0 6px;flex-shrink:0;font-family:var(--font-mono);}
+.metric-info-x:hover{opacity:.7;}
 .metric-info-popup-body{font-size:10px;color:#c0d4e0;line-height:1.6;}
 .metric-info-popup-rec{margin-top:6px;padding-top:6px;border-top:1px solid rgba(0,229,255,0.15);font-size:10px;color:var(--green);line-height:1.5;}
 
@@ -390,11 +407,11 @@ canvas{max-height:200px;}
 /* JOURNAL MODAL */
 .jmodal-overlay{position:fixed;inset:0;background:rgba(4,6,8,0.85);z-index:100;display:none;align-items:center;justify-content:center;backdrop-filter:blur(4px);}
 .jmodal-overlay.open{display:flex;}
-.jmodal{background:var(--s1);border:1px solid var(--b1);border-radius:16px;width:min(680px,95vw);max-height:90vh;overflow-y:auto;padding:28px;position:relative;}
+.jmodal{background:var(--s1);border:1px solid var(--b1);border-radius:16px;width:min(860px,95vw);max-height:90vh;overflow-y:auto;padding:28px;position:relative;}
 .jmodal-close{position:absolute;top:16px;right:16px;background:var(--s2);border:none;color:var(--muted);width:30px;height:30px;border-radius:6px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;transition:.15s;}
 .jmodal-close:hover{color:var(--text);background:var(--b2);}
 .jmodal-date{font-family:var(--font-head);font-size:18px;font-weight:700;margin-bottom:4px;}
-.jmodal-stats{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--b1);}
+.jmodal-stats{display:flex;gap:20px;flex-wrap:wrap;margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid var(--b1);}
 .jstat{display:flex;flex-direction:column;gap:2px;}
 .jstat-l{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;}
 .jstat-v{font-size:14px;font-weight:700;}
@@ -407,7 +424,7 @@ canvas{max-height:200px;}
 .jtag.sel-bad{border-color:var(--red);background:rgba(255,51,85,0.1);color:var(--red);}
 .jtag.sel-lesson{border-color:var(--purple);background:rgba(181,123,255,0.1);color:var(--purple);}
 .jnote-label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:6px;}
-textarea.jnote{width:100%;background:var(--s2);border:1px solid var(--b2);color:var(--text);padding:12px;border-radius:8px;font-family:var(--font-mono);font-size:12px;line-height:1.65;resize:vertical;min-height:90px;outline:none;transition:.2s;}
+textarea.jnote{width:100%;background:var(--s2);border:1px solid var(--b2);color:var(--text);padding:12px;border-radius:8px;font-family:var(--font-mono);font-size:12px;line-height:1.65;resize:none;overflow:hidden;min-height:110px;outline:none;transition:border-color .2s;}
 textarea.jnote:focus{border-color:var(--cyan);}
 .jimglink-label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin:14px 0 6px;}
 input.jimglink{width:100%;background:var(--s2);border:1px solid var(--b2);color:var(--text);padding:9px 12px;border-radius:8px;font-family:var(--font-mono);font-size:11px;outline:none;transition:.2s;}
@@ -666,7 +683,7 @@ input.jimglink:focus{border-color:var(--cyan);}
   </div>
 
   <!-- KPI ROW 1 -->
-  <div class="sec-label">Resumen de Cuenta — por día operado</div>
+  <div class="sec-label">Resumen de Cuenta</div>
   <div class="kpi-grid" id="kpi1"></div>
 
   <!-- KPI ROW 2 -->
@@ -682,7 +699,7 @@ input.jimglink:focus{border-color:var(--cyan);}
   <div class="kpi-grid" id="kpi2"></div>
 
   <!-- NIVEL CAMPAÑA -->
-  <div class="sec-label purple">Campañas (scaling in) — información de apoyo</div>
+  <div class="sec-label purple">Campañas (scaling in)</div>
   <div class="kpi-grid" id="kpiC"></div>
   <div id="campNote" style="font-size:10px;color:var(--muted);line-height:1.6;margin:-6px 0 18px;"></div>
 
@@ -838,7 +855,7 @@ input.jimglink:focus{border-color:var(--cyan);}
         <div class="jtag" data-tag="lesson" onclick="selectTag(this)">📚 Lección clave</div>
       </div>
       <div class="jnote-label">Notas de la sesión</div>
-      <textarea class="jnote" id="jnoteText" placeholder="Describe qué viste en el mercado, por qué entraste, cómo escalaste, qué salió bien o mal..."></textarea>
+      <textarea class="jnote" id="jnoteText" oninput="autoGrowNote()" placeholder="Describe qué viste en el mercado, por qué entraste, cómo escalaste, qué salió bien o mal..."></textarea>
       <div class="jimg-label">Capturas (opcional)</div>
       <div class="jimg-actions">
         <button class="jimg-add" id="jimgAddBtn" type="button" onclick="document.getElementById('jimgFile').click()">📷 Subir imagen</button>
@@ -1524,6 +1541,16 @@ function calcMetrics(days, trades, balance, extra) {
     o.wn=w.length; o.wmae=av(w,t=>t.pxMae); o.wmfe=av(w,t=>t.pxMfe); o.ln=l.length; o.lmae=av(l,t=>t.pxMae); o.lmfe=av(l,t=>t.pxMfe); delete o.rows; });
   const symMap={}; T.forEach(s=>{ symMap[s.sym]=(symMap[s.sym]||0)+s.netPnl; });
   const dayWins=D.filter(d=>d.netPnl>0).length, dayLosses=D.filter(d=>d.netPnl<0).length;
+  // Métricas por campaña: ganadoras vs perdedoras, rachas y mejores grupos (símbolo / dirección / hora de inicio).
+  let CX=null;
+  if(camps.length){
+    const cw=camps.filter(c=>c.netPnl>0), cl=camps.filter(c=>c.netPnl<0);
+    const av=(a,f)=>a.length?_sum(a.map(f))/a.length:null, dur=c=>(c.endT-c.startT)/60;
+    const grp=kf=>{ const g={}; camps.forEach(c=>{ const k=kf(c); const o=g[k]||(g[k]={k,n:0,net:0}); o.n++; o.net+=c.netPnl; }); return Object.values(g).sort((a,b)=>b.net-a.net); };
+    CX={durW:av(cw,dur),durL:av(cl,dur),posW:av(cw,c=>c.positions),posL:av(cl,c=>c.positions),volW:av(cw,c=>c.totalVol),volL:av(cl,c=>c.totalVol),
+      streaks:calcDayStreaks([...camps].sort((a,b)=>a.endT-b.endT).map(c=>({netPnl:c.netPnl,date:c.date}))),
+      bySide:grp(c=>c.side)};
+  }
   return {
     // posición
     n,total,wins:P.wins,losses:P.losses,be:P.be,avgWin:P.avgWin,avgLoss:P.avgLoss,winPct:P.winPct,rr:P.rr,pf:P.pf,exp:P.exp,
@@ -1534,7 +1561,7 @@ function calcMetrics(days, trades, balance, extra) {
     comms:_sum(T.map(t=>Math.abs(t.comm))),swaps:_sum(T.map(t=>t.swap||0)),
     avgDur:_sum(T.map(t=>t.durMin))/n,avgEntries:_sum(T.map(t=>t.entries))/n,avgMaxVol:_sum(T.map(t=>t.maxVol))/n,tpd:n/span,symMap,
     // campaña
-    C,cN:camps.length,scaledN:camps.filter(c=>c.scaled).length,
+    C,CX,cN:camps.length,scaledN:camps.filter(c=>c.scaled).length,
     cAvgPos:camps.length?_sum(camps.map(c=>c.positions))/camps.length:null,
     cAvgMAE:cex.length?_sum(cex.map(c=>c.mae))/cex.length:null,cAvgMFE:cex.length?_sum(cex.map(c=>c.mfe))/cex.length:null,cExcN:cex.length,
     cAvgR:crs.length?_sum(crs.map(c=>c.r))/crs.length:null,cRN:crs.length,
@@ -1617,52 +1644,128 @@ function kpiGrid(id,data){ document.getElementById(id).innerHTML=data.map(k=>`
       <div class="kpi-icon">${k.icon}</div>
       <div class="kpi-label">${k.l}</div>
       <div class="kpi-val ${k.cls}">${k.v}</div>
-      <div class="kpi-sub">${k.sub}</div>
+      <div class="kpi-sub">${k.sub||''}</div>
+      ${k.tip?`<div class="kpi-tip"><div class="kpi-tip-head"><span class="kpi-tip-title">${k.l}</span><button class="kpi-tip-x" type="button" aria-label="Cerrar">✕</button></div>${k.tip}</div>`:''}
     </div>`).join(''); }
+// El tip se abre hacia arriba y se acomoda si no cabe (borde derecho o parte alta de la pantalla).
+function placeKpiTip(card){
+  const tip=card.querySelector('.kpi-tip'); if(!tip) return;
+  const r=card.getBoundingClientRect(), w=Math.min(250,window.innerWidth-24);
+  tip.style.width=w+'px';
+  if(r.left+w>window.innerWidth-12){ tip.style.left='auto'; tip.style.right='0'; } else { tip.style.left='0'; tip.style.right='auto'; }
+  if(r.top<170){ tip.style.bottom='auto'; tip.style.top='calc(100% + 8px)'; } else { tip.style.top='auto'; tip.style.bottom='calc(100% + 8px)'; }
+}
+// El tip SOLO se abre al tocar/hacer clic en la tarjeta (nunca al pasar el mouse ni al deslizar). Se cierra con la X, tocando la tarjeta de nuevo o tocando fuera.
+function clearKpiTips(except){ document.querySelectorAll('.kpi.tip-open').forEach(k=>{ if(k!==except) k.classList.remove('tip-open'); }); }
+document.addEventListener('click',e=>{
+  const c=e.target.closest&&e.target.closest('.kpi');
+  if(!c){ clearKpiTips(); return; }
+  if(!c.querySelector('.kpi-tip')) return;
+  if(e.target.closest('.kpi-tip-x')){ c.classList.remove('tip-open'); return; } // X: cerrar
+  if(e.target.closest('.kpi-tip')) return;                                      // tocar el texto del tip no hace nada
+  if(c.classList.contains('tip-open')){ c.classList.remove('tip-open'); return; }
+  clearKpiTips(c); c.classList.add('tip-open'); placeKpiTip(c);
+});
+// Explicación de «Métricas Clave — Progreso»: se abre/cierra tocando el círculo «i»; también con la X o tocando fuera.
+document.addEventListener('click',e=>{
+  const mi=e.target.closest&&e.target.closest('.metric-info');
+  if(e.target.closest&&e.target.closest('.metric-info-x')){ mi.classList.remove('open'); return; }
+  if(mi&&e.target.closest('.metric-info-popup')) return;               // tocar el texto no cierra
+  const was=mi&&mi.classList.contains('open');
+  document.querySelectorAll('.metric-info.open').forEach(k=>k.classList.remove('open')); // tocar fuera (o abrir otro) cierra
+  if(mi&&e.target.closest('.metric-info-icon')&&!was) mi.classList.add('open');
+});
 const _cl=(v,g,w)=>v==null?'neu':v>=g?'pos':v>=w?'warn':'neg', _cc=(v,g,w)=>v==null?'c':v>=g?'g':v>=w?'w':'r';
 
-// RESUMEN PRINCIPAL — unidad: DÍA OPERADO (neto realizado del día = P/L + comisión + swap).
-// Las métricas que siguen siendo por posición lo dicen en su nombre. N/D nunca es cero: es dato no calculable.
+// RESUMEN PRINCIPAL — unidad: DÍA OPERADO. Textos mínimos; la recomendación sale al pasar el mouse (tip).
 function renderKPIs(m, acc) {
-  const S=m.D, cur=(acc&&acc.currency)||'USD';
-  const per=m.firstDate===m.lastDate?m.firstDate:`${m.firstDate} → ${m.lastDate}`;
-  const short=S.N<5?` · muestra corta (${S.N} día${S.N===1?'':'s'}): no indica consistencia`:'';
+  const S=m.D, nOk=m.costsKnown;
   const g1=[
-    {l:'Resultado Neto',v:fmt$(m.total),cls:m.total>=0?'pos':'neg',c:m.total>=0?'g':'r',icon:'💰',sub:`Realizado, posiciones cerradas · ${m.days} días operados · ${m.n} posiciones · ${per}`},
-    {l:'Win Rate diario',v:fmtPct(S.winPct),cls:'neu',c:'c',icon:'🎯',sub:`${S.wins} de ${S.N} días ganadores · porcentaje de días operados que terminaron en positivo${S.be?` · ${S.be} neutral(es)`:''}${short}`},
-    {l:'Profit Factor diario',v:S.pf==null?'N/D':S.pf.toFixed(2),cls:_cl(S.pf,1.5,1),c:_cc(S.pf,1.5,1),icon:'⚖️',sub:S.pf==null?`N/D — ${S.pfWhy}`:'Suma de días netos positivos ÷ |suma de días netos negativos|'},
-    {l:'Expectancy diaria',v:fmt$(S.exp),cls:S.exp>=0?'pos':'neg',c:S.exp>=0?'g':'r',icon:'🧮',sub:`Neto medio por día operado (${S.N}) · ${cur} · ${per}`},
-    {l:'Ganancia media diaria',v:S.avgWin==null?'N/D':fmt$(S.avgWin),cls:S.avgWin==null?'neu':'pos',c:S.avgWin==null?'c':'g',icon:'🏆',sub:S.avgWin==null?'N/D — no hay días ganadores':`Media del neto de ${S.wins} día(s) ganador(es)`},
-    {l:'Pérdida media diaria',v:S.avgLossAbs==null?'N/D':fmt$(-S.avgLossAbs),cls:S.avgLossAbs==null?'neu':'neg',c:S.avgLossAbs==null?'c':'r',icon:'🛑',sub:S.avgLossAbs==null?'N/D — no hay días perdedores':`Media del neto de ${S.losses} día(s) perdedor(es), como importe negativo`},
-    {l:'Relación ganancia/pérdida diaria',v:S.payoff==null?'N/D':S.payoff.toFixed(2)+' : 1',cls:_cl(S.payoff,2,1),c:_cc(S.payoff,2,1),icon:'⚡',sub:S.payoff==null?'N/D — requiere al menos un día ganador y uno perdedor':'Ganancia media diaria ÷ |pérdida media diaria| (payoff diario). No es el RR real por operación'},
-    {l:'Días operados',v:m.days,cls:'neu',c:'c',icon:'📅',sub:`1 día = 1 fecha de cierre (hora del servidor del bróker) · ${m.avgTradesDay.toFixed(1)} posiciones/día (máx. ${m.maxTradesDay})`},
-    {l:'Drawdown Máx. · curva realizada diaria',v:fmt$(-m.maxDD),cls:'neg',c:'r',icon:'📉',sub:`Al cierre de cada día operado${m.maxDDPct!=null?` · ${m.maxDDPct.toFixed(2)} % del capital en el pico`:' · % N/D (sin base de capital válida)'} · Recovery Factor: ${fx(m.rf)} · DD de equity flotante: N/D (la EA no registra serie histórica)`},
+    {l:'Resultado Neto',v:fmt$(m.total),cls:m.total>=0?'pos':'neg',c:m.total>=0?'g':'r',icon:'💰',sub:`${m.days} días · ${m.n} posiciones`,
+      tip:'Neto realizado con comisión y swap. Importa la tendencia a lo largo de muchos días, no un día aislado.'},
+    {l:'Win Rate',v:fmtPct(S.winPct),cls:'neu',c:'c',icon:'🎯',sub:`${S.wins} de ${S.N} días ganadores`,
+      tip:'Porcentaje de días operados en positivo. Léelo junto a la ganancia/pérdida: puedes ser rentable con win rate bajo si ganas más de lo que pierdes.'},
+    {l:'Profit Factor',v:S.pf==null?'N/D':S.pf.toFixed(2),cls:_cl(S.pf,1.5,1),c:_cc(S.pf,1.5,1),icon:'⚖️',sub:S.pf==null?'N/D':'',
+      tip:'Referencia: menos de 1 pierde dinero · 1.3 a 1.5 aceptable · más de 2 muy sólido. Con pocos días es inestable.'},
+    {l:'Expectancy',v:fmt$(S.exp),cls:S.exp>=0?'pos':'neg',c:S.exp>=0?'g':'r',icon:'🧮',sub:'Neto medio por día operado',
+      tip:'Debe ser positiva y mantenerse al sumar más días. Es lo que deja cada día operado en promedio.'},
+    {l:'Ganancia media diaria',v:S.avgWin==null?'N/D':fmt$(S.avgWin),cls:S.avgWin==null?'neu':'pos',c:S.avgWin==null?'c':'g',icon:'🏆',sub:S.avgWin==null?'N/D':`${S.wins} día(s) ganador(es)`,
+      tip:'Compárala con la pérdida media: lo sano es que la ganancia media sea mayor que la pérdida media.'},
+    {l:'Pérdida media diaria',v:S.avgLossAbs==null?'N/D':fmt$(-S.avgLossAbs),cls:S.avgLossAbs==null?'neu':'neg',c:S.avgLossAbs==null?'c':'r',icon:'🛑',sub:S.avgLossAbs==null?'N/D':`${S.losses} día(s) perdedor(es)`,
+      tip:'Debe mantenerse controlada y por debajo del límite de drawdown diario que configuraste.'},
+    {l:'Ganancia/Pérdida diaria',v:S.payoff==null?'N/D':S.payoff.toFixed(2)+' : 1',cls:_cl(S.payoff,2,1),c:_cc(S.payoff,2,1),icon:'⚡',sub:'',
+      tip:'Referencia: 2:1 o más es sólido · por debajo de 1:1 necesitas un win rate alto para compensar.'},
+    {l:'Días operados',v:m.days,cls:'neu',c:'c',icon:'📅',sub:`${m.avgTradesDay.toFixed(1)} posiciones/día`,
+      tip:'Con menos de 20 días operados, las métricas son solo orientativas. Más días dan más confianza.'},
+    {l:'Drawdown Máx.',v:fmt$(-m.maxDD),cls:'neg',c:'r',icon:'📉',sub:m.maxDDPct!=null?`${m.maxDDPct.toFixed(2)} % del capital`:'',
+      tip:'Referencia: menos de 10 a 15 % del capital es manejable. Por encima de 20 % cuesta mucho recuperarlo y sostener el plan.'},
   ];
   const dBest=m.pnls.length?Math.max(...m.pnls):null, dWorst=m.pnls.length?Math.min(...m.pnls):null;
-  const nOk=m.costsKnown;
   const g2=[
-    {l:'Comisiones pagadas — historial de la cuenta',v:nOk?fmt$(m.commTotal):'N/D',cls:'neg',c:m.histTruncated?'w':'c',icon:'🏦',sub:nOk?`Total de posiciones cerradas · ${m.histScope} · incluidas en el neto, no se descuentan dos veces`:'N/D: la EA no envió comisión por deal'},
-    {l:'Swap acumulado — historial de la cuenta',v:nOk?fmt$(m.swapTotal):'N/D',cls:m.swapTotal<0?'neg':'neu',c:m.histTruncated?'w':'c',icon:'🔁',sub:nOk?`Cargos(−)/créditos(+) de posiciones cerradas · ${m.histScope}`:'N/D: la EA no envió swap por deal'},
-    {l:'Sharpe · diario'+(m.sharpeProvisional&&m.sharpe!=null?' · prov.':''),v:fx(m.sharpe),cls:m.sharpe==null?'neu':m.sharpe>=1?'pos':m.sharpe>=0?'warn':'neg',c:m.sharpe==null?'c':m.sharpe>=1?'g':'w',icon:'📐',sub:m.sharpe==null?`N/D — ${m.sharpeWhy||'datos insuficientes'}`:`${m.days} días operados · neto diario / capital al inicio del día${m.cashKnown?' (depósitos/retiros ajustados)':' (sin datos de depósitos/retiros)'} · σ muestral · rf=0 · √252 sobre días operados${m.sharpeProvisional?' · muestra <20 días':''}`},
-    {l:'Posiciones cerradas (trades)',v:m.n,cls:'neu',c:'c',icon:'📋',sub:`Cantidad de posiciones del periodo, no el resultado del día · ${m.openCount||0} abierta(s) excluida(s) · por posición: ${m.wins}G / ${m.losses}P / ${m.be}N`},
-    {l:'Racha máx. · por posición',v:`${m.mxPW}G / ${m.mxPL}P`,cls:'neu',c:'c',icon:'🔗',sub:'Posiciones consecutivas. NO son rachas de días ni de ideas'},
-    {l:'Mejor / Peor día',v:dBest==null?'N/D':`${fmt$(dBest)} / ${fmt$(dWorst)}`,cls:'neu',c:'c',icon:'🗓️',sub:'Resultado neto realizado diario'},
-    {l:'MAE / MFE monetario medio · por posición',v:m.avgMAE==null?'N/D':`${fmt$(-m.avgMAE)} / ${fmt$(m.avgMFE)}`,cls:'neu',c:'c',icon:'↔️',sub:m.excN?`Muestreado por la EA desde la apertura (puede omitir extremos entre muestras) · ${m.excN} de ${m.n}${m.avgR!=null?' · R medio '+m.avgR.toFixed(2)+' ('+m.rN+')':''}`:'N/D: la EA no midió ninguna posición completa desde su apertura'},
+    {l:'Comisiones pagadas — historial de la cuenta',v:nOk?fmt$(m.commTotal):'N/D',cls:'neg',c:m.histTruncated?'w':'c',icon:'🏦',sub:nOk?'':'N/D: la EA no envió comisión',
+      tip:'Referencia: las comisiones no deberían superar ~30 % de tu ganancia bruta.'},
+    {l:'Swap acumulado — historial de la cuenta',v:nOk?fmt$(m.swapTotal):'N/D',cls:m.swapTotal<0?'neg':'neu',c:m.histTruncated?'w':'c',icon:'🔁',sub:nOk?'':'N/D: la EA no envió swap',
+      tip:'Cargo o crédito por mantener posiciones de un día a otro. Si crece en negativo, revisa cuánto tiempo las mantienes.'},
+    {l:'Sharpe',v:fx(m.sharpe),cls:m.sharpe==null?'neu':m.sharpe>=1?'pos':m.sharpe>=0?'warn':'neg',c:m.sharpe==null?'c':m.sharpe>=1?'g':'w',icon:'📐',
+      sub:m.sharpe==null?`N/D — ${m.sharpeWhy||'datos insuficientes'}`:(m.sharpeProvisional?'Provisional (menos de 20 días)':''),
+      tip:'Referencia: más de 1 es bueno · más de 2 muy sólido · menos de 0.5 indica resultados inconsistentes.'},
+    {l:'Posiciones cerradas',v:m.n,cls:'neu',c:'c',icon:'📋',sub:`${m.wins}G / ${m.losses}P / ${m.be}N`,
+      tip:'Es una cantidad, no un resultado. Con scaling in es normal que varias posiciones pequeñas pierdan si una mayor las compensa.'},
+    {l:'Racha máx. · por posición',v:`${m.mxPW}G / ${m.mxPL}P`,cls:'neu',c:'c',icon:'🔗',sub:'',
+      tip:'Con scaling in pierde relevancia. Mira mejor la racha por campaña.'},
+    {l:'Mejor / Peor día',v:dBest==null?'N/D':`${fmt$(dBest)} / ${fmt$(dWorst)}`,cls:'neu',c:'c',icon:'🗓️',sub:'',
+      tip:'Tu peor día no debería acercarse al límite de drawdown diario que configuraste.'},
+    {l:'MAE / MFE medio · por posición',v:m.avgMAE==null?'N/D':`${fmt$(-m.avgMAE)} / ${fmt$(m.avgMFE)}`,cls:'neu',c:'c',icon:'↔️',sub:m.excN?`${m.excN} de ${m.n} posiciones`:'N/D',
+      tip:'Lo máximo que fue en contra (MAE) y a favor (MFE) de cada posición, en dinero. Si el MFE es muy superior a lo que cierras, devuelves ganancia.'},
     pxKpi(m),
   ];
   kpiGrid('kpi1',g1); kpiGrid('kpi2',g2);
 }
 
-// Campañas (scaling in): solo información de apoyo. Las métricas de resultado viven en el resumen diario.
+// Campañas (scaling in): cada idea completa cuenta una vez. Misma lógica de lectura que NinjaTrader (ganancia media ÷ pérdida media).
+function fmtDur(min){ return min==null?'N/D':(min<60?Math.round(min)+'m':(min/60).toFixed(1)+'h'); }
 function renderLevelKPIs(m) {
-  const C=m.C;
-  if(!C){ kpiGrid('kpiC',[{l:'Campañas',v:'N/D',cls:'neu',c:'c',icon:'🧩',sub:'Sin posiciones cerradas'}]); }
-  else kpiGrid('kpiC',[
-    {l:'Campañas',v:m.cN,cls:'neu',c:'c',icon:'🧩',sub:`${m.scaledN} con scaling in · ${m.cAvgPos.toFixed(1)} posiciones por campaña (media)`},
-    {l:'R medio · por campaña',v:m.cAvgR==null?'N/D':m.cAvgR.toFixed(2)+' R',cls:'neu',c:'c',icon:'📏',sub:m.cRN?`${m.cRN} de ${m.cN} campañas con riesgo inicial conocido en todas sus posiciones`:'N/D: riesgo inicial no registrado (la EA exige SL al abrir)'},
-    {l:'MAE / MFE monetario medio · por campaña',v:m.cAvgMAE==null?'N/D':`${fmt$(-m.cAvgMAE)} / ${fmt$(m.cAvgMFE)}`,cls:'neu',c:'c',icon:'↔️',sub:m.cExcN?`Extremos del resultado combinado (no suma de MAE/MFE) · ${m.cExcN} de ${m.cN}`:'N/D: no se pudo reconstruir con fiabilidad'},
-  ]);
-  document.getElementById('campNote').innerHTML='Una campaña agrupa posiciones del <strong>mismo símbolo y sentido</strong> que se solapan en el tiempo (scaling in). Es una reconstrucción con datos reales de apertura/cierre; no se agrupa nada más. Es información de apoyo: el win rate, profit factor, expectancy y payoff se calculan <strong>por día operado</strong> en el Resumen de Cuenta.';
+  const C=m.C, X=m.CX;
+  if(!C||!X){ kpiGrid('kpiC',[{l:'Campañas',v:'N/D',cls:'neu',c:'c',icon:'🧩',sub:'Sin posiciones cerradas'}]); }
+  else {
+    const f2=v=>v==null?'N/D':v.toFixed(2);
+    const be=C.rr!=null?`Con tu RR actual (${C.rr.toFixed(2)}:1) el punto de equilibrio es ${(100/(1+C.rr)).toFixed(0)} %.`:'';
+    const pair=(a,b,f)=>(a==null&&b==null)?'N/D':`${f(a)} / ${f(b)}`;
+    const grp=(l,icon,arr,fk,tip)=>{
+      if(!arr||!arr.length) return {l,v:'N/D',cls:'neu',c:'c',icon,sub:'',tip};
+      const b=arr[0], w=arr[arr.length-1];
+      return {l,v:fk(b.k),cls:b.net>=0?'pos':'neg',c:b.net>=0?'g':'r',icon,
+        sub:`${fmt$(b.net)} · ${b.n} camp.`+(arr.length>1?` · Peor: ${fk(w.k)} ${fmt$(w.net)}`:''),tip};
+    };
+    const st=X.streaks, cur=st.current;
+    const poco='Con menos de 10 campañas por grupo es solo orientativo.';
+    kpiGrid('kpiC',[
+      {l:'Campañas',v:m.cN,cls:'neu',c:'c',icon:'🧩',sub:`${m.scaledN} con scaling in`,
+        tip:'Cada campaña es una idea completa. Con menos de 30 campañas, el resto de métricas son orientativas.'},
+      {l:'Win Rate',v:fmtPct(C.winPct),cls:'neu',c:'c',icon:'🎯',sub:`${C.wins}G / ${C.losses}P`,
+        tip:`Porcentaje de campañas ganadoras. Depende de tu RR: con 1:1 necesitas más de 50 %, con 1:2 más de 34 %, con 1:3 más de 25 %. ${be}`},
+      {l:'Profit Factor',v:fxPF(C.pf),cls:_cl(C.pf,1.5,1),c:_cc(C.pf,1.5,1),icon:'⚖️',sub:C.pf==null?'N/D':'',
+        tip:'Referencia: menos de 1 pierde dinero · 1.3 a 1.5 aceptable · más de 2 muy sólido.'},
+      {l:'Expectancy',v:fmt$(C.exp),cls:C.exp>=0?'pos':'neg',c:C.exp>=0?'g':'r',icon:'🧮',sub:'Neto medio por campaña',
+        tip:'Debe ser positiva y sostenerse al sumar campañas. Es lo que deja cada idea en promedio.'},
+      {l:'RR promedio',v:C.rr==null?'N/D':C.rr.toFixed(2)+' : 1',cls:_cl(C.rr,2,1),c:_cc(C.rr,2,1),icon:'📏',
+        sub:C.rr==null?'N/D':`${fmt$(C.avgWin)} ganada / ${fmt$(C.avgLoss)} perdida`,
+        tip:'Ganancia media ÷ pérdida media por campaña. Referencia: 1:2 o más es sano si tu win rate supera ~40 %; por debajo de 1:1 necesitas un win rate alto.'},
+      {l:'Duración · ganadoras / perdedoras',v:pair(X.durW,X.durL,fmtDur),cls:'neu',c:'c',icon:'⏱️',sub:'',
+        tip:'Lo sano es que las ganadoras duren igual o más que las perdedoras. Si las perdedoras duran mucho más, puede que estés aguantando pérdidas esperando recuperación.'},
+      {l:'Escalones · ganadoras / perdedoras',v:pair(X.posW,X.posL,f2),cls:'neu',c:'c',icon:'🪜',sub:'Posiciones por campaña',
+        tip:'Si escalas más en las perdedoras que en las ganadoras, puede que estés agregando contra ti. Lo sano es escalar más cuando la idea va a favor.'},
+      {l:'Volumen · ganadoras / perdedoras',v:pair(X.volW,X.volL,f2),cls:'neu',c:'c',icon:'📦',sub:'Lotes por campaña',
+        tip:'Si el volumen es mayor en las perdedoras, arriesgas más justo en las ideas que fallan. Lo sano es un volumen parecido o menor.'},
+      {l:'Racha máx. · campañas',v:`${st.bestWin?st.bestWin.count:0}G / ${st.bestLoss?st.bestLoss.count:0}P`,cls:'neu',c:'c',icon:'🔗',
+        sub:cur.type!=='none'?`Actual: ${cur.count} ${cur.type==='win'?'ganadora(s)':'perdedora(s)'}`:'',
+        tip:'Tu riesgo por idea debe permitirte aguantar tu peor racha perdedora, y algo más, sin dañar la cuenta ni salirte del plan.'},
+      grp('Mejor dirección','↕️',X.bySide,k=>k==='BUY'?'Compra':k==='SELL'?'Venta':k,poco),
+      {l:'MAE / MFE medio · por campaña',v:m.cAvgMAE==null?'N/D':`${fmt$(-m.cAvgMAE)} / ${fmt$(m.cAvgMFE)}`,cls:'neu',c:'c',icon:'↔️',sub:m.cExcN?`${m.cExcN} de ${m.cN} campañas`:'N/D',
+        tip:'Lo máximo que fue en contra y a favor cada idea completa, en dinero. Si el MFE es muy superior a lo que cierras, devuelves ganancia.'},
+    ]);
+  }
+  document.getElementById('campNote').textContent='Campaña = posiciones del mismo símbolo y sentido abiertas al mismo tiempo (scaling in).';
 }
 
 // ── STREAKS (días operativos) ──────────────────────────────────────────────────
@@ -1859,9 +1962,9 @@ function renderCharts(m, sessions) {
       <div class="prog-labels">
         <span style="display:flex;align-items:center;">
           <span class="metric-info">
-            <i class="metric-info-icon">i</i>
+            <i class="metric-info-icon" role="button" aria-label="Ver explicación">i</i>
             <span class="metric-info-popup">
-              <div class="metric-info-popup-title">${p.l}</div>
+              <div class="metric-info-popup-head"><span class="metric-info-popup-title">${p.l}</span><button class="metric-info-x" type="button" aria-label="Cerrar">✕</button></div>
               <div class="metric-info-popup-body">${p.info}</div>
               <div class="metric-info-popup-rec">✦ ${p.rec}</div>
             </span>
@@ -2350,9 +2453,8 @@ function openJournal(dateStr, day) {
     <div class="jstat"><div class="jstat-l">Resultado</div><div class="jstat-v" style="color:var(--cyan)">${dayLbl}</div></div>
     <div class="jstat"><div class="jstat-l">Posiciones</div><div class="jstat-v" style="color:var(--cyan)">${nPos} (${day.wins}G / ${day.losses}P)</div></div>
     <div class="jstat"><div class="jstat-l">Media por posición</div><div class="jstat-v" style="color:${dayPnl>=0?'var(--green)':'var(--red)'}">${fmt$(nPos?dayPnl/nPos:0)}</div></div>
-    <div class="jstat"><div class="jstat-l">Comisiones del día</div><div class="jstat-v" style="color:var(--muted)">${hasDay&&day.costsKnown?fmt$(day.comm):'N/D'}</div></div>
-    <div class="jstat"><div class="jstat-l">Swap del día</div><div class="jstat-v" style="color:var(--muted)">${hasDay&&day.costsKnown?fmt$(day.swap||0):'N/D'}</div></div>
-    <div style="flex-basis:100%;font-size:10px;color:var(--muted);line-height:1.5;">${hasDay&&day.costsKnown?`Neto del día = P/L bruto ${fmt$(day.grossPnl)} + comisiones ${fmt$(day.comm)} + swap ${fmt$(day.swap||0)}. Costes de las posiciones cerradas este día (misma fecha de cierre que el neto y el calendario).`:hasDay?'Costes del día no disponibles: la EA no envió comisión/swap por deal para este día.':'Sin operaciones cerradas este día.'}</div>
+    <div class="jstat"><div class="jstat-l">Comisiones</div><div class="jstat-v" style="color:var(--muted)">${hasDay&&day.costsKnown?fmt$(day.comm):'N/D'}</div></div>
+    <div class="jstat"><div class="jstat-l">Swap</div><div class="jstat-v" style="color:var(--muted)">${hasDay&&day.costsKnown?fmt$(day.swap||0):'N/D'}</div></div>
   `;
 
   document.querySelectorAll('.jtag').forEach(t => t.className='jtag');
@@ -2366,7 +2468,7 @@ function openJournal(dateStr, day) {
   jPending = []; jRemoved = [];
   jImgs = (entry.imgs||[]).map(id=>({id,ref:(entry.imgRefs||{})[id]||''}));
   const sel = document.getElementById('jimgTrade');
-  sel.innerHTML = '<option value="">Toda la sesión</option>' + (day.tradeObjs||[]).map(t=>`<option value="${t.id}">${t.sym} ${t.side} · ${fmt$(t.netPnl)} · MAE/MFE ${pxFmt(t)} (${pxTag(t)}) · #${t.id}</option>`).join('');
+  sel.innerHTML = '<option value="">Toda la sesión</option>' + (day.tradeObjs||[]).map(t=>`<option value="${t.id}">${t.sym} ${t.side} · ${fmt$(t.netPnl)} · #${t.id}</option>`).join('');
   const legacy = document.getElementById('jimgLegacy');
   legacy.innerHTML = entry.img ? `Enlace antiguo conservado: <a href="${encodeURI(entry.img)}" target="_blank" rel="noopener" style="color:var(--cyan)">abrir</a>` : '';
   jimgMsg('');
@@ -2374,7 +2476,16 @@ function openJournal(dateStr, day) {
   checkImageSupport();
   document.getElementById('jbtnDel').style.display = journalHas(dateStr) ? '' : 'none';
   document.getElementById('jmodalOverlay').classList.add('open');
+  autoGrowNote(); // el modal ya es visible: se puede medir el texto
 }
+
+// La caja de notas crece o se encoge según el largo del texto (sin espacio vacío sobrante).
+function autoGrowNote() {
+  const t = document.getElementById('jnoteText'); if(!t) return;
+  t.style.height = 'auto';
+  t.style.height = (t.scrollHeight + 2) + 'px';
+}
+window.addEventListener('resize', autoGrowNote);
 
 function closeJournal() {
   document.getElementById('jmodalOverlay').classList.remove('open');
@@ -2817,14 +2928,12 @@ function pxFmt(t){ return t.pxMae==null?'N/D':`${t.pxMae.toFixed(1)} / ${t.pxMfe
 function pxTag(t){ return `${PX_LBL[t.pxQ]||t.pxQ}`; }
 function pxKpi(m){
   const syms=Object.entries(m.pxSym||{}).sort((a,b)=>b[1].n-a[1].n), c=m.pxCount||{};
-  const q=`completas ${c.COMPLETE||0} · aproximadas ${c.APPROXIMATE||0} · parciales ${c.PARTIAL||0} · pendientes ${c.PENDING||0} · sin dato ${(c.UNAVAILABLE||0)+(c.NONE||0)} (de ${m.n})`;
-  const modo={complete:'solo completas',approx:'completas + aproximadas',all:'incluye parciales (cota inferior)'}[m.pxMode]||'';
-  if(!syms.length) return {l:'MAE / MFE medio · puntos de precio',v:'N/D',cls:'neu',c:'w',icon:'📏',sub:`N/D: no hay mediciones con el filtro elegido (${modo}) · ${q}`};
+  const tip='Distancia máxima en contra (MAE) y a favor (MFE) en puntos de precio, no en dinero. Se promedia por símbolo y no se mezclan símbolos. Si el MFE supera mucho lo que capturas al cerrar, devuelves ganancia.';
+  if(!syms.length) return {l:'MAE / MFE medio · puntos',v:'N/D',cls:'neu',c:'w',icon:'📏',sub:'Sin mediciones completas',tip};
   const [s0,o]=syms[0];
-  const otros=syms.length>1?` · otros: ${syms.slice(1).map(([k,x])=>`${k} ${x.mae.toFixed(0)}/${x.mfe.toFixed(0)} pts (n=${x.n})`).join(', ')}`:'';
   const warn=(c.PARTIAL||0)+(c.APPROXIMATE||0)+(c.PENDING||0)>0;
-  return {l:'MAE / MFE medio · puntos de precio',v:`${o.mae.toFixed(0)} / ${o.mfe.toFixed(0)} pts`,cls:'neu',c:warn?'w':'c',icon:'📏',
-    sub:`${s0} · n=${o.n} (${modo}) · ${q}${otros} · puntos de SYMBOL_POINT, no son dinero; no se mezclan símbolos`};
+  return {l:'MAE / MFE medio · puntos',v:`${o.mae.toFixed(0)} / ${o.mfe.toFixed(0)} pts`,cls:'neu',c:warn?'w':'c',icon:'📏',
+    sub:`${s0} · n=${o.n}${syms.length>1?` · +${syms.length-1} símbolo(s)`:''}`,tip};
 }
 function pxDigest(days){
   const m={};
