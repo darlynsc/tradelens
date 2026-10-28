@@ -575,12 +575,12 @@ input.jimglink:focus{border-color:var(--cyan);}
     <div class="logo-mark">📡</div>
     <div class="logo-text">
       <h1>TRADE<span>LENS</span></h1>
-      <p>MT5 · Real-Time Analytics</p>
+      <p>MT5 · Analytics por evento</p>
     </div>
   </div>
   <div class="header-right">
-    <div class="last-sync" id="lastSync">Sin conexión</div>
-    <div id="connBadge" style="font-size:10px;padding:4px 10px;border:1px solid transparent;border-radius:20px;color:var(--muted);">Sin conexión</div>
+    <div class="last-sync" id="lastSync">Sin datos de actualización disponibles</div>
+    <div id="connBadge" style="font-size:10px;padding:4px 10px;border:1px solid transparent;border-radius:20px;color:var(--muted);">Nube: estado desconocido</div>
     <div class="menu-wrap" id="menuWrap">
       <button class="menu-btn" id="menuBtn" aria-label="Menú" aria-haspopup="true" aria-expanded="false" onclick="toggleMenu(event)"><span></span><span></span><span></span></button>
       <div class="menu-pop" id="menuPop" role="menu">
@@ -666,21 +666,25 @@ input.jimglink:focus{border-color:var(--cyan);}
   </div>
 
   <!-- KPI ROW 1 -->
-  <div class="sec-label">Resumen de Cuenta</div>
+  <div class="sec-label">Resumen de Cuenta — por día operado</div>
   <div class="kpi-grid" id="kpi1"></div>
 
   <!-- KPI ROW 2 -->
   <div class="sec-label green">Performance & Estadísticas</div>
+  <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:0 0 10px;font-size:11px;color:var(--muted);">
+    <label for="pxMode">MAE/MFE en puntos de precio — calidad incluida:</label>
+    <select id="pxMode" onchange="pxModeChanged(this.value)" style="background:var(--s2);border:1px solid var(--b2);color:var(--text);padding:5px 8px;border-radius:8px;font-family:var(--font-mono);font-size:11px;">
+      <option value="complete">Solo completas</option>
+      <option value="approx">Completas + aproximadas (M1)</option>
+      <option value="all">Incluir parciales (cota inferior)</option>
+    </select>
+  </div>
   <div class="kpi-grid" id="kpi2"></div>
 
   <!-- NIVEL CAMPAÑA -->
-  <div class="sec-label purple">Por Campaña (idea operativa · scaling in)</div>
+  <div class="sec-label purple">Campañas (scaling in) — información de apoyo</div>
   <div class="kpi-grid" id="kpiC"></div>
   <div id="campNote" style="font-size:10px;color:var(--muted);line-height:1.6;margin:-6px 0 18px;"></div>
-
-  <!-- NIVEL DÍA -->
-  <div class="sec-label green">Por Día Operativo (sesión)</div>
-  <div class="kpi-grid" id="kpiD"></div>
 
   <!-- RACHA ACTUAL + MAX RACHAS -->
   <div class="sec-label purple">Rachas de Días Operativos</div>
@@ -689,7 +693,7 @@ input.jimglink:focus{border-color:var(--cyan);}
   <!-- EQUITY CURVE -->
   <div class="charts-2" style="margin-bottom:16px;">
     <div class="chart-box span2">
-      <div class="chart-title">Curva de Equity Acumulada</div>
+      <div class="chart-title">Curva de Resultado Realizado Acumulado (neto por día)</div>
       <canvas id="equityChart"></canvas>
     </div>
   </div>
@@ -697,8 +701,9 @@ input.jimglink:focus{border-color:var(--cyan);}
   <!-- DRAWDOWN + PROGRESS BARS -->
   <div class="charts-2" style="margin-bottom:16px;">
     <div class="chart-box">
-      <div class="chart-title">Drawdown — Resultados Realizados (diario)</div>
+      <div class="chart-title">Drawdown — Resultados Realizados (cierre de cada día operado)</div>
       <canvas id="ddChart"></canvas>
+      <div style="font-size:10px;color:var(--muted);line-height:1.5;margin-top:8px;">Pasa el cursor (o toca) la curva para ver fecha, drawdown en $ y en %. Serie: P/L realizado neto de costes; no incluye flotante ni depósitos/retiros. Un punto por día operado, no tick a tick; no es una curva de equity.</div>
     </div>
     <div class="chart-box">
       <div class="chart-title">Métricas Clave — Progreso</div>
@@ -804,7 +809,7 @@ input.jimglink:focus{border-color:var(--cyan);}
   <div class="roi-wrap">
     <div class="roi-header">
       <div style="font-family:var(--font-head);font-size:14px;font-weight:600;">Proyección basada en Expectancy actual</div>
-      <div style="font-size:11px;color:var(--muted);">Estimado con sesiones/día promedio · Línea punteada en curva de equity</div>
+      <div style="font-size:11px;color:var(--muted);">Estimado con la expectancy por posición y el ritmo histórico de posiciones · Línea punteada en la curva de resultado realizado</div>
     </div>
     <div class="roi-cards" id="roiCards"></div>
     <div style="font-size:10px;color:var(--muted);line-height:1.6;" id="roiNote">—</div>
@@ -893,6 +898,11 @@ function todayStr(){
 const ymd=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
 const fx=(v,d=2)=>(v==null||!isFinite(v))?'n/d':v.toFixed(d);
 const fxPF=v=>v==null?'n/d':(v===Infinity?'∞':v.toFixed(2));
+// Regla ÚNICA para clasificar un día operativo por su neto realizado (importes ya redondeados a centavos).
+// Neutro = neto 0 dentro de la tolerancia de redondeo (medio centavo); nunca cuenta como ganador ni perdedor.
+const DAY_EPS=0.005;
+const dayClass=n=>n>DAY_EPS?'win':n<-DAY_EPS?'loss':'be';
+const fmtPct=(v,d=1)=>(v==null||!isFinite(v))?'N/D':v.toFixed(d)+' %';
 let sseSource = null;
 
 // ── HYBRID: WebSocket local ────────────────────────────────────────────────────
@@ -937,8 +947,11 @@ function connectLocalWS(onFirstData) {
         document.getElementById('connectPanel').style.display='none';
         document.getElementById('btnDisconnect').style.display='block';
         document.getElementById('dashboard').classList.add('on');
-        document.getElementById('lastSync').textContent='⚡ Servidor local';
-        document.getElementById('footerSync').textContent=new Date().toLocaleTimeString();
+        { const rcv=new Date();
+          const ls=document.getElementById('lastSync');
+          ls.textContent=`Última actualización de datos: ${rcv.toLocaleTimeString()} · recibida del servidor local`;
+          ls.title='Hora en que este navegador recibió el último envío de la EA por el servidor local. No es precio/equity en tiempo real.';
+          document.getElementById('footerSync').textContent=rcv.toLocaleString(); }
         renderAll(data);
         if(onFirstData) { onFirstData(); onFirstData = null; }
       } catch(_){}
@@ -959,12 +972,23 @@ function reconnectLocalWS() {
 
 function tryLocalWSReconnect() { reconnectLocalWS(); }
 
+// Estado VISIBLE: solo la nube. Se basa en el resultado real de la última petición al servidor (datos, SSE o journal),
+// nunca en que existan datos guardados. El transporte local (WebSocket) sigue activo internamente; solo se menciona en el tooltip.
+let _cloudState='unknown', _localActive=false;
+function setCloudState(state){ _cloudState=state; renderConnBadge(); }
+function renderConnBadge(){
+  const badge=document.getElementById('connBadge'); if(!badge) return;
+  const st={connected:['☁️ Nube conectada','var(--green)','rgba(0,255,136,0.3)'],
+            offline:['☁️ Nube sin conexión','var(--red)','rgba(255,51,85,0.35)'],
+            unknown:['Nube: estado desconocido','var(--muted)','transparent']}[_cloudState]||['Nube: estado desconocido','var(--muted)','transparent'];
+  badge.textContent=st[0]; badge.style.color=st[1]; badge.style.borderColor=st[2];
+  badge.title='Según la última petición al servidor en la nube. La EA envía datos solo cuando hay eventos.'+(_localActive?' · Datos también por servidor local (activo).':'');
+}
 function updateConnectionBadge(mode, active) {
-  const badge = document.getElementById('connBadge');
-  if(!badge) return;
-  if(mode === 'ws' && active)      { badge.textContent='⚡ Local'; badge.style.color='var(--cyan)'; badge.style.borderColor='rgba(0,229,255,0.4)'; }
-  else if(mode === 'cloud')        { badge.textContent='☁️ Nube';  badge.style.color='var(--green)'; badge.style.borderColor='rgba(0,255,136,0.3)'; }
-  else                             { badge.textContent='Sin conexión'; badge.style.color='var(--muted)'; badge.style.borderColor='transparent'; }
+  if(mode==='ws') _localActive=!!active;
+  else if(mode==='cloud') { if(!active) _cloudState='offline'; } // intentar conectar no equivale a estar conectado: el estado lo fijan las respuestas reales
+  else { _localActive=false; _cloudState='unknown'; }
+  renderConnBadge();
 }
 
 // ── AUTO-DETECT AL CARGAR ──────────────────────────────────────────────────────
@@ -1044,7 +1068,7 @@ function sessionExpired() {
   document.getElementById('connectPanel').style.display='';
   document.getElementById('btnDisconnect').style.display='none';
   updateConnectionBadge('', false);
-  document.getElementById('lastSync').textContent='Sin conexión';
+  document.getElementById('lastSync').textContent='Sin sesión';
   showMsg('Sesión vencida o contraseña cambiada. Inicia sesión de nuevo.', 'error');
 }
 
@@ -1112,12 +1136,13 @@ function setSyncLabel(data) {
 }
 function refreshSyncLabel() {
   const el = document.getElementById('lastSync'); if(!el || !serverToken) return;
-  if(!_lastEaTs) { el.textContent = `Actualizado: ${new Date().toLocaleTimeString()}`; return; }
+  el.title = 'Hora en que el servidor recibió el último envío de la EA. Es un dato histórico recibido: no prueba que la conexión esté activa ni es precio/equity en tiempo real.';
+  if(!_lastEaTs) { el.textContent = 'Sin datos de actualización disponibles'; return; }
   // La EA solo envía datos cuando pasa algo (trade, cambio de equity), así que no se puede saber
   // si está "en vivo". Mostramos únicamente cuándo llegó el último dato.
   const sameDay = _lastEaTs.toDateString() === new Date().toDateString();
   const txt = sameDay ? _lastEaTs.toLocaleTimeString() : _lastEaTs.toLocaleString();
-  el.textContent = `Último dato: ${txt}`;
+  el.textContent = `Última actualización de datos: ${txt}`;
   document.getElementById('footerSync').textContent = _lastEaTs.toLocaleString();
 }
 
@@ -1147,7 +1172,7 @@ function clearSession() {
   document.getElementById('btnDisconnect').style.display='none';
   document.getElementById('connectPanel').style.display='';
   document.getElementById('dashboard').classList.remove('on');
-  document.getElementById('lastSync').textContent='Sin conexión';
+  document.getElementById('lastSync').textContent='Sin sesión';
 }
 // removed — handled above in hybrid init
 
@@ -1164,6 +1189,7 @@ function connectServer() {
 async function fetchAndRender(force) {
   try {
     const r = await fetch(`${serverURL}/data?token=${encodeURIComponent(serverToken)}`);
+    setCloudState(r.status>=500?'offline':'connected'); // el servidor respondió (aunque aún no haya datos de la EA)
     if(r.status===401) { sessionExpired(); return; }
     if(r.status===404) { showMsg('Aún no hay datos en la nube. Conecta la EA a MT5 al menos una vez.', 'error'); return; }
     if(!r.ok) throw new Error(`Error ${r.status}`);
@@ -1180,6 +1206,7 @@ async function fetchAndRender(force) {
     }
     if(force) { startSSE(); syncJournal(); }
   } catch(e) {
+    setCloudState('offline');
     showMsg('No se pudo conectar: '+e.message,'error');
   }
 }
@@ -1187,6 +1214,7 @@ async function fetchAndRender(force) {
 function startSSE() {
   if(sseSource){ sseSource.close(); sseSource=null; }
   sseSource = new EventSource(`${serverURL}/events?token=${encodeURIComponent(serverToken)}`);
+  sseSource.onopen = () => setCloudState('connected');
   sseSource.onmessage = (e) => {
     try {
       const msg = JSON.parse(e.data);
@@ -1204,6 +1232,7 @@ function startSSE() {
   };
   sseSource.addEventListener('journal', () => syncJournal());
   sseSource.onerror = () => {
+    setCloudState('offline');
     sseSource.close(); sseSource=null;
     pollTimer = setTimeout(()=>fetchAndRender(true), 15000);
   };
@@ -1266,8 +1295,8 @@ function generateDemo() {
 }
 
 // ── SESSIONS ───────────────────────────────────────────────────────────────────
-function buildSessions(deals, openIds, exc) {
-  openIds=openIds||new Set(); exc=exc||{};
+function buildSessions(deals, openIds, exc, pxe) {
+  openIds=openIds||new Set(); exc=exc||{}; pxe=pxe||{};
   const posMap={};
   for(const d of deals){ if(!posMap[d.position_id]) posMap[d.position_id]=[]; posMap[d.position_id].push(d); }
   const sessions=[];
@@ -1282,9 +1311,12 @@ function buildSessions(deals, openIds, exc) {
     const avgEntry=entries.length?entries.reduce((a,b)=>a+b.price*b.volume,0)/totalVol:0;
     const exVol=exits.reduce((a,b)=>a+b.volume,0);
     const exitPx=exVol?exits.reduce((a,b)=>a+b.price*b.volume,0)/exVol:0;
-    const grossPnl=ds.reduce((a,b)=>a+b.profit,0);
-    const comm=ds.reduce((a,b)=>a+b.commission,0);
-    const swap=ds.reduce((a,b)=>a+b.swap,0);
+    // DEAL_PROFIT de MT5 es BRUTO (sin comisión ni swap): neto = profit + commission + swap, sin doble descuento.
+    // La comisión puede venir en el deal de entrada y/o salida según el bróker; aquí se suman todos los deals de la posición.
+    const grossPnl=ds.reduce((a,b)=>a+(+b.profit||0),0);
+    const comm=ds.reduce((a,b)=>a+(+b.commission||0),0);
+    const swap=ds.reduce((a,b)=>a+(+b.swap||0),0);
+    const costsKnown=ds.every(d=>d.commission!=null&&d.swap!=null); // dato ausente (EA antigua) ≠ coste cero
     const netPnl=grossPnl+comm+swap;
     const startT=ref[0].time;
     const endT=exits[exits.length-1].time;
@@ -1298,10 +1330,19 @@ function buildSessions(deals, openIds, exc) {
     const maxFloatDD=xok?+Math.abs(+x.mae||0).toFixed(2):null;
     const maxFloatWin=xok?+(+x.mfe||0).toFixed(2):null;
     const risk0=xok&&+x.risk>0?+x.risk:null; // solo si la EA vio la apertura y ya había SL
+    // Excursión de PRECIO en puntos (campo aparte de las métricas monetarias): null = no disponible, nunca 0.
+    const pe=pxe[pid]; let pxMae=null,pxMfe=null,pxQ='NONE',pxSrc='',pxPt=null;
+    if(pe){
+      pxSrc=pe.src||''; pxPt=pe.pt;
+      if(pe.pend===true||pe.fin===false) pxQ='PENDING';            // cierre aún sin conciliar con el historial
+      else { pxQ=PX_COV_OK.has(pe.cov)?pe.cov:'UNAVAILABLE'; }
+      if(pxQ!=='UNAVAILABLE'&&pxQ!=='NONE'&&Number.isFinite(pe.mae)&&Number.isFinite(pe.mfe)){ pxMae=+pe.mae; pxMfe=+pe.mfe; }
+      else if(pxQ!=='PENDING'){ pxQ='UNAVAILABLE'; }
+    }
     sessions.push({id:pid,date,sym,side:ref[0].type,entries:entries.length,avgEntry:+avgEntry.toFixed(5),
       exitPx:+exitPx.toFixed(5),totalVol:+totalVol.toFixed(2),maxVol:+maxVol.toFixed(2),
-      durMin,grossPnl:+grossPnl.toFixed(2),comm:+comm.toFixed(2),swap:+swap.toFixed(2),netPnl:+netPnl.toFixed(2),
-      risk0,r:risk0?+(netPnl/risk0).toFixed(2):null,maxFloatDD,maxFloatWin,startT,endT,partialHistory:!entries.length});
+      durMin,grossPnl:+grossPnl.toFixed(2),comm:+comm.toFixed(2),swap:+swap.toFixed(2),netPnl:+netPnl.toFixed(2),costsKnown,
+      risk0,r:risk0?+(netPnl/risk0).toFixed(2):null,maxFloatDD,maxFloatWin,pxMae,pxMfe,pxQ,pxSrc,pxPt,startT,endT,partialHistory:!entries.length});
   }
   return sessions.sort((a,b)=>a.startT-b.startT);
 }
@@ -1322,7 +1363,8 @@ function buildDays(trades) {
       totalVol:+ts.reduce((a,t)=>a+t.totalVol,0).toFixed(2),
       grossPnl:+ts.reduce((a,t)=>a+t.grossPnl,0).toFixed(2),
       comm:+ts.reduce((a,t)=>a+t.comm,0).toFixed(2),
-      netPnl:net, cls:net>0?'win':net<0?'loss':'be',
+      swap:+ts.reduce((a,t)=>a+(t.swap||0),0).toFixed(2), costsKnown:ts.every(t=>t.costsKnown),
+      netPnl:net, cls:dayClass(net),
       wins:ts.filter(t=>t.netPnl>0).length, losses:ts.filter(t=>t.netPnl<0).length,
       tradeObjs:ts, startT:Math.min(...ts.map(t=>t.startT))};
   }).sort((a,b)=>a.date<b.date?-1:1);
@@ -1376,7 +1418,7 @@ function calcDayStreaks(days) {
     if(!best[run.type]||run.count>best[run.type].count) best[run.type]={...run};
   };
   for(const d of days){
-    const type=d.netPnl>0?'win':d.netPnl<0?'loss':'be';
+    const type=dayClass(d.netPnl);
     if(run&&run.type===type&&type!=='be'){ run.count++; run.net=+(run.net+d.netPnl).toFixed(2); run.end=d.date; }
     else { closeRun(); run={type,count:type==='be'?0:1,net:type==='be'?0:d.netPnl,start:d.date,end:d.date}; }
   }
@@ -1387,9 +1429,10 @@ function calcDayStreaks(days) {
 
 // ── METRICS ────────────────────────────────────────────────────────────────────
 // Tres niveles, nunca mezclados:
-//  · POSICIÓN (T): win rate, PF, expectancy, medias, payoff, R, MAE/MFE y rachas de posiciones.
-//  · CAMPAÑA  (C): mismas métricas sobre el neto combinado de cada idea (scaling in).
-//  · DÍA      (D): clasificación diaria, rachas de días, curva realizada, drawdown, RF y Sharpe diario.
+//  · DÍA      (D): NIVEL PRINCIPAL del resumen: win rate, PF, expectancy, ganancia/pérdida media y payoff diarios,
+//                  rachas de días, curva realizada, drawdown, RF y Sharpe diario (función dayStats).
+//  · POSICIÓN (T): recuento, rachas de posiciones, R, MAE/MFE y estadísticas internas (coach/proyección). Siempre rotuladas «por posición».
+//  · CAMPAÑA  (C): idea operativa con scaling in; solo información de apoyo (conteo, R y MAE/MFE por campaña).
 const _sum=a=>a.reduce((x,y)=>x+y,0);
 function statBlock(pn){ // estadísticas sobre una lista de resultados netos (posiciones o campañas)
   const n=pn.length; if(!n) return null;
@@ -1402,6 +1445,22 @@ function statBlock(pn){ // estadísticas sobre una lista de resultados netos (po
     rr:(avgWin!=null&&avgLoss!=null)?avgWin/Math.abs(avgLoss):null,
     pf:grossLoss>0?grossWin/grossLoss:(grossWin>0?Infinity:null),
     exp:_sum(pn)/n,total:_sum(pn)};
+}
+// Métricas PRINCIPALES: unidad = día operado elegible (con al menos una posición cerrada ese día).
+// Lista base única de días para todas las tarjetas. Los importes se agrupan sin redondear a % por posición.
+function dayStats(D){
+  const N=D.length; if(!N) return null;
+  const w=D.filter(d=>dayClass(d.netPnl)==='win'), l=D.filter(d=>dayClass(d.netPnl)==='loss');
+  const gw=_sum(w.map(d=>d.netPnl)), glAbs=Math.abs(_sum(l.map(d=>d.netPnl)));
+  const avgWin=w.length?gw/w.length:null, avgLossAbs=l.length?glAbs/l.length:null;
+  const total=_sum(D.map(d=>d.netPnl));
+  return {N,wins:w.length,losses:l.length,be:N-w.length-l.length,
+    winPct:w.length/N*100,
+    total,exp:total/N,                                   // expectancy diaria: incluye días ganadores, perdedores y neutros
+    grossWin:gw,grossLoss:glAbs,avgWin,avgLossAbs,
+    pf:glAbs>0?gw/glAbs:null,                            // null = N/D (nunca Infinity); solo-perdedores da 0 válido
+    pfWhy:glAbs>0?'':(w.length?'no hay días perdedores en el periodo':'no hay días ganadores ni perdedores'),
+    payoff:(avgWin!=null&&avgLossAbs!=null)?avgWin/avgLossAbs:null};
 }
 function calcMetrics(days, trades, balance, extra) {
   const T=trades||[]; const n=T.length;
@@ -1425,19 +1484,44 @@ function calcMetrics(days, trades, balance, extra) {
   const cashKnown=extra.cashflows!==undefined;
   const cashTotal=_sum(cash.map(c=>c.a));
   const initial=balance!=null?balance-total-cashTotal:null;
-  let sharpe=null;
-  if(initial!=null&&D.length>=2){
+  // Auditoría Sharpe: serie = retorno % diario (neto del día / capital al inicio del día), solo días operados,
+  // σ muestral (n-1), rf=0 (no hay tasa configurable), anualización √252 asumiendo 252 sesiones/año sobre días operados.
+  let sharpe=null, sharpeWhy='';
+  if(initial==null) sharpeWhy='falta el balance de la cuenta';
+  else if(D.length<2) sharpeWhy='se necesitan al menos 2 días operados';
+  else {
     let cum=0,ok=true;
     const rets=D.map(d=>{
       const base=initial+cum+_sum(cash.filter(c=>c.d<=d.date).map(c=>c.a));
       if(!(base>0)) ok=false;
       const r=d.netPnl/base; cum+=d.netPnl; return r;});
-    if(ok){ const mean=_sum(rets)/rets.length, sd=Math.sqrt(_sum(rets.map(r=>(r-mean)**2))/(rets.length-1));
-      if(sd>0) sharpe=mean/sd*Math.sqrt(252); }
+    if(!ok) sharpeWhy='la base de capital no es válida (≤0) en algún día';
+    else { const mean=_sum(rets)/rets.length, sd=Math.sqrt(_sum(rets.map(r=>(r-mean)**2))/(rets.length-1));
+      if(sd>0) sharpe=mean/sd*Math.sqrt(252); else sharpeWhy='no hay variabilidad entre días (σ=0)'; }
   }
+  // Puntos del drawdown: uno por día operado, al cierre del día (no tick a tick). El % usa el capital en el pico previo
+  // (balance inicial reconstruido + depósitos/retiros hasta ese pico + P&L realizado acumulado); N/D si no hay base válida.
+  const capAt=(k,date)=>initial==null?null:initial+(k<0?0:equity[k])+_sum(cash.filter(c=>c.d<=date).map(c=>c.a));
+  let pkV=0,pkK=-1;
+  const ddPoints=D.map((d,i)=>{
+    if(equity[i]>pkV){pkV=equity[i];pkK=i;}
+    const dd=pkV-equity[i], capPk=capAt(pkK,pkK<0?D[0].date:D[pkK].date);
+    return {date:d.date,dd:+dd.toFixed(2),pct:(capPk!=null&&capPk>0)?dd/capPk*100:null,cum:+equity[i].toFixed(2),day:d.netPnl,trades:d.trades};
+  });
+  const maxDDPct=ddPoints.length&&ddPoints.every(q=>q.pct!=null)?Math.max(...ddPoints.map(q=>q.pct)):null;
   const dates=T.map(t=>t.date).sort(); const span=Math.max(1,Math.round((Date.parse(dates[n-1])-Date.parse(dates[0]))/864e5)+1);
   const exs=T.filter(t=>t.maxFloatDD!=null), rs=T.filter(t=>t.r!=null);
   const cex=camps.filter(c=>c.mae!=null), crs=camps.filter(c=>c.r!=null);
+  // MAE/MFE en puntos: promedios SOLO por símbolo (puntos de instrumentos distintos no son comparables)
+  const pxMode=extra.pxMode||'complete';
+  const okQ=pxMode==='complete'?['COMPLETE']:pxMode==='approx'?['COMPLETE','APPROXIMATE']:['COMPLETE','APPROXIMATE','PARTIAL'];
+  const pxCount={COMPLETE:0,PARTIAL:0,APPROXIMATE:0,PENDING:0,UNAVAILABLE:0,NONE:0}; T.forEach(t=>{ pxCount[t.pxQ]=(pxCount[t.pxQ]||0)+1; });
+  const pxUse=T.filter(t=>okQ.includes(t.pxQ)&&t.pxMae!=null);
+  const pxSym={};
+  pxUse.forEach(t=>{ const o=pxSym[t.sym]||(pxSym[t.sym]={rows:[]}); o.rows.push(t); });
+  Object.values(pxSym).forEach(o=>{ const r=o.rows, av=(a,f)=>a.length?_sum(a.map(f))/a.length:null, w=r.filter(t=>t.netPnl>0), l=r.filter(t=>t.netPnl<0);
+    o.n=r.length; o.mae=av(r,t=>t.pxMae); o.mfe=av(r,t=>t.pxMfe);
+    o.wn=w.length; o.wmae=av(w,t=>t.pxMae); o.wmfe=av(w,t=>t.pxMfe); o.ln=l.length; o.lmae=av(l,t=>t.pxMae); o.lmfe=av(l,t=>t.pxMfe); delete o.rows; });
   const symMap={}; T.forEach(s=>{ symMap[s.sym]=(symMap[s.sym]||0)+s.netPnl; });
   const dayWins=D.filter(d=>d.netPnl>0).length, dayLosses=D.filter(d=>d.netPnl<0).length;
   return {
@@ -1446,6 +1530,7 @@ function calcMetrics(days, trades, balance, extra) {
     grossWin:P.grossWin,grossLoss:P.grossLoss,mxPW,mxPL,
     avgMAE:exs.length?_sum(exs.map(t=>t.maxFloatDD))/exs.length:null,avgMFE:exs.length?_sum(exs.map(t=>t.maxFloatWin))/exs.length:null,excN:exs.length,
     avgR:rs.length?_sum(rs.map(t=>t.r))/rs.length:null,rN:rs.length,
+    pxCount,pxSym,pxMode,pxN:pxUse.length,
     comms:_sum(T.map(t=>Math.abs(t.comm))),swaps:_sum(T.map(t=>t.swap||0)),
     avgDur:_sum(T.map(t=>t.durMin))/n,avgEntries:_sum(T.map(t=>t.entries))/n,avgMaxVol:_sum(T.map(t=>t.maxVol))/n,tpd:n/span,symMap,
     // campaña
@@ -1455,7 +1540,9 @@ function calcMetrics(days, trades, balance, extra) {
     cAvgR:crs.length?_sum(crs.map(c=>c.r))/crs.length:null,cRN:crs.length,
     // día
     days:D.length,dayWins,dayLosses,dayBE:D.length-dayWins-dayLosses,dayWinPct:D.length?dayWins/D.length*100:null,
-    streaks:calcDayStreaks(D),equity,pnls:dpn,maxDD,peak,rf,sharpe,sharpeProvisional:D.length<20,cashKnown,
+    streaks:calcDayStreaks(D),equity,pnls:dpn,maxDD,peak,rf,sharpe,sharpeWhy,sharpeProvisional:D.length<20,cashKnown,
+    D:dayStats(D),ddPoints,maxDDPct,firstDate:D.length?D[0].date:null,lastDate:D.length?D[D.length-1].date:null,
+    commTotal:_sum(T.map(t=>t.comm||0)),swapTotal:_sum(T.map(t=>t.swap||0)),costsKnown:T.every(t=>t.costsKnown),
     maxTradesDay:D.length?Math.max(...D.map(d=>d.trades)):0,avgTradesDay:D.length?n/D.length:0
   };
 }
@@ -1467,21 +1554,27 @@ function renderAll(data) {
   requestNotificationPermission();
   const acc=data.account||{};
   const deals=(data.deals||[]).filter(d=>d.entry!=='BALANCE');
-  _isDemo=!!data._demo; _lastAcc=acc;
+  _isDemo=!!data._demo; _lastAcc=acc; _lastData=data; _curSym=curSymbolOf(acc.currency);
   if(data.timestamp && !data._demo){
     const ref = data.server_time ? Date.parse(data.server_time) : Date.now();
     _brokerOffsetMs = isFinite(ref) ? Math.round((data.timestamp*1000 - ref)/900000)*900000 : null;
   } else _brokerOffsetMs = null;
   _brokerToday = todayStr();
   _dataAgeSec = data.server_time ? Math.max(0,Math.round((Date.now()-Date.parse(data.server_time))/1000)) : null;
-  const openIds=new Set((data.positions||[]).map(p=>String(p.ticket)));
-  const trades=buildSessions(deals,openIds,data.excursions);   // nivel posición: cada posición CERRADA
+  const openIds=new Set((data.positions||[]).flatMap(p=>[String(p.ticket),...(p.position_id!=null?[String(p.position_id)]:[])]));
+  const trades=buildSessions(deals,openIds,data.excursions,data.price_exc);   // nivel posición: cada posición CERRADA
   const sessions=buildDays(trades);                            // nivel día: 1 día operativo = 1 sesión
   const campaigns=buildCampaigns(trades,data.campaigns);       // nivel campaña (scaling in)
   _journalSessions = sessions;
-  const m=calcMetrics(sessions, trades, acc.balance, {campaigns,cashflows:data.cashflows});
-  if(!m){ renderAccBar(acc,[],_isDemo); document.getElementById('kpi1').innerHTML='<div class="kpi"><div class="kpi-label">Sin operaciones cerradas</div><div class="kpi-sub">No hay datos para calcular métricas.</div></div>'; document.getElementById('kpi2').innerHTML=''; ['kpiC','kpiD','streakRow','campNote'].forEach(i=>{const e=document.getElementById(i); if(e) e.innerHTML='';}); return; }
+  const m=calcMetrics(sessions, trades, acc.balance, {campaigns,cashflows:data.cashflows,pxMode:_pxMode});
+  if(!m){ renderAccBar(acc,[],_isDemo); document.getElementById('kpi1').innerHTML='<div class="kpi"><div class="kpi-label">Sin operaciones cerradas</div><div class="kpi-sub">No hay datos para calcular métricas.</div></div>'; document.getElementById('kpi2').innerHTML=''; ['kpiC','streakRow','campNote'].forEach(i=>{const e=document.getElementById(i); if(e) e.innerHTML='';}); return; }
   m.openCount=openIds.size;
+  // Alcance del historial de deals que entrega la EA (envía como máximo los 2000 deals de trading más recientes).
+  m.histTruncated=data.deals_truncated===true;
+  m.histScope=data.deals_truncated===true
+    ? `Historial parcial: la EA envía los ${data.deals_sent!=null?data.deals_sent:deals.length} deals más recientes de ${data.history_deals_total!=null?data.history_deals_total:'?'} en MT5`
+    : data.deals_truncated===false ? 'Historial disponible en MT5 (sin recorte de la EA; puede no cubrir toda la vida de la cuenta)'
+    : 'Historial disponible recibido (la EA no informa el alcance)';
   const balance = acc.balance || 0;
   renderAccBar(acc, trades, _isDemo);
   renderKPIs(m, acc);
@@ -1498,6 +1591,7 @@ function renderAll(data) {
   _lastSessions = sessions; _lastTrades = trades; _lastBalance = balance; _lastM = m; _lastCampaigns = campaigns;
 }
 let _lastCampaigns = [];
+let _lastData = null, _pxMode = 'complete', _curSym = '$';
 
 // ── ACCOUNT BAR ────────────────────────────────────────────────────────────────
 function renderAccBar(acc, trades, isDemo) {
@@ -1507,7 +1601,6 @@ function renderAccBar(acc, trades, isDemo) {
     {l:'Cuenta',v:acc.number||'—',cls:'neu'},
     {l:'Broker',v:acc.broker||'—',cls:''},
     {l:'Balance',v:fmt$(acc.balance),cls:'neu'},
-    {l:'Equity',v:acc.equity==null?'n/d':fmt$(acc.equity),cls:'neu'},
     {l:'Apalanc. · Moneda',v:'1:'+(acc.leverage||'—')+' · '+(acc.currency||'USD'),cls:''},
     {l:'P&L Realizado Hoy',v:fmt$(todayPnl),cls:todayPnl>=0?'pos':'neg'},
   ];
@@ -1528,50 +1621,48 @@ function kpiGrid(id,data){ document.getElementById(id).innerHTML=data.map(k=>`
     </div>`).join(''); }
 const _cl=(v,g,w)=>v==null?'neu':v>=g?'pos':v>=w?'warn':'neg', _cc=(v,g,w)=>v==null?'c':v>=g?'g':v>=w?'w':'r';
 
-// Nivel POSICIÓN: cada tarjeta indica su unidad de análisis.
+// RESUMEN PRINCIPAL — unidad: DÍA OPERADO (neto realizado del día = P/L + comisión + swap).
+// Las métricas que siguen siendo por posición lo dicen en su nombre. N/D nunca es cero: es dato no calculable.
 function renderKPIs(m, acc) {
-  const cl=_cl, cc=_cc;
+  const S=m.D, cur=(acc&&acc.currency)||'USD';
+  const per=m.firstDate===m.lastDate?m.firstDate:`${m.firstDate} → ${m.lastDate}`;
+  const short=S.N<5?` · muestra corta (${S.N} día${S.N===1?'':'s'}): no indica consistencia`:'';
   const g1=[
-    {l:'Resultado Neto',v:fmt$(m.total),cls:m.total>=0?'pos':'neg',c:m.total>=0?'g':'r',icon:'💰',sub:`Cerradas · ${m.n} posiciones · ${m.cN} campañas · ${m.days} días`},
-    {l:'Win Rate · por posición',v:m.winPct.toFixed(1)+'%',cls:m.winPct>=50?'pos':'neg',c:m.winPct>=50?'g':'r',icon:'🎯',sub:`${m.wins}G / ${m.losses}P / ${m.be}N de ${m.n} posiciones`},
-    {l:'Profit Factor · por posición',v:fxPF(m.pf),cls:cl(m.pf,1.5,1),c:cc(m.pf,1.5,1),icon:'⚖️',sub:'Bruto ganado / bruto perdido de posiciones (neto de costes)'},
-    {l:'Drawdown Máx. · curva realizada diaria',v:fmt$(-m.maxDD),cls:'neg',c:'r',icon:'📉',sub:`Sobre el P&L realizado por día · Recovery Factor: ${fx(m.rf)} (misma curva) · DD de equity: n/d`},
-    {l:'Expectancy · por posición',v:fmt$(m.exp),cls:m.exp>=0?'pos':'neg',c:m.exp>=0?'g':'r',icon:'🧮',sub:'Neto medio por posición cerrada'},
-    {l:'Posiciones',v:m.n,cls:'neu',c:'c',icon:'📋',sub:`Cerradas · ${m.openCount||0} abierta(s) excluida(s) · ${m.avgTradesDay.toFixed(1)}/día`},
+    {l:'Resultado Neto',v:fmt$(m.total),cls:m.total>=0?'pos':'neg',c:m.total>=0?'g':'r',icon:'💰',sub:`Realizado, posiciones cerradas · ${m.days} días operados · ${m.n} posiciones · ${per}`},
+    {l:'Win Rate diario',v:fmtPct(S.winPct),cls:'neu',c:'c',icon:'🎯',sub:`${S.wins} de ${S.N} días ganadores · porcentaje de días operados que terminaron en positivo${S.be?` · ${S.be} neutral(es)`:''}${short}`},
+    {l:'Profit Factor diario',v:S.pf==null?'N/D':S.pf.toFixed(2),cls:_cl(S.pf,1.5,1),c:_cc(S.pf,1.5,1),icon:'⚖️',sub:S.pf==null?`N/D — ${S.pfWhy}`:'Suma de días netos positivos ÷ |suma de días netos negativos|'},
+    {l:'Expectancy diaria',v:fmt$(S.exp),cls:S.exp>=0?'pos':'neg',c:S.exp>=0?'g':'r',icon:'🧮',sub:`Neto medio por día operado (${S.N}) · ${cur} · ${per}`},
+    {l:'Ganancia media diaria',v:S.avgWin==null?'N/D':fmt$(S.avgWin),cls:S.avgWin==null?'neu':'pos',c:S.avgWin==null?'c':'g',icon:'🏆',sub:S.avgWin==null?'N/D — no hay días ganadores':`Media del neto de ${S.wins} día(s) ganador(es)`},
+    {l:'Pérdida media diaria',v:S.avgLossAbs==null?'N/D':fmt$(-S.avgLossAbs),cls:S.avgLossAbs==null?'neu':'neg',c:S.avgLossAbs==null?'c':'r',icon:'🛑',sub:S.avgLossAbs==null?'N/D — no hay días perdedores':`Media del neto de ${S.losses} día(s) perdedor(es), como importe negativo`},
+    {l:'Relación ganancia/pérdida diaria',v:S.payoff==null?'N/D':S.payoff.toFixed(2)+' : 1',cls:_cl(S.payoff,2,1),c:_cc(S.payoff,2,1),icon:'⚡',sub:S.payoff==null?'N/D — requiere al menos un día ganador y uno perdedor':'Ganancia media diaria ÷ |pérdida media diaria| (payoff diario). No es el RR real por operación'},
+    {l:'Días operados',v:m.days,cls:'neu',c:'c',icon:'📅',sub:`1 día = 1 fecha de cierre (hora del servidor del bróker) · ${m.avgTradesDay.toFixed(1)} posiciones/día (máx. ${m.maxTradesDay})`},
+    {l:'Drawdown Máx. · curva realizada diaria',v:fmt$(-m.maxDD),cls:'neg',c:'r',icon:'📉',sub:`Al cierre de cada día operado${m.maxDDPct!=null?` · ${m.maxDDPct.toFixed(2)} % del capital en el pico`:' · % N/D (sin base de capital válida)'} · Recovery Factor: ${fx(m.rf)} · DD de equity flotante: N/D (la EA no registra serie histórica)`},
   ];
+  const dBest=m.pnls.length?Math.max(...m.pnls):null, dWorst=m.pnls.length?Math.min(...m.pnls):null;
+  const nOk=m.costsKnown;
   const g2=[
-    {l:'Ganancia media · por posición',v:m.avgWin==null?'n/d':fmt$(m.avgWin),cls:'pos',c:'g',icon:'🏆',sub:'Por posición ganadora'},
-    {l:'Pérdida media · por posición',v:m.avgLoss==null?'n/d':fmt$(m.avgLoss),cls:'neg',c:'r',icon:'🛑',sub:'Por posición perdedora'},
-    {l:'Payoff · por posición',v:m.rr==null?'n/d':m.rr.toFixed(2)+':1',cls:cl(m.rr,2,1),c:cc(m.rr,2,1),icon:'⚡',sub:'Ganancia media / |pérdida media| de posiciones'},
-    {l:'Costes',v:fmt$(-m.comms+m.swaps),cls:'neg',c:'w',icon:'🏦',sub:`Comisión ${fmt$(-m.comms)} · Swap ${fmt$(m.swaps)}`},
-    {l:'Sharpe · diario'+(m.sharpeProvisional?' · prov.':''),v:fx(m.sharpe),cls:m.sharpe==null?'neu':m.sharpe>=1?'pos':m.sharpe>=0?'warn':'neg',c:m.sharpe==null?'c':m.sharpe>=1?'g':'w',icon:'📐',sub:`${m.days} días con actividad · neto diario / capital al inicio del día${m.cashKnown?' (depósitos/retiros ajustados)':' (sin datos de depósitos/retiros)'} · rf=0 · √252${m.sharpeProvisional?' · muestra <20 días':''}`},
-    {l:'MAE / MFE medio · por posición',v:m.avgMAE==null?'n/d':`${fmt$(-m.avgMAE)} / ${fmt$(m.avgMFE)}`,cls:'neu',c:'c',icon:'↔️',sub:m.excN?`Muestreado por la EA desde la apertura (puede omitir extremos entre muestras) · ${m.excN} de ${m.n}${m.avgR!=null?' · R medio '+m.avgR.toFixed(2)+' ('+m.rN+')':''}`:'n/d: la EA no midió ninguna posición completa desde su apertura'},
-    {l:'Racha máx. de posiciones',v:`${m.mxPW}G / ${m.mxPL}P`,cls:'neu',c:'c',icon:'🔗',sub:'Posiciones consecutivas. NO son rachas de días ni de ideas'},
+    {l:'Comisiones pagadas — historial de la cuenta',v:nOk?fmt$(m.commTotal):'N/D',cls:'neg',c:m.histTruncated?'w':'c',icon:'🏦',sub:nOk?`Total de posiciones cerradas · ${m.histScope} · incluidas en el neto, no se descuentan dos veces`:'N/D: la EA no envió comisión por deal'},
+    {l:'Swap acumulado — historial de la cuenta',v:nOk?fmt$(m.swapTotal):'N/D',cls:m.swapTotal<0?'neg':'neu',c:m.histTruncated?'w':'c',icon:'🔁',sub:nOk?`Cargos(−)/créditos(+) de posiciones cerradas · ${m.histScope}`:'N/D: la EA no envió swap por deal'},
+    {l:'Sharpe · diario'+(m.sharpeProvisional&&m.sharpe!=null?' · prov.':''),v:fx(m.sharpe),cls:m.sharpe==null?'neu':m.sharpe>=1?'pos':m.sharpe>=0?'warn':'neg',c:m.sharpe==null?'c':m.sharpe>=1?'g':'w',icon:'📐',sub:m.sharpe==null?`N/D — ${m.sharpeWhy||'datos insuficientes'}`:`${m.days} días operados · neto diario / capital al inicio del día${m.cashKnown?' (depósitos/retiros ajustados)':' (sin datos de depósitos/retiros)'} · σ muestral · rf=0 · √252 sobre días operados${m.sharpeProvisional?' · muestra <20 días':''}`},
+    {l:'Posiciones cerradas (trades)',v:m.n,cls:'neu',c:'c',icon:'📋',sub:`Cantidad de posiciones del periodo, no el resultado del día · ${m.openCount||0} abierta(s) excluida(s) · por posición: ${m.wins}G / ${m.losses}P / ${m.be}N`},
+    {l:'Racha máx. · por posición',v:`${m.mxPW}G / ${m.mxPL}P`,cls:'neu',c:'c',icon:'🔗',sub:'Posiciones consecutivas. NO son rachas de días ni de ideas'},
+    {l:'Mejor / Peor día',v:dBest==null?'N/D':`${fmt$(dBest)} / ${fmt$(dWorst)}`,cls:'neu',c:'c',icon:'🗓️',sub:'Resultado neto realizado diario'},
+    {l:'MAE / MFE monetario medio · por posición',v:m.avgMAE==null?'N/D':`${fmt$(-m.avgMAE)} / ${fmt$(m.avgMFE)}`,cls:'neu',c:'c',icon:'↔️',sub:m.excN?`Muestreado por la EA desde la apertura (puede omitir extremos entre muestras) · ${m.excN} de ${m.n}${m.avgR!=null?' · R medio '+m.avgR.toFixed(2)+' ('+m.rN+')':''}`:'N/D: la EA no midió ninguna posición completa desde su apertura'},
+    pxKpi(m),
   ];
   kpiGrid('kpi1',g1); kpiGrid('kpi2',g2);
 }
 
-// Nivel CAMPAÑA y nivel DÍA
+// Campañas (scaling in): solo información de apoyo. Las métricas de resultado viven en el resumen diario.
 function renderLevelKPIs(m) {
   const C=m.C;
-  if(!C){ kpiGrid('kpiC',[{l:'Campañas',v:'n/d',cls:'neu',c:'c',icon:'🧩',sub:'Sin posiciones cerradas'}]); }
+  if(!C){ kpiGrid('kpiC',[{l:'Campañas',v:'N/D',cls:'neu',c:'c',icon:'🧩',sub:'Sin posiciones cerradas'}]); }
   else kpiGrid('kpiC',[
     {l:'Campañas',v:m.cN,cls:'neu',c:'c',icon:'🧩',sub:`${m.scaledN} con scaling in · ${m.cAvgPos.toFixed(1)} posiciones por campaña (media)`},
-    {l:'Win Rate · por campaña',v:C.winPct.toFixed(1)+'%',cls:C.winPct>=50?'pos':'neg',c:C.winPct>=50?'g':'r',icon:'🎯',sub:`${C.wins}G / ${C.losses}P / ${C.be}N de ${C.n} campañas`},
-    {l:'Profit Factor · por campaña',v:fxPF(C.pf),cls:_cl(C.pf,1.5,1),c:_cc(C.pf,1.5,1),icon:'⚖️',sub:'Neto combinado de cada campaña'},
-    {l:'Expectancy · por campaña',v:fmt$(C.exp),cls:C.exp>=0?'pos':'neg',c:C.exp>=0?'g':'r',icon:'🧮',sub:'Resultado medio por idea operativa'},
-    {l:'Ganancia / Pérdida media · por campaña',v:`${C.avgWin==null?'n/d':fmt$(C.avgWin)} / ${C.avgLoss==null?'n/d':fmt$(C.avgLoss)}`,cls:'neu',c:'c',icon:'⚡',sub:`Payoff por campaña: ${C.rr==null?'n/d':C.rr.toFixed(2)+':1'}`},
-    {l:'R medio · por campaña',v:m.cAvgR==null?'n/d':m.cAvgR.toFixed(2)+' R',cls:'neu',c:'c',icon:'📏',sub:m.cRN?`${m.cRN} de ${m.cN} campañas con riesgo inicial conocido en todas sus posiciones`:'n/d: riesgo inicial no registrado (la EA exige SL al abrir)'},
-    {l:'MAE / MFE medio · por campaña',v:m.cAvgMAE==null?'n/d':`${fmt$(-m.cAvgMAE)} / ${fmt$(m.cAvgMFE)}`,cls:'neu',c:'c',icon:'↔️',sub:m.cExcN?`Extremos del resultado combinado (no suma de MAE/MFE) · ${m.cExcN} de ${m.cN}`:'n/d: no se pudo reconstruir con fiabilidad'},
+    {l:'R medio · por campaña',v:m.cAvgR==null?'N/D':m.cAvgR.toFixed(2)+' R',cls:'neu',c:'c',icon:'📏',sub:m.cRN?`${m.cRN} de ${m.cN} campañas con riesgo inicial conocido en todas sus posiciones`:'N/D: riesgo inicial no registrado (la EA exige SL al abrir)'},
+    {l:'MAE / MFE monetario medio · por campaña',v:m.cAvgMAE==null?'N/D':`${fmt$(-m.cAvgMAE)} / ${fmt$(m.cAvgMFE)}`,cls:'neu',c:'c',icon:'↔️',sub:m.cExcN?`Extremos del resultado combinado (no suma de MAE/MFE) · ${m.cExcN} de ${m.cN}`:'N/D: no se pudo reconstruir con fiabilidad'},
   ]);
-  document.getElementById('campNote').innerHTML='Una campaña agrupa posiciones del <strong>mismo símbolo y sentido</strong> que se solapan en el tiempo (scaling in). Es una reconstrucción con datos reales de apertura/cierre; no se agrupa nada más. Métricas distintas de las de posición.';
-  const dBest=m.pnls.length?Math.max(...m.pnls):null, dWorst=m.pnls.length?Math.min(...m.pnls):null;
-  kpiGrid('kpiD',[
-    {l:'Días operados',v:m.days,cls:'neu',c:'c',icon:'📅',sub:`${m.avgTradesDay.toFixed(1)} posiciones/día (máx. ${m.maxTradesDay}) · 1 día = 1 sesión`},
-    {l:'Win Rate · por día',v:m.dayWinPct==null?'n/d':m.dayWinPct.toFixed(1)+'%',cls:m.dayWinPct>=50?'pos':'neg',c:m.dayWinPct>=50?'g':'r',icon:'🎯',sub:`${m.dayWins} ganadores / ${m.dayLosses} perdedores / ${m.dayBE} neutrales (neto del día)`},
-    {l:'Mejor / Peor día',v:dBest==null?'n/d':`${fmt$(dBest)} / ${fmt$(dWorst)}`,cls:'neu',c:'c',icon:'🗓️',sub:'Resultado neto realizado diario'},
-    {l:'Drawdown de equity',v:'n/d',cls:'neu',c:'c',icon:'📉',sub:'La EA no registra una serie de equity histórica; el drawdown mostrado es el de resultados realizados'},
-  ]);
+  document.getElementById('campNote').innerHTML='Una campaña agrupa posiciones del <strong>mismo símbolo y sentido</strong> que se solapan en el tiempo (scaling in). Es una reconstrucción con datos reales de apertura/cierre; no se agrupa nada más. Es información de apoyo: el win rate, profit factor, expectancy y payoff se calculan <strong>por día operado</strong> en el Resumen de Cuenta.';
 }
 
 // ── STREAKS (días operativos) ──────────────────────────────────────────────────
@@ -1660,7 +1751,7 @@ function renderCharts(m, sessions) {
     type:'line',
     data:{labels: extLabels,
       datasets:[
-        {label:'Equity',data:[...m.equity, null, null, null],borderColor:'#00e5ff',backgroundColor:'rgba(0,229,255,0.07)',tension:.4,fill:true,pointRadius:3,pointHoverRadius:7,pointBackgroundColor:'#00e5ff',pointBorderColor:'#00e5ff'},
+        {label:'Realizado acum.',data:[...m.equity, null, null, null],borderColor:'#00e5ff',backgroundColor:'rgba(0,229,255,0.07)',tension:.4,fill:true,pointRadius:3,pointHoverRadius:7,pointBackgroundColor:'#00e5ff',pointBorderColor:'#00e5ff'},
         {label:'+30d',data:new Array(histLen).fill(null).concat([proj30,null,null]),borderColor:'rgba(181,123,255,0.8)',backgroundColor:'transparent',borderDash:[6,4],tension:0,pointRadius:6,pointHoverRadius:8,pointBackgroundColor:'rgba(181,123,255,0.8)',borderWidth:2},
         {label:'+60d',data:new Array(histLen).fill(null).concat([null,proj60,null]),borderColor:'rgba(181,123,255,0.6)',backgroundColor:'transparent',borderDash:[6,4],tension:0,pointRadius:6,pointHoverRadius:8,pointBackgroundColor:'rgba(181,123,255,0.6)',borderWidth:2},
         {label:'+90d',data:new Array(histLen).fill(null).concat([null,null,proj90]),borderColor:'rgba(181,123,255,0.4)',backgroundColor:'transparent',borderDash:[6,4],tension:0,pointRadius:6,pointHoverRadius:8,pointBackgroundColor:'rgba(181,123,255,0.4)',borderWidth:2},
@@ -1689,7 +1780,7 @@ function renderCharts(m, sessions) {
               if(cumVal === null || dailyGain === undefined) return null;
               const sign = dailyGain >= 0 ? '+' : '';
               return [
-                ` Equity acum.: $${cumVal.toFixed(2)}`,
+                ` Resultado realizado acum.: $${cumVal.toFixed(2)}`,
                 ` Resultado del día: ${sign}$${dailyGain.toFixed(2)}`
               ];
             }
@@ -1709,37 +1800,59 @@ function renderCharts(m, sessions) {
     }
   });
 
-  // DRAWDOWN
-  let pk=0,rn=0;
-  const ddSeries=m.pnls.map(p=>{rn+=p;if(rn>pk)pk=rn;return -(pk-rn);});
+  // DRAWDOWN — serie de resultados REALIZADOS (netos de costes) al cierre de cada día operado.
+  // No se interpolan puntos: cada punto del tooltip es un día real de m.ddPoints.
+  const ddPts=m.ddPoints;
   dc('dd');
+  const ddLight=document.body.classList.contains('light');
+  const ddCursor={id:'ddCursor',afterDatasetsDraw(chart){
+    const t=chart.tooltip; if(!t||!t.getActiveElements||!t.getActiveElements().length) return;
+    const x=t.getActiveElements()[0].element.x, a=chart.chartArea, ctx=chart.ctx;
+    ctx.save(); ctx.beginPath(); ctx.moveTo(x,a.top); ctx.lineTo(x,a.bottom); ctx.lineWidth=1; ctx.setLineDash([4,3]);
+    ctx.strokeStyle=ddLight?'rgba(10,26,42,0.45)':'rgba(192,212,224,0.5)'; ctx.stroke(); ctx.restore();
+  }};
   charts['dd']=new Chart(document.getElementById('ddChart'),{
     type:'line',
-    data:{labels:m.pnls.map((_,i)=>{const s=sessions[i];if(!s)return i+1;const d=new Date(s.date+'T12:00:00');return (d.getMonth()+1)+'/'+(d.getDate());}),
-      datasets:[{label:'DD',data:ddSeries,borderColor:'rgba(255,51,85,0.8)',backgroundColor:'rgba(255,51,85,0.08)',tension:.4,fill:true,pointRadius:0}]},
-    options:{...cOpts(v=>'$'+v.toFixed(0)),responsive:true,plugins:{legend:{display:false}},animation:{duration:600}}
+    data:{labels:ddPts.map(q=>{const d=new Date(q.date+'T12:00:00');return (d.getMonth()+1)+'/'+d.getDate();}),
+      datasets:[{label:'Drawdown',data:ddPts.map(q=>-q.dd),borderColor:'rgba(255,51,85,0.8)',backgroundColor:'rgba(255,51,85,0.08)',tension:0,fill:true,
+        pointRadius:2,pointHoverRadius:6,pointHitRadius:14,pointBackgroundColor:'rgba(255,51,85,0.9)'}]},
+    options:{...cOpts(v=>'$'+v.toFixed(0)),responsive:true,
+      interaction:{mode:'nearest',axis:'x',intersect:false},
+      plugins:{legend:{display:false},tooltip:{
+        callbacks:{
+          title:c=>`${ddPts[c[0].dataIndex].date} · cierre del día`,
+          label:c=>{ const q=ddPts[c.dataIndex]; return [
+            ` Drawdown: ${fmt$(-q.dd)}`,
+            q.pct==null?' Drawdown %: N/D (sin base de capital válida)':` Drawdown %: ${q.pct>0?'-':''}${q.pct.toFixed(2)} % del capital en el pico`,
+            ` Resultado del día: ${fmt$(q.day)} (${q.trades} pos.)`,
+            ` Realizado acumulado: ${fmt$(q.cum)}`]; }
+        },
+        backgroundColor:ddLight?'rgba(240,244,248,0.97)':'rgba(8,13,18,0.95)',borderColor:ddLight?'rgba(0,119,170,0.4)':'rgba(0,229,255,0.4)',borderWidth:1,
+        titleColor:ddLight?'#0a1a2a':'#c0d4e0',bodyColor:ddLight?'#0a1a2a':'#ddeeff',padding:10,displayColors:false}},
+      animation:{duration:600}},
+    plugins:[ddCursor]
   });
 
   // PROGRESS BARS
   const progs=[
-    {l:'Win Rate (posiciones)',v:m.winPct,max:100,c:'g',fv:v=>v.toFixed(1)+'%',
-     info:'Porcentaje de posiciones cerradas en positivo sobre el total de posiciones (no de días ni de campañas).',
-     rec:'Mantenlo por encima del 50%. Con un buen R:R puedes ser rentable desde el 40%, pero lo saludable es ≥ 50%.'},
-    {l:'Profit Factor (posiciones)',v:Math.min(m.pf==null?0:m.pf,5),max:5,c:'c',fv:_=>fxPF(m.pf),
-     info:'Ganancias brutas totales dividido entre pérdidas brutas totales.',
-     rec:'Por encima de 1.0 el sistema es rentable. Lo saludable es ≥ 1.5. Por encima de 2.0 es excelente.'},
-    {l:'Reward:Risk (posiciones)',v:Math.min(m.rr==null?0:m.rr,5),max:5,c:m.rr>=2?'g':m.rr>=1?'w':'r',fv:_=>fx(m.rr)+':1',
-     info:'Ganancia media de las posiciones ganadoras dividida entre la pérdida media de las perdedoras (por posición).',
-     rec:'El mínimo aceptable es 1:1. Lo saludable es ≥ 1.5:1. El ideal para un sistema sólido es ≥ 2:1.'},
-    {l:'Sharpe (diario)',v:Math.max(0,Math.min(m.sharpe==null?0:m.sharpe,3)),max:3,c:m.sharpe>=1?'g':'w',fv:_=>fx(m.sharpe),
-     info:'Sharpe diario: retorno neto de cada día operado sobre el capital al inicio del día, anualizado con √252. No usa posiciones individuales.',
+    {l:'Win Rate (diario)',v:m.D.winPct,max:100,c:'c',fv:v=>fmtPct(v),
+     info:'Porcentaje de días operados cuyo neto fue positivo (X de Y días). Es una proporción, no un P/L: un 21 % no es «−21 %». No cuenta posiciones.',
+     rec:'Léelo junto con la relación ganancia/pérdida diaria y la expectancy diaria: un win rate diario bajo puede ser coherente con ganancias medias mayores que las pérdidas.'},
+    {l:'Profit Factor (diario)',v:Math.min(m.D.pf==null?0:m.D.pf,5),max:5,c:'c',fv:_=>m.D.pf==null?'N/D':m.D.pf.toFixed(2),
+     info:'Suma de los netos de los días ganadores dividida entre el valor absoluto de la suma de los netos de los días perdedores. N/D si no hay días perdedores.',
+     rec:'Por encima de 1.0 los días ganadores superan en total a los perdedores en este periodo. Con pocos días la cifra es poco estable.'},
+    {l:'Relación ganancia/pérdida (diaria)',v:Math.min(m.D.payoff==null?0:m.D.payoff,5),max:5,c:m.D.payoff>=2?'g':m.D.payoff>=1?'w':'r',fv:_=>m.D.payoff==null?'N/D':m.D.payoff.toFixed(2)+':1',
+     info:'Ganancia media de los días ganadores dividida entre la pérdida media absoluta de los días perdedores. No es un RR por operación: no usa el riesgo inicial de cada posición.',
+     rec:'Se interpreta junto con el win rate diario: ambos determinan la expectancy diaria.'},
+    {l:'Sharpe (diario)',v:Math.max(0,Math.min(m.sharpe==null?0:m.sharpe,3)),max:3,c:m.sharpe>=1?'g':'w',fv:_=>m.sharpe==null?'N/D':fx(m.sharpe),
+     info:'Sharpe diario: retorno neto de cada día operado sobre el capital al inicio del día (σ muestral, rf=0), anualizado con √252 suponiendo 252 sesiones/año sobre días operados. No usa posiciones individuales. N/D si hay menos de 2 días, σ=0 o falta base de capital.',
      rec:'Por encima de 1.0 es bueno. Por encima de 2.0 es muy sólido. Menos de 0.5 indica resultados inconsistentes.'},
     {l:'Recovery Factor (curva diaria)',v:Math.max(0,Math.min(m.rf==null?0:m.rf,10)),max:10,c:m.rf>=3?'g':'c',fv:_=>fx(m.rf),
      info:'P&L neto realizado dividido entre el máximo drawdown de la MISMA curva de resultados realizados diaria.',
      rec:'Por encima de 1.0 el sistema se recupera. Lo saludable es ≥ 3.0. Por encima de 5.0 es excelente.'},
-    {l:'Expectancy (por posición)',v:Math.max(0,m.exp),max:Math.max(Math.abs(m.exp)||1,1),c:m.exp>=0?'g':'r',fv:_=>'$'+m.exp.toFixed(2),
-     info:'Resultado medio esperado por posición cerrada (no por campaña ni por día).',
-     rec:'Tiene que ser positivo para que el sistema sea matemáticamente rentable. Cuanto mayor, mejor.'},
+    {l:'Expectancy (diaria)',v:Math.max(0,m.D.exp),max:Math.max(Math.abs(m.D.exp)||1,1),c:m.D.exp>=0?'g':'r',fv:_=>fmt$(m.D.exp),
+     info:'Neto medio por día operado (incluye días ganadores, perdedores y neutros), en la moneda de la cuenta.',
+     rec:'Positiva = en promedio cada día operado dejó ganancia neta en este periodo. Con pocos días es solo descriptiva.'},
   ];
   document.getElementById('progBars').innerHTML=progs.map(p=>`
     <div class="prog-row">
@@ -2180,6 +2293,7 @@ async function syncJournal() {
   _journalSyncing = true;
   try {
     const r = await fetch(journalUrl('/journal'));
+    setCloudState(r.status>=500?'offline':'connected');
     if(!r.ok) return;
     const remote = (await r.json()).entries || {};
     const editing = document.getElementById('jmodalOverlay')?.classList.contains('open');
@@ -2203,7 +2317,7 @@ async function syncJournal() {
       saveJournalToStorage();
       if(typeof _calAllSessions !== 'undefined' && _calAllSessions.length) _renderCalendarForMonth(_calAllSessions, _calViewYear, _calViewMonth);
     }
-  } catch(_) {
+  } catch(_) { setCloudState('offline');
   } finally { _journalSyncing = false; }
 }
 document.addEventListener('visibilitychange', () => { if(!document.hidden) syncJournal(); });
@@ -2227,6 +2341,7 @@ function openJournal(dateStr, day) {
   document.getElementById('jmodalDate').textContent = `${days[d.getDay()]} ${d.getDate()} de ${months[d.getMonth()]} ${d.getFullYear()}`;
 
   // El día se clasifica por su neto realizado; las posiciones se muestran aparte.
+  const hasDay = !!day;
   day = day || {netPnl:0,trades:0,wins:0,losses:0,tradeObjs:[]};
   const dayPnl = day.netPnl, nPos = day.trades;
   const dayLbl = day.netPnl>0?'Día ganador':day.netPnl<0?'Día perdedor':'Día neutral';
@@ -2235,6 +2350,9 @@ function openJournal(dateStr, day) {
     <div class="jstat"><div class="jstat-l">Resultado</div><div class="jstat-v" style="color:var(--cyan)">${dayLbl}</div></div>
     <div class="jstat"><div class="jstat-l">Posiciones</div><div class="jstat-v" style="color:var(--cyan)">${nPos} (${day.wins}G / ${day.losses}P)</div></div>
     <div class="jstat"><div class="jstat-l">Media por posición</div><div class="jstat-v" style="color:${dayPnl>=0?'var(--green)':'var(--red)'}">${fmt$(nPos?dayPnl/nPos:0)}</div></div>
+    <div class="jstat"><div class="jstat-l">Comisiones del día</div><div class="jstat-v" style="color:var(--muted)">${hasDay&&day.costsKnown?fmt$(day.comm):'N/D'}</div></div>
+    <div class="jstat"><div class="jstat-l">Swap del día</div><div class="jstat-v" style="color:var(--muted)">${hasDay&&day.costsKnown?fmt$(day.swap||0):'N/D'}</div></div>
+    <div style="flex-basis:100%;font-size:10px;color:var(--muted);line-height:1.5;">${hasDay&&day.costsKnown?`Neto del día = P/L bruto ${fmt$(day.grossPnl)} + comisiones ${fmt$(day.comm)} + swap ${fmt$(day.swap||0)}. Costes de las posiciones cerradas este día (misma fecha de cierre que el neto y el calendario).`:hasDay?'Costes del día no disponibles: la EA no envió comisión/swap por deal para este día.':'Sin operaciones cerradas este día.'}</div>
   `;
 
   document.querySelectorAll('.jtag').forEach(t => t.className='jtag');
@@ -2248,7 +2366,7 @@ function openJournal(dateStr, day) {
   jPending = []; jRemoved = [];
   jImgs = (entry.imgs||[]).map(id=>({id,ref:(entry.imgRefs||{})[id]||''}));
   const sel = document.getElementById('jimgTrade');
-  sel.innerHTML = '<option value="">Toda la sesión</option>' + (day.tradeObjs||[]).map(t=>`<option value="${t.id}">${t.sym} ${t.side} · ${fmt$(t.netPnl)} · #${t.id}</option>`).join('');
+  sel.innerHTML = '<option value="">Toda la sesión</option>' + (day.tradeObjs||[]).map(t=>`<option value="${t.id}">${t.sym} ${t.side} · ${fmt$(t.netPnl)} · MAE/MFE ${pxFmt(t)} (${pxTag(t)}) · #${t.id}</option>`).join('');
   const legacy = document.getElementById('jimgLegacy');
   legacy.innerHTML = entry.img ? `Enlace antiguo conservado: <a href="${encodeURI(entry.img)}" target="_blank" rel="noopener" style="color:var(--cyan)">abrir</a>` : '';
   jimgMsg('');
@@ -2419,15 +2537,29 @@ async function openMonthlySummary() {
   });
 
   const tagLabels = { ok:'Ejecuté bien', warn:'Dudé en algo', bad:'Cometí error', lesson:'Lección clave' };
-  const digest = entries.map(([date, e]) => {
-    const pnl = (sessByDate[date]||[]).reduce((a,s)=>a+s.netPnl,0);
-    const cnt = (sessByDate[date]||[]).reduce((a,s)=>a+s.trades,0);
-    return `${date} | Neto del día: ${pnl>=0?'+':''}$${pnl.toFixed(2)} (${pnl>0?'día ganador':pnl<0?'día perdedor':'día neutral'}) | ${cnt} posición(es) | Etiqueta: ${tagLabels[e.tag]||'Sin etiqueta'} | Nota: ${e.note||'(sin nota)'}`;
+  // Reglas de interpretación: van DENTRO del digest (llegan al modelo aunque el servidor de IA solo reenvíe `digest`) y también en `instructions`.
+  const COACH_RULES = 'REGLAS DE INTERPRETACIÓN (obligatorias): '+
+    '1) La unidad principal es el DÍA OPERATIVO: su resultado es el neto realizado del día (P/L + comisión + swap) y se clasifica ganador/perdedor/neutral solo por ese neto. '+
+    '2) El trader entra de forma progresiva (scaling in): varias posiciones negativas pueden ser compensadas por una ganadora mayor. No juzgues un día por la cantidad de posiciones rojas/verdes ni recomiendes reducir entradas, evitar el scaling in o cambiar el estilo de entrada por ese conteo. '+
+    '3) No diagnostiques sobreoperación por el número de posiciones; plantéala solo como pregunta o hipótesis si hay evidencia contextual (costes desproporcionados, deterioro de resultados, regla conocida). '+
+    '4) Distingue resultado rentable de gestión de riesgo saludable: un día verde no garantiza buen riesgo y un día rojo no prueba mala gestión. '+
+    '5) Si faltan riesgo inicial, stop, MAE/MFE o exposición, dilo; no inventes motivos, reglas ni intenciones. '+
+    '6) El conteo de posiciones es un dato secundario por posición, no un resultado diario. '+
+    '7) El MAE/MFE en PUNTOS es distancia de precio (por símbolo) y NO es dinero: no lo compares ni lo mezcles con importes de P/L. Solo cuenta como medición fiable la marcada completa; las parciales son cotas inferiores y las aproximadas son estimaciones. No recomiendes stops por un promedio de MAE ni asumas que el pasado fija extremos futuros.';
+  const money=v=>`${v>=0?'+':'-'}$${Math.abs(v).toFixed(2)}`;
+  const digest = COACH_RULES+'\n\nDATOS POR DÍA OPERATIVO:\n'+entries.map(([date, e]) => {
+    const ds = sessByDate[date]||[];
+    const pnl = ds.reduce((a,s)=>a+s.netPnl,0);
+    const cnt = ds.reduce((a,s)=>a+s.trades,0);
+    const pxd = pxDigest(ds);
+    const known = ds.length>0 && ds.every(s=>s.costsKnown);
+    const comm = known?money(ds.reduce((a,s)=>a+s.comm,0)):'N/D', swp = known?money(ds.reduce((a,s)=>a+(s.swap||0),0)):'N/D';
+    return `${date} | Neto del día (neto de comisión y swap): ${money(pnl)} (${dayClass(pnl)==='win'?'día ganador':dayClass(pnl)==='loss'?'día perdedor':'día neutral'}) | Comisiones del día: ${comm} | Swap del día: ${swp} | Posiciones cerradas ese día (dato secundario por posición): ${cnt} | MAE/MFE en puntos de precio (solo completas, por símbolo, no es dinero): ${pxd} | Etiqueta: ${tagLabels[e.tag]||'Sin etiqueta'} | Nota: ${e.note||'(sin nota)'}`;
   }).join('\n');
 
   try {
     if(!serverURL||!serverToken){ el.innerHTML='<div style="color:var(--muted);font-size:12px;">El resumen con IA requiere conexión al servidor en la nube.</div>'; return; }
-    const resp = await fetch(`${serverURL}/ai/summary`, { method:'POST', headers:{'Content-Type':'application/json','x-token':serverToken}, body: JSON.stringify({digest}) });
+    const resp = await fetch(`${serverURL}/ai/summary`, { method:'POST', headers:{'Content-Type':'application/json','x-token':serverToken}, body: JSON.stringify({digest, instructions: COACH_RULES}) });
     const data = await resp.json().catch(()=>({}));
     const text = resp.ok ? (data.text||'No se pudo generar el análisis.') : (data.error||'Error del servidor de IA');
     const box = document.createElement('div'); box.className='sum-content'; box.style.whiteSpace='pre-wrap'; box.textContent=text; el.replaceChildren(box);
@@ -2437,10 +2569,11 @@ async function openMonthlySummary() {
 }
 
 // ── COACH ──────────────────────────────────────────────────────────────────────
-// Cada consejo usa SU unidad: posición, campaña (scaling in) o día operativo. Nunca se califica un día
-// por sus posiciones sueltas ni se infiere sobreoperación solo por la cantidad de posiciones.
+// Prioridad de lectura: (1) resultado neto del DÍA operativo; (2) riesgo y evolución (drawdown, peor día, costes) cuando hay datos;
+// (3) estructura de posiciones solo como evidencia secundaria. Nunca se califica un día por sus posiciones rojas/verdes, no se
+// juzga el scaling in por el conteo de posiciones y no se infiere sobreoperación por la cantidad de posiciones.
 function renderCoach(m, days, balance, deposit, campaigns) {
-  const tips=[]; const C=m.C;
+  const tips=[]; const C=m.C; const S=m.D;
 
   // ── Escala de riesgo (plan del usuario)
   const dep = parseFloat(document.getElementById('riskDeposit')?.value) || deposit || 1000;
@@ -2455,14 +2588,16 @@ function renderCoach(m, days, balance, deposit, campaigns) {
   const needed = (nextTarget - bal).toFixed(2);
   tips.push({c:'c',l:`Nivel de Riesgo ${lvl+1} 📊`,t:`Riesgo actual: <strong>$${(lvlTarget*rPct/100).toFixed(2)}/trade</strong> (${rPct}% de $${lvlTarget.toFixed(2)}). Llevas un <strong>${pctToNext}%</strong> del camino al Nivel ${lvl+2} — necesitas <strong>$${needed}</strong> más para escalar el riesgo a $${(nextTarget*rPct/100).toFixed(2)}/trade.`});
 
-  // ── Resumen por niveles (evita leer una unidad como otra)
-  const dayTxt = m.days?`${m.dayWins} días ganadores, ${m.dayLosses} perdedores${m.dayBE?`, ${m.dayBE} neutrales`:''} (${m.dayWinPct.toFixed(0)}%)`:'sin días';
-  tips.push({c:'c',l:'Tres niveles de lectura 🧭',t:`<strong>Posiciones:</strong> ${m.wins}G/${m.losses}P de ${m.n} (${m.winPct.toFixed(0)}%). <strong>Campañas:</strong> ${C?`${C.wins}G/${C.losses}P de ${C.n} (${C.winPct.toFixed(0)}%)`:'n/d'}. <strong>Días:</strong> ${dayTxt}. Un día se juzga por su neto, no por cuántas posiciones cerraron en rojo.`});
+  // ── (1) Resultado diario primero
+  const dayTxt = `${S.wins} días ganadores, ${S.losses} perdedores${S.be?`, ${S.be} neutrales`:''} de ${S.N} (${fmtPct(S.winPct,0)})`;
+  tips.push({c:'c',l:'Resultado Diario Primero 🧭',t:`La lectura principal es por día operado (neto realizado, ya con comisión y swap): ${dayTxt}. Expectancy diaria ${fmt$(S.exp)}${S.pf!=null?` · profit factor diario ${S.pf.toFixed(2)}`:''}${S.payoff!=null?` · relación ganancia/pérdida diaria ${S.payoff.toFixed(2)}:1`:''}. Las posiciones (${m.wins}G/${m.losses}P de ${m.n}) son evidencia secundaria: con scaling in, varias posiciones rojas pueden convivir con un día verde si una posición mayor las compensa.`});
 
-  // ── Días (nivel sesión)
-  if(m.days>=5){
-    if(m.dayWinPct>=60) tips.push({c:'g',l:'Consistencia Diaria ✅',t:`${m.dayWinPct.toFixed(0)}% de tus días operados cierran en positivo según su resultado neto.`});
-    else if(m.dayWinPct<40) tips.push({c:'w',l:'Pocos Días Ganadores',t:`Solo ${m.dayWinPct.toFixed(0)}% de tus ${m.days} días cierran en positivo. Revisa en el journal qué tienen en común los días perdedores (mercado, horario, tamaño).`});
+  if(S.N>=5){
+    if(S.winPct>=60) tips.push({c:'g',l:'Consistencia Diaria ✅',t:`${fmtPct(S.winPct,0)} de tus días operados cierran en positivo según su resultado neto.`});
+    else if(S.winPct<40){
+      if(S.exp>0) tips.push({c:'p',l:'Win Rate Diario Bajo, Expectancy Positiva',t:`Solo ${fmtPct(S.winPct,0)} de tus ${S.N} días cierran en positivo, pero la expectancy diaria es ${fmt$(S.exp)}${S.payoff!=null?` (los días ganadores superan a los perdedores ${S.payoff.toFixed(2)}:1)`:''}. Un win rate diario bajo no es un problema por sí solo.`});
+      else tips.push({c:'w',l:'Pocos Días Ganadores',t:`Solo ${fmtPct(S.winPct,0)} de tus ${S.N} días cierran en positivo y la expectancy diaria es ${fmt$(S.exp)}. Revisa en el journal qué tienen en común los días perdedores (mercado, horario, tamaño).`});
+    }
   }
 
   // ── Rachas de DÍAS (no de posiciones)
@@ -2472,32 +2607,50 @@ function renderCoach(m, days, balance, deposit, campaigns) {
   const bl=m.streaks.bestLoss;
   if(bl&&bl.count>=4&&!(cur.type==='loss'&&cur.count===bl.count)) tips.push({c:'p',l:'Peor Racha Histórica de Días',t:`Tu récord es de ${bl.count} días perdedores consecutivos (${fmt$(bl.net)}). Úsalo como referencia para dimensionar el drawdown que tu sistema ha tolerado.`});
 
-  // ── Posiciones (solo informativo en scalping con scaling in)
-  if(m.winPct<40&&C&&C.exp>0) tips.push({c:'p',l:'Win Rate por Posición Bajo, Campañas Rentables',t:`${m.winPct.toFixed(1)}% de las posiciones cierran en verde, pero las campañas tienen expectancy de ${fmt$(C.exp)}. En scaling in es normal que algunas entradas cierren en pérdida; juzga la idea completa.`});
-  else if(m.winPct<40) tips.push({c:'w',l:'Win Rate por Posición Bajo',t:`${m.winPct.toFixed(1)}% de las posiciones son ganadoras${C?` y las campañas tienen expectancy de ${fmt$(C.exp)}`:''}. Compensarlo requiere un payoff alto.`});
+  // ── Métricas diarias (sin umbrales de posiciones)
+  if(S.payoff!=null&&S.payoff<1) tips.push({c:'w',l:'Relación Ganancia/Pérdida Diaria < 1',t:`Ganancia media diaria ${fmt$(S.avgWin)} frente a pérdida media diaria ${fmt$(-S.avgLossAbs)} (${S.payoff.toFixed(2)}:1). Con win rate diario alto puede ser coherente; evalúala junto a la expectancy diaria (${fmt$(S.exp)}). No es un RR por operación.`});
+  else if(S.payoff!=null&&S.payoff>=2) tips.push({c:'g',l:'Relación Ganancia/Pérdida Diaria Sólida ✅',t:`${S.payoff.toFixed(2)}:1 entre la ganancia media de los días ganadores y la pérdida media de los perdedores (por día, no por operación).`});
 
-  if(m.rr!=null&&m.rr<1) tips.push({c:'w',l:'Payoff por Posición < 1',t:`Ganancia media / pérdida media de posiciones: ${fx(m.rr)}:1${C&&C.rr!=null?` · por campaña: ${fx(C.rr)}:1`:''}. Con win rate alto puede ser coherente; evalúalo junto a la expectancy.`});
-  else if(m.rr!=null&&m.rr>=2) tips.push({c:'g',l:'Payoff Sólido ✅',t:`${fx(m.rr)}:1 por posición.`});
+  if(S.pf!=null&&S.pf<1) tips.push({c:'r',l:'Profit Factor Diario < 1 ⚠️',t:`PF diario ${S.pf.toFixed(2)}: la suma de los días perdedores supera a la de los ganadores en este periodo (${S.N} días).`});
+  else if(S.pf!=null&&S.pf>=1.5) tips.push({c:'g',l:'Profit Factor Diario Sólido ✅',t:`PF diario ${S.pf.toFixed(2)} sobre ${S.N} días operados.`});
 
-  if(m.pf!=null&&m.pf<1) tips.push({c:'r',l:'Profit Factor < 1 (posiciones) ⚠️',t:`PF ${fxPF(m.pf)} — las pérdidas brutas por posición superan las ganancias.${C&&C.pf!=null?` Por campaña: PF ${fxPF(C.pf)}.`:''}`});
-  else if(m.pf!=null&&m.pf>=1.5) tips.push({c:'g',l:'Profit Factor Sólido ✅',t:`PF ${fxPF(m.pf)} por posición${C&&C.pf!=null?` · ${fxPF(C.pf)} por campaña`:''}.`});
+  if(S.exp>=0) tips.push({c:'g',l:'Expectancy Diaria Positiva ✅',t:`${fmt$(S.exp)} por día operado (${S.N} días).`});
+  else tips.push({c:'r',l:'Expectancy Diaria Negativa ⚠️',t:`${fmt$(S.exp)} por día operado. Antes de cambiar nada, revisa si viene de pocos días de pérdida grande o de pérdidas pequeñas frecuentes.`});
 
-  if(m.exp>=0) tips.push({c:'g',l:'Expectancy Positiva ✅',t:`${fmt$(m.exp)} por posición${C?` · ${fmt$(C.exp)} por campaña`:''}. Son unidades distintas: la de campaña es la media por idea operativa.`});
-  else tips.push({c:'r',l:'Expectancy Negativa ⚠️',t:`${fmt$(m.exp)} por posición${C?` · ${fmt$(C.exp)} por campaña`:''}. Mejora win rate o payoff.`});
+  // ── (2) Riesgo y evolución de la jornada (solo con datos fiables)
+  const worstDay=m.pnls.length?Math.min(...m.pnls):null;
+  tips.push({c:'c',l:'Drawdown y Peor Día 📉',t:`Drawdown máximo de la curva realizada diaria: ${fmt$(-m.maxDD)}${m.maxDDPct!=null?` (${m.maxDDPct.toFixed(2)} % del capital en el pico)`:''}${worstDay!=null&&worstDay<0?` · peor día: ${fmt$(worstDay)}`:''}. Es un drawdown realizado al cierre de cada día: no incluye el flotante intradía, así que no mide cuánto llegó a estar en contra una jornada que cerró en verde.`});
 
   // ── Scaling in
   if(m.cN){
     if(m.scaledN>0) tips.push({c:'p',l:'Scaling In Identificado 📈',t:`${m.scaledN} de ${m.cN} campañas (${(m.scaledN/m.cN*100).toFixed(0)}%) añadieron posiciones; media de ${m.cAvgPos.toFixed(1)} posiciones por campaña. Muchas posiciones en un día no implican sobreoperación: lo relevante es el riesgo agregado de cada campaña.`});
-    if(m.cAvgMAE!=null) tips.push({c:'c',l:'Recorrido de Campañas',t:`MAE medio de campaña ${fmt$(-m.cAvgMAE)} y MFE medio ${fmt$(m.cAvgMFE)} (extremos del resultado combinado, muestreados por la EA; ${m.cExcN} de ${m.cN} campañas).`});
+    if(m.cAvgMAE!=null) tips.push({c:'c',l:'Recorrido de Campañas',t:`MAE monetario medio de campaña ${fmt$(-m.cAvgMAE)} y MFE medio ${fmt$(m.cAvgMFE)} (extremos del resultado combinado, muestreados por la EA; ${m.cExcN} de ${m.cN} campañas).`});
   } else tips.push({c:'w',l:'Campañas no Disponibles',t:'No hay posiciones suficientes para reconstruir campañas; las conclusiones se limitan a posiciones y días.'});
+
+  // ── MAE/MFE en puntos de precio (por símbolo; solo calidad elegida; nunca se mezclan con dinero)
+  {
+    const c=m.pxCount||{}, calid=(c.PARTIAL||0)+(c.APPROXIMATE||0)+(c.PENDING||0);
+    const ent=Object.entries(m.pxSym||{});
+    const ok=ent.filter(([,o])=>o.n>=PX_MIN_N), poco=ent.filter(([,o])=>o.n<PX_MIN_N);
+    if(ok.length){
+      const lines=ok.map(([sy,o])=>{
+        let t=`${sy}: MAE medio ${o.mae.toFixed(0)} pts y MFE medio ${o.mfe.toFixed(0)} pts (n=${o.n})`;
+        if(o.wn>=PX_MIN_GROUP&&o.ln>=PX_MIN_GROUP) t+=` · ganadoras: MAE ${o.wmae.toFixed(0)} / MFE ${o.wmfe.toFixed(0)} pts (${o.wn}); perdedoras: MAE ${o.lmae.toFixed(0)} / MFE ${o.lmfe.toFixed(0)} pts (${o.ln})`;
+        return t;
+      });
+      tips.push({c:calid?'w':'c',l:'Excursión de Precio (puntos) 📏',t:`${lines.join('<br>')}<br>Distancias de precio medidas con ticks (puntos de SYMBOL_POINT), distintas del dinero. Describen la muestra histórica, no garantizan extremos futuros y un promedio por sí solo no basta para fijar un stop.${m.pxMode!=='complete'?' El filtro actual incluye mediciones no completas.':''}${calid?` Hay ${calid} posiciones con cobertura parcial, aproximada o pendiente que no se tratan como completas.`:''}${poco.length?` Muestra insuficiente (<${PX_MIN_N}) en: ${poco.map(([sy,o])=>sy+' n='+o.n).join(', ')}.`:''}`});
+    } else {
+      tips.push({c:'w',l:'Excursión de Precio (puntos) 📏',t:`Aún no hay suficientes mediciones de precio válidas para concluir (mínimo ${PX_MIN_N} por símbolo con el filtro actual). Completas ${c.COMPLETE||0}, aproximadas ${c.APPROXIMATE||0}, parciales ${c.PARTIAL||0}, pendientes ${c.PENDING||0}, sin dato ${(c.UNAVAILABLE||0)+(c.NONE||0)}. Las operaciones anteriores a esta función no tienen MAE/MFE en puntos y no se estiman desde el dinero.`});
+    }
+  }
 
   // ── Límites de los datos (no inventar)
   const lim=[];
   if(!m.rN) lim.push('riesgo inicial por posición');
   if(m.cN&&!m.cRN) lim.push('R por campaña');
-  if(!m.excN) lim.push('MAE/MFE');
+  if(!m.excN) lim.push('MAE/MFE monetario'); if(!m.pxN) lim.push('MAE/MFE en puntos de precio (sin mediciones completas)');
   lim.push('límites de exposición y de operaciones diarias');
-  tips.push({c:'w',l:'Qué No Puedo Evaluar 🔎',t:`Faltan datos de: ${lim.join(', ')}. Sin ellos no evalúo sobreoperación ni recomiendo cambios de riesgo; ${m.n} posiciones en ${m.days} días (${m.avgTradesDay.toFixed(1)}/día) es solo un dato descriptivo.`});
+  tips.push({c:'w',l:'Qué No Puedo Evaluar 🔎',t:`Faltan datos de: ${lim.join(', ')}. Sin ellos no evalúo sobreoperación ni recomiendo cambios de riesgo; ${m.n} posiciones en ${m.days} días (${m.avgTradesDay.toFixed(1)}/día) es solo un dato descriptivo. Un día verde no garantiza un riesgo adecuado, y un día rojo no prueba por sí solo una mala gestión.${S.N<5?` Con ${S.N} día(s) operado(s) la muestra es demasiado corta para concluir.`:''}`});
 
   // ── Mejor / peor día de la semana (por días)
   const dayPnl = Array(7).fill(0), dayCnt = Array(7).fill(0);
@@ -2517,7 +2670,8 @@ function renderCoach(m, days, balance, deposit, campaigns) {
     else tips.push({c:'w',l:'Sharpe Diario Bajo',t:`Sharpe diario ${fx(m.sharpe)}${m.sharpeProvisional?' (provisional, <20 días)':''}: hay dispersión entre días.`});
   }
 
-  if(m.comms/Math.abs(m.total||1)>0.3) tips.push({c:'w',l:'Comisiones Elevadas',t:`Las comisiones representan más del 30% del P&L neto.`});
+  const commPaid=m.costsKnown?Math.max(0,-m.commTotal):0;
+  if(commPaid/Math.abs(m.total||1)>0.3) tips.push({c:'w',l:'Comisiones a Vigilar',t:`Comisiones pagadas ${fmt$(-commPaid)} frente a un resultado neto de ${fmt$(m.total)} (historial disponible). Es un dato a vigilar, no una conclusión sobre tu forma de operar.`});
 
   // ── Journal
   const journalCount = Object.keys(journalData).filter(journalHas).length;
@@ -2588,7 +2742,7 @@ function checkDailyDrawdown(sessionsArg, balanceArg) {
   const eqLoss=acc.equity!=null?Math.max(0,base-acc.equity):null;
   const used=eqLoss!=null?eqLoss:realLoss;
   if(base>0&&used>=limit){
-    sub.innerHTML=`Pérdida del día (${eqLoss!=null?'equity vs balance de inicio, incl. flotante':'solo realizada'}): <strong style="color:var(--red)">-$${used.toFixed(2)} (${(used/base*100).toFixed(2)}%)</strong> · Realizada: -$${realLoss.toFixed(2)} · Límite: <strong>${limitPct}% = $${limit.toFixed(2)}</strong>`;
+    sub.innerHTML=`Pérdida del día (${eqLoss!=null?'último equity recibido vs balance de inicio, incl. flotante; la EA lo envía solo por eventos':'solo realizada'}): <strong style="color:var(--red)">-$${used.toFixed(2)} (${(used/base*100).toFixed(2)}%)</strong> · Realizada: -$${realLoss.toFixed(2)} · Límite: <strong>${limitPct}% = $${limit.toFixed(2)}</strong>`;
     banner.classList.add('show');
   } else { banner.classList.remove('show'); }
 }
@@ -2621,9 +2775,9 @@ function renderROIProjection(m, sessions, balance) {
   const spd = m.tpd.toFixed(2);
   const expSign = m.exp >= 0 ? '+' : '';
   document.getElementById('roiNote').innerHTML =
-    `Base: <strong style="color:var(--cyan)">$${lastEquity.toFixed(2)}</strong> equity acumulada · ` +
-    `Expectancy: <strong style="color:${m.exp>=0?'var(--green)':'var(--red)'}">${expSign}$${m.exp.toFixed(2)}/operación</strong> · ` +
-    `Ritmo: <strong>${spd} operaciones/día calendario</strong> (histórico). ` +
+    `Base: <strong style="color:var(--cyan)">$${lastEquity.toFixed(2)}</strong> resultado realizado acumulado (no es el equity de la cuenta) · ` +
+    `Expectancy por posición: <strong style="color:${m.exp>=0?'var(--green)':'var(--red)'}">${expSign}$${m.exp.toFixed(2)}/posición</strong> · ` +
+    `Ritmo: <strong>${spd} posiciones/día calendario</strong> (histórico). ` +
     `<span style="color:var(--muted);">ESCENARIO HIPOTÉTICO (no es historial): expectativa por operación × ritmo histórico constante. No incluye varianza, drawdowns, costes futuros ni cambios de riesgo.</span>`;
 }
 
@@ -2632,12 +2786,13 @@ function exportCSV() {
   if(!_lastTrades.length) { alert('No hay trades cargados.'); return; }
   const campOf={}; _lastCampaigns.forEach(c=>c.ids.forEach(id=>{ campOf[id]=c.id; }));
   const dayNet={}; _lastSessions.forEach(d=>{ dayNet[d.date]=d.netPnl; });
-  const headers = ['Fecha cierre','Símbolo','Entradas','Volumen Total','Avg Entry','Exit Price','Gross P&L','Comisión','Net P&L','Duración (min)','MAE (EA, medido desde apertura)','MFE (EA, medido desde apertura)','Riesgo inicial','R','Campaña','Neto del día'];
+  const headers = ['Fecha cierre','Símbolo','Entradas','Volumen Total','Avg Entry','Exit Price','Gross P&L','Comisión','Swap','Net P&L','Duración (min)','MAE monetario (EA, medido desde apertura)','MFE monetario (EA, medido desde apertura)','Riesgo inicial','R','Campaña','Neto del día','MAE (puntos de precio)','MFE (puntos de precio)','Calidad MAE/MFE puntos','Fuente MAE/MFE puntos'];
   const rows = _lastTrades.map(s => [
     s.date, s.sym, s.entries, s.totalVol, s.avgEntry, s.exitPx,
-    s.grossPnl.toFixed(2), s.comm.toFixed(2), s.netPnl.toFixed(2),
+    s.grossPnl.toFixed(2), s.comm.toFixed(2), (s.swap||0).toFixed(2), s.netPnl.toFixed(2),
     s.durMin, s.maxFloatDD==null?'n/d':s.maxFloatDD, s.maxFloatWin==null?'n/d':s.maxFloatWin, s.risk0==null?'n/d':s.risk0, s.r==null?'n/d':s.r,
-    campOf[s.id]||'', dayNet[s.date]==null?'':dayNet[s.date]
+    campOf[s.id]||'', dayNet[s.date]==null?'':dayNet[s.date],
+    s.pxMae==null?'n/d':s.pxMae, s.pxMfe==null?'n/d':s.pxMfe, PX_LBL[s.pxQ]||s.pxQ, s.pxSrc||''
   ]);
   const csv = [headers, ...rows].map(r => r.map(v => `"${v}"`).join(',')).join('\n');
   const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
@@ -2650,7 +2805,34 @@ function exportCSV() {
 }
 
 // ── HELPERS ────────────────────────────────────────────────────────────────────
-function fmt$(v){ const s=v>=0?'$':'-$'; return s+Math.abs(v).toLocaleString('en',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function curSymbolOf(c){ c=String(c||'USD').toUpperCase(); return ({USD:'$',EUR:'€',GBP:'£'})[c]||(c+' '); }
+function fmt$(v){ const s=v>=0?_curSym:'-'+_curSym; return s+Math.abs(v).toLocaleString('en',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+
+// ── EXCURSIÓN DE PRECIO (MAE/MFE en PUNTOS de SYMBOL_POINT) ──
+// Unidad distinta del dinero: nunca se mezclan en promedios/ratios ni entre símbolos con puntos diferentes.
+const PX_MIN_N=20, PX_MIN_GROUP=5;
+const PX_LBL={COMPLETE:'Completo',PARTIAL:'Parcial',APPROXIMATE:'Aproximado',PENDING:'Pendiente',UNAVAILABLE:'No disponible',NONE:'N/D (registro anterior)'};
+const PX_COV_OK=new Set(['COMPLETE','PARTIAL','APPROXIMATE','UNAVAILABLE']);
+function pxFmt(t){ return t.pxMae==null?'N/D':`${t.pxMae.toFixed(1)} / ${t.pxMfe.toFixed(1)} pts`; }
+function pxTag(t){ return `${PX_LBL[t.pxQ]||t.pxQ}`; }
+function pxKpi(m){
+  const syms=Object.entries(m.pxSym||{}).sort((a,b)=>b[1].n-a[1].n), c=m.pxCount||{};
+  const q=`completas ${c.COMPLETE||0} · aproximadas ${c.APPROXIMATE||0} · parciales ${c.PARTIAL||0} · pendientes ${c.PENDING||0} · sin dato ${(c.UNAVAILABLE||0)+(c.NONE||0)} (de ${m.n})`;
+  const modo={complete:'solo completas',approx:'completas + aproximadas',all:'incluye parciales (cota inferior)'}[m.pxMode]||'';
+  if(!syms.length) return {l:'MAE / MFE medio · puntos de precio',v:'N/D',cls:'neu',c:'w',icon:'📏',sub:`N/D: no hay mediciones con el filtro elegido (${modo}) · ${q}`};
+  const [s0,o]=syms[0];
+  const otros=syms.length>1?` · otros: ${syms.slice(1).map(([k,x])=>`${k} ${x.mae.toFixed(0)}/${x.mfe.toFixed(0)} pts (n=${x.n})`).join(', ')}`:'';
+  const warn=(c.PARTIAL||0)+(c.APPROXIMATE||0)+(c.PENDING||0)>0;
+  return {l:'MAE / MFE medio · puntos de precio',v:`${o.mae.toFixed(0)} / ${o.mfe.toFixed(0)} pts`,cls:'neu',c:warn?'w':'c',icon:'📏',
+    sub:`${s0} · n=${o.n} (${modo}) · ${q}${otros} · puntos de SYMBOL_POINT, no son dinero; no se mezclan símbolos`};
+}
+function pxDigest(days){
+  const m={};
+  (days||[]).forEach(d=>(d.tradeObjs||[]).forEach(t=>{ if(t.pxQ==='COMPLETE'&&t.pxMae!=null){ const o=m[t.sym]||(m[t.sym]={n:0,a:0,f:0}); o.n++; o.a+=t.pxMae; o.f+=t.pxMfe; } }));
+  const e=Object.entries(m);
+  return e.length?e.map(([k,o])=>`${k}: MAE medio ${(o.a/o.n).toFixed(0)} pts / MFE medio ${(o.f/o.n).toFixed(0)} pts (n=${o.n} completas)`).join('; '):'N/D (sin mediciones completas)';
+}
+function pxModeChanged(v){ _pxMode=v; if(_lastData) renderAll(_lastData); }
 </script>
 <script>
 if("serviceWorker" in navigator && location.protocol.startsWith("http")){
