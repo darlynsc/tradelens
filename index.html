@@ -297,6 +297,7 @@ canvas{max-height:200px;}
 .cal-day.win{background:rgba(0,255,136,0.18);color:var(--green);border:1px solid rgba(0,255,136,0.25);}
 .cal-day.loss{background:rgba(255,51,85,0.18);color:var(--red);border:1px solid rgba(255,51,85,0.25);}
 .cal-day.be{background:rgba(30,45,61,0.5);color:var(--muted);border:1px solid transparent;}
+.cal-day.neu{background:rgba(255,204,0,0.18);color:#ffcc00;border:1px solid rgba(255,204,0,0.3);}
 .cal-day.today-marker{box-shadow:0 0 0 2px var(--cyan) inset;}
 .cal-day.empty{background:transparent;min-height:54px;border:none;}
 
@@ -731,7 +732,7 @@ input.jimglink:focus{border-color:var(--cyan);}
   <!-- WIN/LOSS + DAY + MONTHLY -->
   <div class="charts-2" style="margin-bottom:16px;">
     <div class="chart-box">
-      <div class="chart-title">Distribución Win / Loss — por posición</div>
+      <div class="chart-title">Distribución Win / Loss</div>
       <canvas id="wlChart"></canvas>
     </div>
     <div class="chart-box">
@@ -739,8 +740,9 @@ input.jimglink:focus{border-color:var(--cyan);}
       <canvas id="dayChart"></canvas>
     </div>
   </div>
-  <!-- MONTHLY BAR -->
-  <div class="chart-box span2" style="margin-bottom:16px;">
+  <!-- MONTHLY BAR + MEJOR / PEOR SÍMBOLO (lado a lado) -->
+  <div class="charts-2" style="margin-bottom:16px;">
+  <div class="chart-box">
     <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:14px;">
       <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
         <div class="chart-title" style="margin-bottom:0;">Rendimiento Mensual</div>
@@ -761,8 +763,9 @@ input.jimglink:focus{border-color:var(--cyan);}
   </div>
 
   <!-- MEJOR / PEOR SÍMBOLO -->
+  <div>
   <div class="sec-label green">Mejor y Peor Símbolo</div>
-  <div class="sym-row">
+  <div class="sym-row" style="grid-template-columns:1fr;margin-bottom:0;">
     <div class="sym-card">
       <div class="sym-card-title">🏆 Top Símbolos Ganadores</div>
       <div id="symBest"></div>
@@ -771,6 +774,8 @@ input.jimglink:focus{border-color:var(--cyan);}
       <div class="sym-card-title">⚠️ Top Símbolos Perdedores</div>
       <div id="symWorst"></div>
     </div>
+  </div>
+  </div>
   </div>
 
   <!-- CALENDAR -->
@@ -916,8 +921,8 @@ const ymd=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+Stri
 const fx=(v,d=2)=>(v==null||!isFinite(v))?'n/d':v.toFixed(d);
 const fxPF=v=>v==null?'n/d':(v===Infinity?'∞':v.toFixed(2));
 // Regla ÚNICA para clasificar un día operativo por su neto realizado (importes ya redondeados a centavos).
-// Neutro = neto 0 dentro de la tolerancia de redondeo (medio centavo); nunca cuenta como ganador ni perdedor.
-const DAY_EPS=0.005;
+// Neutro = neto entre -5 y +5 dólares (umbral fijo); nunca cuenta como ganador ni perdedor.
+const DAY_EPS=5;
 const dayClass=n=>n>DAY_EPS?'win':n<-DAY_EPS?'loss':'be';
 const fmtPct=(v,d=1)=>(v==null||!isFinite(v))?'N/D':v.toFixed(d)+' %';
 let sseSource = null;
@@ -1540,7 +1545,7 @@ function calcMetrics(days, trades, balance, extra) {
     o.n=r.length; o.mae=av(r,t=>t.pxMae); o.mfe=av(r,t=>t.pxMfe);
     o.wn=w.length; o.wmae=av(w,t=>t.pxMae); o.wmfe=av(w,t=>t.pxMfe); o.ln=l.length; o.lmae=av(l,t=>t.pxMae); o.lmfe=av(l,t=>t.pxMfe); delete o.rows; });
   const symMap={}; T.forEach(s=>{ symMap[s.sym]=(symMap[s.sym]||0)+s.netPnl; });
-  const dayWins=D.filter(d=>d.netPnl>0).length, dayLosses=D.filter(d=>d.netPnl<0).length;
+  const dayWins=D.filter(d=>dayClass(d.netPnl)==='win').length, dayLosses=D.filter(d=>dayClass(d.netPnl)==='loss').length;
   // Métricas por campaña: ganadoras vs perdedoras, rachas y mejores grupos (símbolo / dirección / hora de inicio).
   let CX=null;
   if(camps.length){
@@ -1977,10 +1982,11 @@ function renderCharts(m, sessions) {
 
   // WIN/LOSS
   dc('wl');
-  const wlTotal = m.wins + m.losses + (m.n - m.wins - m.losses);
-  const wlPctWin = wlTotal > 0 ? (m.wins/wlTotal*100).toFixed(1) : 0;
-  const wlPctLoss = wlTotal > 0 ? (m.losses/wlTotal*100).toFixed(1) : 0;
-  const wlPctBE = wlTotal > 0 ? ((m.n-m.wins-m.losses)/wlTotal*100).toFixed(1) : 0;
+  // Distribución por DÍA operado (regla de día: ganador / perdedor / neutral ±$5), no por posición.
+  const wlTotal = m.days;
+  const wlPctWin = wlTotal > 0 ? (m.dayWins/wlTotal*100).toFixed(1) : 0;
+  const wlPctLoss = wlTotal > 0 ? (m.dayLosses/wlTotal*100).toFixed(1) : 0;
+  const wlPctBE = wlTotal > 0 ? (m.dayBE/wlTotal*100).toFixed(1) : 0;
   const doughnutLabelPlugin = {
     id:'doughnutLabel',
     afterDraw(chart) {
@@ -1988,7 +1994,8 @@ function renderCharts(m, sessions) {
       const {ctx, chartArea:{width,height}} = chart;
       const meta = chart.getDatasetMeta(0);
       const pcts = [wlPctWin, wlPctLoss, wlPctBE];
-      const colors = ['#00ff88','#ff3355','#c0d4e0'];
+      const lblColor = document.body.classList.contains('light') ? '#3a5a7a' : '#c0d4e0';
+      const colors = [lblColor,lblColor,lblColor];
       meta.data.forEach((arc, i) => {
         const val = chart.data.datasets[0].data[i];
         if(!val || val === 0) return;
@@ -2009,8 +2016,8 @@ function renderCharts(m, sessions) {
   };
   charts['wl']=new Chart(document.getElementById('wlChart'),{
     type:'doughnut',
-    data:{labels:[`Ganadoras ${wlPctWin}%`,`Perdedoras ${wlPctLoss}%`,`BE ${wlPctBE}%`],
-      datasets:[{data:[m.wins,m.losses,m.n-m.wins-m.losses],
+    data:{labels:[`Ganadores ${wlPctWin}% (${m.dayWins})`,`Perdedores ${wlPctLoss}% (${m.dayLosses})`,`BE ${wlPctBE}% (${m.dayBE})`],
+      datasets:[{data:[m.dayWins,m.dayLosses,m.dayBE],
         backgroundColor:['rgba(0,255,136,0.65)','rgba(255,51,85,0.65)','rgba(74,106,122,0.4)'],borderWidth:0}]},
     options:{
       responsive:true,
@@ -2029,9 +2036,11 @@ function renderCharts(m, sessions) {
   const wkStart=new Date(td); wkStart.setDate(td.getDate()-td.getDay());
   const wkDates=[...Array(7)].map((_,i)=>{const d=new Date(wkStart); d.setDate(wkStart.getDate()+i); return ymd(d);});
   const byDate={}; sessions.forEach(s=>{ byDate[s.date]=s.netPnl; });
-  const weekVals=wkDates.map(k=>byDate[k]===undefined?null:byDate[k]);
+  // Lun–Vie siempre; Dom/Sáb solo si ese día tiene operaciones.
+  const wkIdx=[0,1,2,3,4,5,6].filter(i=>(i>=1&&i<=5)||byDate[wkDates[i]]!==undefined);
+  const weekVals=wkIdx.map(i=>byDate[wkDates[i]]===undefined?null:byDate[wkDates[i]]);
   const wkT=document.getElementById('dayChartTitle');
-  if(wkT) wkT.textContent=`P&L por Día — Semana Actual (${wkDates[0].slice(5).split('-').reverse().join('/')} – ${wkDates[6].slice(5).split('-').reverse().join('/')})`;
+  if(wkT) wkT.textContent=`P&L por Día — Semana Actual (${wkDates[wkIdx[0]].slice(5).split('-').reverse().join('/')} – ${wkDates[wkIdx[wkIdx.length-1]].slice(5).split('-').reverse().join('/')})`;
   const noDataPlugin={id:'noData',afterDatasetsDraw(chart){
     const {ctx,scales:{x,y}}=chart; ctx.save(); ctx.fillStyle=document.body.classList.contains('light')?'#3a5a7a':'#c0d4e0';
     ctx.font='12px IBM Plex Mono'; ctx.textAlign='center'; ctx.textBaseline='middle';
@@ -2040,7 +2049,7 @@ function renderCharts(m, sessions) {
   dc('day');
   charts['day']=new Chart(document.getElementById('dayChart'),{
     type:'bar',
-    data:{labels:dayNames7.map((n,i)=>n+' '+wkDates[i].slice(8)),
+    data:{labels:wkIdx.map(i=>dayNames7[i]+' '+wkDates[i].slice(8)),
       datasets:[{data:weekVals,backgroundColor:weekVals.map(v=>v>=0?'rgba(0,229,255,0.55)':'rgba(255,51,85,0.55)'),borderRadius:6}]},
     options:{...cOpts(v=>'$'+v.toFixed(0)),responsive:true,plugins:{legend:{display:false},
         tooltip:{callbacks:{label:c=>c.parsed.y===null?' Sin operaciones':` Neto del día: ${fmt$(c.parsed.y)}`}}},
@@ -2100,7 +2109,7 @@ function renderMonthly(){
     type:'bar',
     data:{labels,datasets:[{label:'P&L Mensual',data:vals,
       backgroundColor:vals.map(v=>v>=0?'rgba(0,255,136,0.75)':'rgba(255,51,85,0.75)'),
-      borderColor:vals.map(v=>v>=0?'rgba(0,255,136,1)':'rgba(255,51,85,1)'),borderWidth:1,borderRadius:5,borderSkipped:false}]},
+      borderColor:vals.map(v=>v>=0?'rgba(0,255,136,1)':'rgba(255,51,85,1)'),borderWidth:1,borderRadius:5,borderSkipped:false,maxBarThickness:36,barPercentage:0.5,categoryPercentage:0.8}]},
     options:{responsive:true,
       plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` ${c.parsed.y>=0?'+':''}$${c.parsed.y.toFixed(2)}`,title:c=>c[0].label}}},
       scales:{x:{ticks:{color:tick,font:{size:10,family:'IBM Plex Mono'}},grid:{display:false}},
@@ -2190,8 +2199,8 @@ function _renderCalendarForMonth(sessions, year, month) {
   const prefix = year + '-' + String(month+1).padStart(2,'0');
   const monthDates = Object.keys(dayPnl).filter(k => k.startsWith(prefix));
   const tradingDays = monthDates.length;
-  const greenDays = monthDates.filter(k => dayPnl[k] > 0).length;
-  const redDays = monthDates.filter(k => dayPnl[k] < 0).length;
+  const greenDays = monthDates.filter(k => dayClass(dayPnl[k]) === 'win').length;
+  const redDays = monthDates.filter(k => dayClass(dayPnl[k]) === 'loss').length;
   const neutralDays = tradingDays - greenDays - redDays;
   const consistencyPct = tradingDays > 0 ? (greenDays / tradingDays * 100).toFixed(0) : 0;
   const monthPnl = monthDates.reduce((a,k) => a + dayPnl[k], 0);
@@ -2222,7 +2231,7 @@ function _renderCalendarForMonth(sessions, year, month) {
       </div>
       <div class="cal-cons-item">
         <div class="cal-cons-l">Neutrales</div>
-        <div class="cal-cons-v" style="color:var(--muted)">${neutralDays}</div>
+        <div class="cal-cons-v" style="color:#ffcc00">${neutralDays}</div>
       </div>
       <div class="cal-cons-item">
         <div class="cal-cons-l">Consistencia</div>
@@ -2247,7 +2256,7 @@ function _renderCalendarForMonth(sessions, year, month) {
     const pnl = dayPnl[k];
     const cnt = dayCnt[k] || 0;
     const isWeekend = [0,6].includes(d.getDay());
-    const cls = pnl === undefined ? (isWeekend ? 'empty' : 'be') : pnl > 0 ? 'win' : pnl < 0 ? 'loss' : 'be';
+    const cls = pnl === undefined ? (isWeekend ? 'empty' : 'be') : dayClass(pnl)==='win' ? 'win' : dayClass(pnl)==='loss' ? 'loss' : 'neu';
     const hasNote = journalHas(k) ? 'has-note' : '';
     const isToday = k === today ? 'today-marker' : '';
     let inner = '';
@@ -2447,9 +2456,9 @@ function openJournal(dateStr, day) {
   const hasDay = !!day;
   day = day || {netPnl:0,trades:0,wins:0,losses:0,tradeObjs:[]};
   const dayPnl = day.netPnl, nPos = day.trades;
-  const dayLbl = day.netPnl>0?'Día ganador':day.netPnl<0?'Día perdedor':'Día neutral';
+  const dayLbl = dayClass(day.netPnl)==='win'?'Día ganador':dayClass(day.netPnl)==='loss'?'Día perdedor':'Día neutral';
   document.getElementById('jmodalStats').innerHTML = `
-    <div class="jstat"><div class="jstat-l">Neto del Día</div><div class="jstat-v" style="color:${dayPnl>0?'var(--green)':dayPnl<0?'var(--red)':'var(--muted)'}">${fmt$(dayPnl)}</div></div>
+    <div class="jstat"><div class="jstat-l">Neto del Día</div><div class="jstat-v" style="color:${dayClass(dayPnl)==='win'?'var(--green)':dayClass(dayPnl)==='loss'?'var(--red)':'#ffcc00'}">${fmt$(dayPnl)}</div></div>
     <div class="jstat"><div class="jstat-l">Resultado</div><div class="jstat-v" style="color:var(--cyan)">${dayLbl}</div></div>
     <div class="jstat"><div class="jstat-l">Posiciones</div><div class="jstat-v" style="color:var(--cyan)">${nPos} (${day.wins}G / ${day.losses}P)</div></div>
     <div class="jstat"><div class="jstat-l">Media por posición</div><div class="jstat-v" style="color:${dayPnl>=0?'var(--green)':'var(--red)'}">${fmt$(nPos?dayPnl/nPos:0)}</div></div>
