@@ -409,6 +409,88 @@ canvas{max-height:200px;}
 .risk-next-tip{background:rgba(0,229,255,0.06);border:1px solid rgba(0,229,255,0.2);border-radius:10px;padding:14px 16px;font-size:12px;line-height:1.65;color:var(--text);}
 .risk-next-tip strong{color:var(--cyan);}
 
+/* Depósito automático (Risk Scaling) */
+.risk-input-group label.risk-auto{display:flex;align-items:center;gap:6px;font-size:10px;letter-spacing:.3px;text-transform:none;cursor:pointer;margin-top:4px;}
+.risk-input-group input[type=checkbox]{width:auto;padding:0;margin:0;accent-color:var(--cyan);}
+.risk-input-group input[readonly]{opacity:.75;cursor:not-allowed;}
+.risk-auto-note{font-size:10px;color:var(--muted);line-height:1.5;max-width:230px;}
+/* PLAN DE RETIRO */
+.wd-wrap{background:var(--s1);border:1px solid var(--b1);border-radius:16px;padding:24px;margin-bottom:20px;transition:border-color .3s,box-shadow .3s;}
+.wd-wrap.flash{border-color:var(--green);box-shadow:0 0 0 2px rgba(0,255,136,0.18);}
+.wd-header{display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:16px;margin-bottom:18px;}
+.wd-title{font-family:var(--font-head);font-size:15px;font-weight:600;margin-bottom:4px;}
+.wd-sub{font-size:11px;color:var(--muted);}
+.wd-tabs{display:flex;gap:6px;flex-wrap:wrap;}
+.wd-tab{background:var(--s2);border:1px solid var(--b2);color:var(--muted);padding:8px 14px;border-radius:8px;font-family:var(--font-head);font-weight:600;font-size:12px;cursor:pointer;transition:.2s;}
+.wd-tab:hover{border-color:var(--cyan);color:var(--text);}
+.wd-tab.on{border-color:var(--cyan);background:rgba(0,229,255,0.1);color:var(--cyan);}
+.wd-controls{display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;margin-bottom:14px;}
+.wd-field{display:flex;flex-direction:column;gap:4px;}
+.wd-field label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;}
+.wd-field input,.wd-field select{background:var(--s2);border:1px solid var(--b2);color:var(--text);padding:8px 12px;border-radius:8px;font-family:var(--font-mono);font-size:13px;outline:none;width:150px;transition:.2s;}
+.wd-field input:focus,.wd-field select:focus{border-color:var(--cyan);box-shadow:0 0 0 2px rgba(0,229,255,0.08);}
+.wd-rule{font-size:11px;color:var(--muted);line-height:1.65;margin-bottom:14px;}
+.wd-box{border-radius:10px;padding:14px 16px;font-size:12px;line-height:1.65;color:var(--text);margin-bottom:14px;}
+.wd-box.info{background:rgba(0,229,255,0.06);border:1px solid rgba(0,229,255,0.2);}
+.wd-box.info strong{color:var(--cyan);}
+.wd-box.ok{background:rgba(0,255,136,0.07);border:1px solid rgba(0,255,136,0.45);}
+.wd-box.ok strong{color:var(--green);}
+.wd-big{font-family:var(--font-head);font-size:18px;font-weight:700;color:var(--green);margin-bottom:8px;}
+.wd-line{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:6px 0;border-bottom:1px dashed var(--b2);}
+.wd-line:last-of-type{border-bottom:none;}
+.wd-hint{font-size:10px;color:var(--warn);margin-top:2px;}
+.wd-mini{font-size:11px;color:var(--muted);margin-top:8px;}
+.wd-btn{background:rgba(0,255,136,0.12);color:var(--green);border:1px solid rgba(0,255,136,0.45);padding:9px 16px;border-radius:8px;font-family:var(--font-head);font-weight:600;font-size:12px;cursor:pointer;transition:.2s;}
+.wd-btn:hover{background:rgba(0,255,136,0.2);}
+.wd-btn.sec{background:var(--s2);color:var(--muted);border-color:var(--b2);padding:6px 10px;font-size:11px;}
+.wd-btn.sec:hover{color:var(--text);border-color:var(--cyan);}
+.wd-btn.danger{background:rgba(255,51,85,0.08);color:var(--red);border-color:rgba(255,51,85,0.3);}
+.wd-tablewrap{overflow-x:auto;margin-bottom:14px;}
+.wd-table{width:100%;border-collapse:collapse;font-size:12px;}
+.wd-table th{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:1.2px;text-align:right;padding:8px 8px;border-bottom:1px solid var(--b2);font-weight:500;white-space:nowrap;}
+.wd-table td{text-align:right;padding:9px 8px;border-bottom:1px solid var(--b1);white-space:nowrap;}
+.wd-table th:first-child,.wd-table td:first-child{text-align:left;}
+.wd-table tr.cur td{background:rgba(0,229,255,0.05);}
+.wd-table tr.avail td{background:rgba(0,255,136,0.07);}
+.wd-table tr.done td{opacity:.55;}
+.wd-tag{font-size:9px;letter-spacing:1px;margin-left:6px;}
+.wd-tag.g{color:var(--green);}.wd-tag.c{color:var(--cyan);}.wd-tag.m{color:var(--muted);}
+.wd-nav{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px;padding:8px 10px;background:var(--s2);border:1px solid var(--b2);border-radius:10px;}
+.wd-nav-label{font-size:12px;text-align:center;flex:1;line-height:1.4;}
+.wd-nav-label small{display:block;font-size:10px;color:var(--muted);}
+.wd-nav .wd-btn{min-width:38px;padding:6px 12px;font-size:14px;}
+.wd-nav .wd-btn[disabled]{opacity:.3;cursor:default;}
+.wd-old-sum{font-size:11px;color:var(--muted);line-height:1.8;margin-bottom:12px;}
+.wd-old-sum strong{color:var(--text);font-weight:600;}
+.wd-hist-title{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin:4px 0 8px;}
+.wd-hist-row{display:flex;justify-content:space-between;gap:10px;font-size:12px;padding:5px 0;border-bottom:1px solid var(--b1);}
+.wd-hist-foot{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-top:10px;font-size:12px;}
+.wd-prog-labels{display:flex;justify-content:space-between;gap:8px;font-size:10px;color:var(--muted);margin-bottom:5px;}
+.wd-prog-bar{height:6px;background:var(--s3);border-radius:4px;overflow:hidden;margin-bottom:14px;}
+.wd-prog-fill{height:100%;background:linear-gradient(90deg,var(--cyan),var(--green));border-radius:4px;transition:width .8s cubic-bezier(.4,0,.2,1);}
+.wd-toast{position:fixed;top:calc(14px + env(safe-area-inset-top));left:50%;z-index:1000;width:calc(100% - 28px);max-width:420px;
+  background:linear-gradient(135deg,rgba(0,255,136,0.18),rgba(0,229,255,0.12));background-color:var(--s1);
+  border:1px solid var(--green);border-radius:14px;padding:14px 38px 14px 18px;box-shadow:0 8px 40px rgba(0,255,136,0.22);
+  transform:translate(-50%,-160%);opacity:0;pointer-events:none;transition:all .4s cubic-bezier(.34,1.56,.64,1);cursor:pointer;}
+.wd-toast.show{transform:translate(-50%,0);opacity:1;pointer-events:auto;}
+.wd-toast-title{font-family:var(--font-head);font-size:14px;font-weight:700;color:var(--green);margin-bottom:4px;}
+.wd-toast-body{font-size:11px;color:var(--text);line-height:1.6;}
+.wd-toast-close{position:absolute;top:8px;right:10px;background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;line-height:1;padding:4px;}
+@media(max-width:600px){
+  .wd-wrap{padding:16px;}
+  .wd-header{flex-direction:column;gap:12px;}
+  .wd-tabs{width:100%;}
+  .wd-tab{flex:1;padding:9px 8px;font-size:11px;}
+  .wd-controls{flex-direction:column;align-items:stretch;gap:10px;}
+  .wd-field input,.wd-field select{width:100%;}
+  .wd-line{flex-direction:column;align-items:stretch;}
+  .wd-btn{width:100%;}
+  .wd-table{font-size:11px;}
+  .wd-table th,.wd-table td{padding:8px 5px;}
+  .wd-table .hm{display:none;}
+  .wd-hist-foot{flex-direction:column;align-items:stretch;}
+}
+
 /* JOURNAL MODAL */
 .jmodal-overlay{position:fixed;inset:0;background:rgba(4,6,8,0.85);z-index:100;display:none;align-items:center;justify-content:center;backdrop-filter:blur(4px);}
 .jmodal-overlay.open{display:flex;}
@@ -811,6 +893,8 @@ input.jimglink:focus{border-color:var(--cyan);}
         <div class="risk-input-group">
           <label>Depósito Inicial ($)</label>
           <input type="number" id="riskDeposit" value="1000" min="1" oninput="renderRiskScaling();"/>
+          <label class="risk-auto"><input type="checkbox" id="riskDepAuto" checked/> Auto: depósitos de la cuenta</label>
+          <div class="risk-auto-note" id="riskDepNote"></div>
         </div>
         <div class="risk-input-group">
           <label>Riesgo por Trade (%)</label>
@@ -828,6 +912,53 @@ input.jimglink:focus{border-color:var(--cyan);}
       <div class="risk-prog-bar"><div class="risk-prog-fill" id="riskProgFill" style="width:0%"></div></div>
     </div>
     <div class="risk-next-tip" id="riskNextTip">—</div>
+  </div>
+
+  <!-- PLAN DE RETIRO -->
+  <div class="sec-label green">💸 Plan de Retiro</div>
+  <div class="wd-wrap" id="wdSection">
+    <div class="wd-header">
+      <div>
+        <div class="wd-title">Plan de Retiro</div>
+        <div class="wd-sub" id="wdSub">Retira solo ganancia, sin bajar de nivel en Risk Scaling.</div>
+      </div>
+      <div class="wd-tabs" id="wdTabs">
+        <button class="wd-tab on" id="wdTabC" onclick="wdSetMode('conservador')">Conservador · Retiros</button>
+        <button class="wd-tab" id="wdTabR" onclick="wdSetMode('recuperar')">Recuperar capital</button>
+      </div>
+    </div>
+
+    <div id="wdNotice"></div>
+    <div id="wdCycleNav"></div>
+    <div id="wdOld" style="display:none;"></div>
+
+    <div id="wdPaneC">
+      <div class="wd-controls">
+        <div class="wd-field">
+          <label>% de retiro por escalón</label>
+          <input type="number" id="wdPct" min="5" max="90" step="1" value="40"/>
+        </div>
+        <div class="wd-field">
+          <label>Retiros cuentan desde</label>
+          <select id="wdStart"></select>
+        </div>
+      </div>
+      <div class="wd-rule">El retiro de cada nivel se habilita cuando el balance supera el objetivo del nivel más el monto del retiro. Así, al retirar, la cuenta queda justo en el objetivo y no retrocede de nivel. Solo cuenta el balance realizado (operaciones cerradas).</div>
+      <div id="wdStatus"></div>
+      <div class="wd-tablewrap" id="wdTable"></div>
+      <div id="wdHistory"></div>
+    </div>
+
+    <div id="wdPaneR" style="display:none;">
+      <div class="wd-controls">
+        <div class="wd-field">
+          <label>Nivel objetivo</label>
+          <select id="wdGoal"></select>
+        </div>
+      </div>
+      <div class="wd-rule">Lleva la cuenta al nivel objetivo sin retirar nada. Mientras este modo esté activo no se habilita ningún retiro.</div>
+      <div id="wdRecover"></div>
+    </div>
   </div>
 
   <!-- ROI PROYECTADO -->
@@ -899,6 +1030,13 @@ input.jimglink:focus{border-color:var(--cyan);}
 
 </div><!-- /dashboard -->
 </div><!-- /wrap -->
+
+<!-- WITHDRAW TOAST -->
+<div class="wd-toast" id="wdToast" role="alert" onclick="wdGoToSection()">
+  <button class="wd-toast-close" aria-label="Cerrar" onclick="event.stopPropagation();wdHideToast()">✕</button>
+  <div class="wd-toast-title" id="wdToastTitle">💸 Retiro disponible</div>
+  <div class="wd-toast-body" id="wdToastBody">—</div>
+</div>
 
 <!-- RISK LEVEL TOAST -->
 <div class="risk-toast" id="riskToast">
@@ -1620,7 +1758,9 @@ function renderAll(data) {
   renderCharts(m, sessions);
   renderSymbols(m);
   renderCalendar(sessions);
+  wdAutoDeposit(data);
   renderRiskScaling(balance);
+  renderWithdrawPlan(true);
   const dep = parseFloat(document.getElementById('riskDeposit')?.value) || balance || 1000;
   renderCoach(m, sessions, balance, dep, campaigns);
   renderROIProjection(m, sessions, balance);
@@ -2395,6 +2535,426 @@ function renderRiskScaling(balanceOverride) {
   }
   _lastRiskLevel = activeIdx;
 }
+
+// ── PLAN DE RETIRO ─────────────────────────────────────────────────────────────
+// Sección independiente: LEE depósito, umbral y balance de Risk Scaling; Risk Scaling no sabe nada del plan.
+const WD_KEY = 'tl_wd', WD_RISK_KEY = 'tl_risk_inputs';
+let _wd = { v:3, mode:'conservador', pct:40, goal:null, startNum:2, claimed:[], notifiedSig:'', goalNotified:0,
+            base:null, depSeen:null, cycles:[], notice:null, undoSnap:null, cycleStart:'' };
+let _wdView = null;          // null = ciclo actual; número = índice de un ciclo archivado que se está viendo
+let _wdToastSig = '';        // firma mostrada en el tooltip en esta carga (memoria)
+let _wdAdj = null;           // {amt, base}: retiros recién registrados que el balance aún no refleja
+
+const wdF = n => '$' + Number(n).toLocaleString('en', {minimumFractionDigits:2, maximumFractionDigits:2});
+const wdToday = () => { const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); };
+
+function wdLoad() {
+  try {
+    const s = JSON.parse(localStorage.getItem(WD_KEY) || 'null');
+    if(!s || typeof s !== 'object') return;
+    if(s.mode === 'conservador' || s.mode === 'recuperar') _wd.mode = s.mode;
+    const p = +s.pct; if(isFinite(p) && p >= 5 && p <= 90) _wd.pct = p;
+    const g = +s.goal; _wd.goal = (g >= 2 && g <= 6) ? Math.round(g) : null;
+    const sn = +s.startNum; if(sn >= 2 && sn <= 7) _wd.startNum = Math.round(sn);
+    if(Array.isArray(s.claimed)) _wd.claimed = s.claimed.filter(c => c && +c.num >= 2 && +c.num <= 6)
+      .map(c => Object.assign({num:+c.num, amt:+c.amt || 0, date:String(c.date || '')}, c.prev ? {prev:true} : {}));
+    if(typeof s.notifiedSig === 'string') _wd.notifiedSig = s.notifiedSig;
+    _wd.goalNotified = +s.goalNotified || 0;
+    const cl = a => Array.isArray(a) ? a.filter(c => c && +c.num >= 2 && +c.num <= 6).map(c => Object.assign({num:+c.num, amt:+c.amt || 0, date:String(c.date || '')}, c.prev ? {prev:true} : {})) : [];
+    if(+s.base > 0) _wd.base = +s.base;
+    if(+s.depSeen > 0) _wd.depSeen = +s.depSeen;
+    if(typeof s.cycleStart === 'string') _wd.cycleStart = s.cycleStart;
+    if(Array.isArray(s.cycles)) _wd.cycles = s.cycles.filter(c => c && typeof c === 'object').map(c => ({base:+c.base || 0, claimed:cl(c.claimed), start:String(c.start || ''), end:String(c.end || ''), reason:c.reason === 'deposito' ? 'deposito' : 'completado', endBal:+c.endBal || 0, lvl:+c.lvl || 0, thr:+c.thr || 0, rp:+c.rp || 0, pct:+c.pct || 0}));
+    if(s.notice && typeof s.notice.text === 'string') _wd.notice = {t:String(s.notice.t || ''), text:s.notice.text, undo:!!s.notice.undo};
+    if(s.undoSnap && s.undoSnap.s && typeof s.undoSnap.s === 'object') _wd.undoSnap = s.undoSnap;
+  } catch(_) {}
+}
+function wdSave() {
+  if(_isDemo) return; // en demo no se guarda estado
+  try { localStorage.setItem(WD_KEY, JSON.stringify(_wd)); } catch(_) {}
+}
+
+// Persistencia de los 3 campos de Risk Scaling (los niveles de retiro dependen de ellos).
+function wdRestoreRiskInputs() {
+  try {
+    const s = JSON.parse(localStorage.getItem(WD_RISK_KEY) || 'null');
+    if(!s) return;
+    [['riskDeposit', s.d], ['riskPct', s.r], ['riskThreshold', s.t]].forEach(([id, v]) => {
+      const el = document.getElementById(id), n = +v;
+      if(el && isFinite(n) && n > 0) el.value = n;
+    });
+    const cb = document.getElementById('riskDepAuto'); if(cb && typeof s.a === 'boolean') cb.checked = s.a;
+  } catch(_) {}
+}
+function wdSaveRiskInputs() {
+  if(_isDemo) return;
+  try {
+    localStorage.setItem(WD_RISK_KEY, JSON.stringify({
+      d: parseFloat(document.getElementById('riskDeposit').value) || 1000,
+      r: parseFloat(document.getElementById('riskPct').value) || 2.5,
+      t: parseFloat(document.getElementById('riskThreshold').value) || 25,
+      a: document.getElementById('riskDepAuto').checked
+    }));
+  } catch(_) {}
+}
+
+// ── Cálculo puro ──
+function wdBuildLevels(deposit, thresholdPct) {
+  const f = 1 + thresholdPct / 100, levels = []; let t = deposit;
+  for(let i = 0; i < 6; i++) { levels.push({num:i+1, target:+t.toFixed(2)}); t *= f; }
+  return levels;
+}
+function wdCurrentIdx(levels, balance) {
+  let idx = 0;
+  for(let i = levels.length - 1; i >= 0; i--) if(balance >= levels[i].target) { idx = i; break; }
+  return idx;
+}
+function wdCompute(levels, balance, st) { // st = {mode, pct, startNum, claimed[]}
+  const f = st.pct / 100;
+  const info = levels.map((l, i) => {
+    if(i === 0) return null;
+    const w = +((l.target - levels[i-1].target) * f).toFixed(2);
+    return { num:l.num, w, trigger:+(l.target + w).toFixed(2), claimed: st.claimed.find(c => c.num === l.num) || null };
+  });
+  const granted = []; let sum = 0;
+  if(st.mode === 'conservador') {
+    for(const x of info) {
+      if(!x || x.claimed || x.num < st.startNum) continue;
+      if(balance - (sum + x.w) >= levels[x.num-1].target - 1e-6) { granted.push(x); sum += x.w; }
+      else break;
+    }
+  }
+  return { info, granted, sum:+sum.toFixed(2) };
+}
+
+function wdState() {
+  const deposit = parseFloat(document.getElementById('riskDeposit').value) || 1000;
+  const threshold = parseFloat(document.getElementById('riskThreshold').value) || 25;
+  const levels = wdBuildLevels(deposit, threshold);
+  const balance = _riskBalance > 0 ? _riskBalance : 0;
+  let eff = balance;
+  if(_wdAdj) { if(Math.abs(balance - _wdAdj.base) < 0.005) eff = balance - _wdAdj.amt; else _wdAdj = null; }
+  const curIdx = balance > 0 ? wdCurrentIdx(levels, balance) : 0;
+  const res = wdCompute(levels, eff, _wd);
+  return { deposit, threshold, levels, balance, eff, curIdx, res };
+}
+
+// ── Pistas desde la EA (nunca marcan nada automáticamente) ──
+function wdEaInfo(info) {
+  const cf = (_lastData && Array.isArray(_lastData.cashflows)) ? _lastData.cashflows.filter(c => c && +c.amount < 0) : [];
+  const hints = {};
+  info.forEach(x => {
+    if(!x || x.claimed || x.num < _wd.startNum) return;
+    const tol = Math.max(1, x.w * 0.05); let best = null;
+    cf.forEach(c => { const a = Math.abs(+c.amount), d = Math.abs(a - x.w); if(d <= tol && (!best || d < best.d)) best = {d, a, time:+c.time}; });
+    if(best) hints[x.num] = { a:best.a, date: isFinite(best.time) ? new Date(best.time * 1000).toISOString().slice(0, 10) : '' };
+  });
+  return { hints, count: cf.length, total: cf.reduce((s, c) => s + Math.abs(+c.amount), 0) };
+}
+
+// ── Render ──
+function wdInitControls() {
+  const st = document.getElementById('wdStart'), gl = document.getElementById('wdGoal');
+  if(!st || st.options.length) return;
+  for(let n = 2; n <= 6; n++) { st.add(new Option('Nivel ' + n, n)); gl.add(new Option('Nivel ' + n, n)); }
+  st.add(new Option('Ninguno aún', 7));
+}
+
+function renderWithdrawPlan(alerts) {
+  const wrap = document.getElementById('wdSection'); if(!wrap) return;
+  wdInitControls();
+  const S = wdState(), { levels, balance, eff, curIdx, res, deposit } = S;
+  const conservador = _wd.mode === 'conservador';
+
+  document.getElementById('wdTabC').classList.toggle('on', conservador);
+  document.getElementById('wdTabR').classList.toggle('on', !conservador);
+  document.getElementById('wdPaneC').style.display = conservador ? '' : 'none';
+  document.getElementById('wdPaneR').style.display = conservador ? 'none' : '';
+
+  document.getElementById('wdSub').textContent = _wdView != null && _wd.cycles[_wdView] ? `Ciclo ${_wdView + 1} · depósito base ${wdF(_wd.cycles[_wdView].base)}` : `Ciclo ${_wd.cycles.length + 1} · depósito base ${wdF(deposit)} · retira solo ganancia, sin bajar de nivel.`;
+  document.getElementById('wdNotice').innerHTML = _wd.notice
+    ? `<div class="wd-box ok"><div>${_wd.notice.text}</div><div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;">${_wd.notice.undo && _wd.undoSnap ? '<button class="wd-btn sec" onclick="wdUndoCycle()">Deshacer reinicio</button>' : ''}<button class="wd-btn sec" onclick="wdDismissNotice()">Entendido</button></div></div>` : '';
+
+  // Navegación entre ciclos
+  const nCyc = _wd.cycles.length;
+  if(_wdView != null && !_wd.cycles[_wdView]) _wdView = null;
+  const viewing = _wdView != null, pos = viewing ? _wdView : nCyc;
+  const nav = document.getElementById('wdCycleNav');
+  nav.innerHTML = nCyc ? `<div class="wd-nav">
+      <button class="wd-btn sec" onclick="wdNav(-1)" aria-label="Ciclo anterior" ${pos === 0 ? 'disabled' : ''}>‹</button>
+      <div class="wd-nav-label">Ciclo ${pos + 1} de ${nCyc + 1}<small>${viewing ? 'Cerrado · solo lectura' : 'Ciclo actual'}</small></div>
+      <button class="wd-btn sec" onclick="wdNav(1)" aria-label="Ciclo siguiente" ${pos === nCyc ? 'disabled' : ''}>›</button>
+    </div>` : '';
+  const oldEl = document.getElementById('wdOld');
+  oldEl.style.display = viewing ? '' : 'none';
+  oldEl.innerHTML = viewing ? wdRenderOld(_wd.cycles[_wdView]) : '';
+  document.getElementById('wdTabs').style.display = viewing ? 'none' : '';
+  if(viewing) { document.getElementById('wdPaneC').style.display = 'none'; document.getElementById('wdPaneR').style.display = 'none'; }
+
+  const pctEl = document.getElementById('wdPct'), stEl = document.getElementById('wdStart'), glEl = document.getElementById('wdGoal');
+  if(document.activeElement !== pctEl) pctEl.value = _wd.pct;
+  stEl.value = String(_wd.startNum);
+  const goal = _wd.goal || Math.min(6, Math.max(2, curIdx + 2));
+  glEl.value = String(goal);
+
+  let achieved = false;
+
+  if(conservador) {
+    const { info, granted, sum } = res;
+    const pending = info.filter(x => x && !x.claimed && x.num >= _wd.startNum);
+    const next = pending.find(x => !granted.includes(x));
+    const ea = wdEaInfo(info);
+    let html = '';
+
+    if(balance <= 0) {
+      html = `<div class="wd-box info">Aún no hay balance de la cuenta. Cuando lleguen datos reales verás aquí los retiros disponibles.</div>`;
+    } else if(granted.length) {
+      const nextLine = next
+        ? `<div class="wd-mini">Siguiente: <strong>Nivel ${next.num}</strong> — se habilita con balance ≥ ${wdF(next.trigger + sum)} (o ${wdF(next.trigger)} después de retirar).</div>` : '';
+      html = `<div class="wd-box ok">
+        <div class="wd-big">Retiro disponible: ${wdF(sum)}</div>
+        ${granted.map(x => `<div class="wd-line"><div><strong>Nivel ${x.num}:</strong> ${wdF(x.w)}${ea.hints[x.num] ? `<div class="wd-hint">Posible retiro ya hecho: ${wdF(ea.hints[x.num].a)}${ea.hints[x.num].date ? ' el ' + ea.hints[x.num].date : ''}</div>` : ''}</div>
+          <button class="wd-btn sec" onclick="wdClaimPrev(${x.num})">Ya lo cobré antes</button></div>`).join('')}
+        <div class="wd-mini">Balance actual: <strong>${wdF(balance)}</strong> · Balance tras retirar: <strong>${wdF(eff - sum)}</strong></div>
+        ${nextLine}
+        <div style="margin-top:12px;"><button class="wd-btn" onclick="wdClaimAll()">Ya hice el retiro${granted.length > 1 ? ' (todos)' : ''}</button></div>
+      </div>`;
+    } else if(next) {
+      const falta = Math.max(0, next.trigger - eff);
+      html = `<div class="wd-box info"><strong>Próximo retiro — Nivel ${next.num}:</strong> cuando el balance llegue a <strong>${wdF(next.trigger)}</strong> podrás retirar <strong>${wdF(next.w)}</strong> (te faltan ${wdF(falta)}).</div>`;
+    } else {
+      html = `<div class="wd-box info">No hay más escalones con retiro pendiente en este plan.</div>`;
+    }
+
+    // Pistas de la EA para niveles pendientes que no están en la caja verde
+    const extra = pending.filter(x => ea.hints[x.num] && !granted.includes(x));
+    if(extra.length) html += `<div class="wd-box info">${extra.map(x => `<div>Nivel ${x.num}: posible retiro ya hecho: <strong>${wdF(ea.hints[x.num].a)}</strong>${ea.hints[x.num].date ? ' el ' + ea.hints[x.num].date : ''}. Revísalo y, si ya lo cobraste, márcalo desde su nivel.</div>`).join('')}</div>`;
+    if(ea.count) html += `<div class="wd-mini" style="margin:-4px 0 14px;">Retiros detectados en el historial de la EA: <strong>${ea.count}</strong> (${wdF(ea.total)})${_lastData && _lastData.deals_truncated === true ? ' · historial parcial, puede faltar alguno' : ''}.</div>`;
+    document.getElementById('wdStatus').innerHTML = html;
+
+    // Tabla
+    let cum = 0;
+    const rows = levels.map((l, i) => {
+      const x = info[i];
+      if(!x) return `<tr class="${curIdx === 0 ? 'cur' : ''}"><td>Nivel 1${curIdx === 0 ? '<span class="wd-tag c">AQUÍ</span>' : ''}</td><td>${wdF(l.target)}</td><td class="hm">—</td><td>—</td><td>—</td><td class="hm">—</td></tr>`;
+      cum += x.w;
+      const gan = +(l.target - levels[i-1].target).toFixed(2);
+      let tag = '', cls = i === curIdx ? 'cur' : '';
+      if(x.claimed) { tag = `<span class="wd-tag g">✓ ${x.claimed.prev ? 'COBRADO ANTES' : 'COBRADO'}</span>`; cls = 'done'; }
+      else if(granted.includes(x)) { tag = '<span class="wd-tag g">● DISPONIBLE</span>'; cls = 'avail'; }
+      else if(x.num < _wd.startNum) tag = '<span class="wd-tag m">NO CUENTA</span>';
+      else tag = '<span class="wd-tag m">PENDIENTE</span>';
+      if(i === curIdx && !x.claimed) tag += '<span class="wd-tag c">AQUÍ</span>';
+      return `<tr class="${cls}"><td>Nivel ${x.num}${tag}</td><td>${wdF(l.target)}</td><td class="hm">${wdF(gan)}</td><td>${wdF(x.w)}</td><td>${wdF(x.trigger)}</td><td class="hm">${wdF(cum)}</td></tr>`;
+    }).join('');
+    document.getElementById('wdTable').innerHTML = `<table class="wd-table"><thead><tr><th>Nivel</th><th>Objetivo</th><th class="hm">Ganancia</th><th>Retiro (${_wd.pct}%)</th><th>Se habilita en</th><th class="hm">Acumulado</th></tr></thead><tbody>${rows}</tbody></table>`;
+
+    // Historial
+    const real = _wd.claimed.filter(c => !c.prev), tot = real.reduce((s, c) => s + c.amt, 0);
+    const hist = _wd.claimed.length
+      ? [..._wd.claimed].reverse().map(c => `<div class="wd-hist-row"><span>Nivel ${c.num}${c.prev ? ' <span style="color:var(--muted)">(ya cobrado antes)</span>' : ''}</span><span>${wdF(c.amt)} · ${c.date || '—'}</span></div>`).join('')
+      : '<div class="wd-mini" style="margin:0;">Aún no hay retiros registrados.</div>';
+    document.getElementById('wdHistory').innerHTML = `<div class="wd-hist-title">Historial de retiros</div>${hist}` +
+      (_wd.claimed.length ? `<div class="wd-hist-foot"><span>Total retirado: <strong style="color:var(--green)">${wdF(tot)}</strong>${_wd.claimed.some(c => c.prev) ? ' <span style="color:var(--muted)">(sin contar los ya cobrados antes)</span>' : ''}</span><button class="wd-btn sec danger" onclick="wdUndo()">Deshacer último</button></div>` : '');
+  } else {
+    const gt = levels[goal-1].target;
+    achieved = balance > 0 && balance >= gt;
+    const prog = balance > 0 ? Math.max(0, Math.min(100, (balance - deposit) / (gt - deposit) * 100)) : 0;
+    document.getElementById('wdRecover').innerHTML = `
+      <div class="wd-prog-labels"><span>Nivel ${curIdx + 1} → objetivo Nivel ${goal} (${wdF(gt)})</span><span>${prog.toFixed(1)}%</span></div>
+      <div class="wd-prog-bar"><div class="wd-prog-fill" style="width:${prog.toFixed(1)}%"></div></div>
+      ${balance <= 0 ? '<div class="wd-box info">Aún no hay balance de la cuenta.</div>'
+        : achieved ? `<div class="wd-box ok"><strong>🎯 Objetivo alcanzado.</strong> Tu balance (${wdF(balance)}) llegó al Nivel ${goal}. Al volver a Conservador, los niveles que subiste durante la recuperación no generarán retiro (puedes cambiarlo en “Retiros cuentan desde”).</div>`
+        : `<div class="wd-box info">Te faltan <strong>${wdF(gt - balance)}</strong> para llegar al Nivel ${goal}. No se habilita ningún retiro en este modo.</div>`}`;
+  }
+
+  // ── Avisos: solo datos reales, balance > 0, y solo cuando llegan datos (no al teclear en Risk Scaling)
+  if(alerts && !_isDemo && balance > 0) {
+    if(conservador && res.granted.length) {
+      const sig = res.granted.map(x => x.num + ':' + x.w).join('|');
+      if(_wdToastSig !== sig) {
+        _wdToastSig = sig;
+        wdShowToast('💸 Retiro disponible', `Ya puedes retirar <strong>${wdF(res.sum)}</strong> de tu cuenta. Toca aquí para ver el detalle`);
+      }
+      if(_wd.notifiedSig !== sig) {
+        _wd.notifiedSig = sig; wdSave();
+        wdNotify('TradeLens — Retiro disponible', `¡Lograste el umbral de retiro! Ya puedes retirar ${wdF(res.sum)} de tu cuenta.`);
+      }
+    } else if(!conservador && achieved && _wd.goalNotified !== goal) {
+      _wd.goalNotified = goal; wdSave();
+      wdShowToast('🎯 Objetivo alcanzado', `Tu cuenta llegó al Nivel ${goal}. Toca aquí para ver el detalle`);
+      wdNotify('TradeLens — Objetivo alcanzado', `Tu cuenta llegó al Nivel ${goal} (${wdF(levels[goal-1].target)}).`);
+    }
+  }
+}
+
+// ── Tooltip y notificación del teléfono ──
+function wdShowToast(title, body) {
+  const t = document.getElementById('wdToast'); if(!t) return;
+  document.getElementById('wdToastTitle').innerHTML = title;
+  document.getElementById('wdToastBody').innerHTML = body;
+  t.classList.add('show');
+}
+function wdHideToast() { const t = document.getElementById('wdToast'); if(t) t.classList.remove('show'); }
+function wdGoToSection() {
+  wdHideToast();
+  const el = document.getElementById('wdSection'); if(!el) return;
+  el.scrollIntoView({behavior:'smooth', block:'start'});
+  el.classList.add('flash'); setTimeout(() => el.classList.remove('flash'), 2500);
+}
+function wdNotify(title, body) {
+  try {
+    if(!('Notification' in window) || Notification.permission !== 'granted') return;
+    const opts = { body, tag:'tl-wd' };
+    const fallback = () => { try { new Notification(title, opts); } catch(_) {} };
+    if('serviceWorker' in navigator && navigator.serviceWorker.getRegistration) {
+      navigator.serviceWorker.getRegistration().then(r => { if(r && r.showNotification) r.showNotification(title, opts); else fallback(); }).catch(fallback);
+    } else fallback();
+  } catch(_) {}
+}
+
+
+// ── Depósito automático y ciclos ──
+// Depósito base = suma de los depósitos (cashflows con monto > 0) de la cuenta. Un depósito nuevo o completar el Nivel 6
+// archivan el ciclo actual (retiros incluidos) y empiezan uno nuevo con su propia base.
+function wdApplyBase(v) {
+  const inp = document.getElementById('riskDeposit'); inp.value = v;
+  wdSaveRiskInputs(); renderRiskScaling();
+}
+function wdStartCycle(reason, newBase, prevInput, endBal) {
+  const hadBase = _wd.base > 0 || _wd.claimed.length > 0;
+  const snap = reason === 'completado' ? { archived:hadBase, input:prevInput, s:JSON.parse(JSON.stringify({base:_wd.base, claimed:_wd.claimed, startNum:_wd.startNum, goal:_wd.goal, goalNotified:_wd.goalNotified, notifiedSig:_wd.notifiedSig, cycleStart:_wd.cycleStart})) } : null;
+  if(hadBase) {
+    const base = _wd.base || parseFloat(prevInput) || 0;
+    const thr = parseFloat(document.getElementById('riskThreshold').value) || 25;
+    const eb = endBal > 0 ? +(+endBal).toFixed(2) : 0;
+    const lvl = eb > 0 && base > 0 ? wdCurrentIdx(wdBuildLevels(base, thr), eb) + 1 : 0;
+    _wd.cycles.push({ base, claimed:_wd.claimed, start:_wd.cycleStart || '', end:wdToday(), reason, endBal:eb, lvl, thr,
+                      rp:parseFloat(document.getElementById('riskPct').value) || 2.5, pct:_wd.pct });
+  }
+  _wd.base = +(+newBase).toFixed(2); _wd.claimed = []; _wd.startNum = 2; _wd.goal = null; _wd.goalNotified = 0; _wd.notifiedSig = ''; _wd.cycleStart = wdToday();
+  _wd.undoSnap = snap; _wdToastSig = ''; _wdAdj = null; _wdView = null; wdHideToast();
+}
+function wdCompleteCycle(after, endBal) {
+  if(!(after > 0)) return;
+  const n = _wd.cycles.length + 1;
+  wdStartCycle('completado', after, document.getElementById('riskDeposit').value, endBal);
+  _wd.notice = { t:'cycle', undo:true, text:`🎉 ¡Ciclo ${n} completado! Empieza el Ciclo ${n+1} con depósito base ${wdF(_wd.base)} (el saldo de la cuenta tras el retiro). Los retiros del ciclo ${n} quedaron en el historial.` };
+  wdApplyBase(_wd.base);
+}
+function wdUndoCycle() {
+  const u = _wd.undoSnap; if(!u) return;
+  if(u.archived) _wd.cycles.pop();
+  Object.assign(_wd, u.s);
+  _wd.undoSnap = null; _wd.notice = null; _wdAdj = null; _wdView = null;
+  wdApplyBase(_wd.base > 0 ? _wd.base : (u.input || 1000));
+  wdSave(); renderWithdrawPlan(false);
+}
+function wdDismissNotice() { _wd.notice = null; _wd.undoSnap = null; wdSave(); renderWithdrawPlan(false); }
+
+function wdAutoDeposit(data) {
+  const cb = document.getElementById('riskDepAuto'), inp = document.getElementById('riskDeposit'), note = document.getElementById('riskDepNote');
+  if(!cb) return;
+  const cf = data && Array.isArray(data.cashflows) ? data.cashflows : null;
+  const dep = cf ? cf.filter(c => c && +c.amount > 0) : [];
+  const sum = +dep.reduce((a, c) => a + (+c.amount), 0).toFixed(2);
+  if(!cb.checked) { inp.readOnly = false; note.textContent = ''; return; }
+  if(_isDemo || !cf || sum <= 0) {
+    inp.readOnly = false;
+    note.textContent = _isDemo ? 'Demo: usa el depósito manual.' : !cf ? 'La EA no envía depósitos: usa el valor manual.' : 'No se detectaron depósitos: usa el valor manual.';
+    return;
+  }
+  if(_wd.depSeen == null || !(_wd.base > 0)) { _wd.depSeen = sum; _wd.base = sum; if(!_wd.cycleStart) _wd.cycleStart = wdToday(); wdSave(); }
+  else if(sum > _wd.depSeen + 0.005) {
+    const add = sum - _wd.depSeen;
+    const accBal = data && data.account ? +data.account.balance : 0;
+    wdStartCycle('deposito', sum, undefined, accBal > add ? accBal - add : 0);
+    _wd.depSeen = sum;
+    _wd.notice = { t:'dep', undo:false, text:`💵 Nuevo depósito detectado (+${wdF(add)}). Empieza el Ciclo ${_wd.cycles.length + 1} con depósito base ${wdF(sum)}. Los retiros anteriores quedaron guardados en el historial.` };
+    wdSave();
+  }
+  if(Math.abs((parseFloat(inp.value) || 0) - _wd.base) > 0.004) inp.value = _wd.base;
+  inp.readOnly = true;
+  note.textContent = `Auto: ${dep.length} depósito${dep.length === 1 ? '' : 's'} detectado${dep.length === 1 ? '' : 's'} (${wdF(sum)}). Base del ciclo: ${wdF(_wd.base)}.${data.deals_truncated === true ? ' Historial parcial: puede faltar algún depósito.' : ''}`;
+}
+
+
+// ── Navegar entre ciclos (‹ ›) ──
+function wdNav(dir) {
+  const n = _wd.cycles.length, cur = _wdView == null ? n : _wdView;
+  const nx = Math.max(0, Math.min(n, cur + dir));
+  _wdView = nx === n ? null : nx;
+  renderWithdrawPlan(false);
+}
+function wdRenderOld(c) {
+  const thr = c.thr || parseFloat(document.getElementById('riskThreshold').value) || 25, pct = c.pct || _wd.pct;
+  const levels = wdBuildLevels(c.base, thr);
+  const lvl = c.lvl || (c.endBal > 0 ? wdCurrentIdx(levels, c.endBal) + 1 : 0);
+  const real = c.claimed.filter(x => !x.prev), tot = real.reduce((a, x) => a + x.amt, 0);
+  const rows = levels.map((l, i) => {
+    const cl = c.claimed.find(x => x.num === l.num);
+    const w = i ? +((l.target - levels[i-1].target) * pct / 100).toFixed(2) : null;
+    const tag = lvl && l.num <= lvl ? '<span class="wd-tag g">✓ ALCANZADO</span>' : '<span class="wd-tag m">NO ALCANZADO</span>';
+    return `<tr><td>Nivel ${l.num}${tag}</td><td>${wdF(l.target)}</td><td>${w == null ? '—' : wdF(w)}</td><td>${cl ? wdF(cl.amt) + ' · ' + (cl.date || '—') + (cl.prev ? ' (ya cobrado antes)' : '') : '—'}</td></tr>`;
+  }).join('');
+  return `<div class="wd-old-sum">
+      Depósito base: <strong>${wdF(c.base)}</strong> · Umbral: <strong>${thr}%</strong> · Riesgo: <strong>${c.rp ? c.rp + '%' : '—'}</strong> · Retiro: <strong>${pct}%</strong><br>
+      ${c.start || '—'} → ${c.end || '—'} · Cierre: <strong>${c.reason === 'deposito' ? 'nuevo depósito en la cuenta' : 'Nivel 6 cumplido y retirado'}</strong><br>
+      Nivel alcanzado: <strong>${lvl ? 'Nivel ' + lvl : '—'}</strong>${c.endBal ? ' (balance ' + wdF(c.endBal) + ')' : ''} · Total retirado: <strong style="color:var(--green)">${wdF(tot)}</strong>
+    </div>
+    <div class="wd-tablewrap"><table class="wd-table"><thead><tr><th>Nivel</th><th>Objetivo</th><th>Retiro (${pct}%)</th><th>Retiro registrado</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+}
+
+// ── Acciones ──
+function wdSetMode(m) {
+  if(m !== 'conservador' && m !== 'recuperar') return;
+  if(_wd.mode === m) return;
+  if(m === 'conservador') { // venimos de Recuperar: los niveles subidos durante la recuperación no generan retiro
+    const S = wdState();
+    _wd.startNum = Math.min(7, Math.max(2, S.curIdx + 2));
+  }
+  _wd.mode = m; wdHideToast(); wdSave(); renderWithdrawPlan(false);
+}
+function wdClaimAll() {
+  const S = wdState(); if(!S.res.granted.length) return;
+  const d = wdToday(); let amt = 0;
+  S.res.granted.forEach(x => { _wd.claimed.push({num:x.num, amt:x.w, date:d}); amt += x.w; });
+  _wdAdj = { amt: (_wdAdj ? _wdAdj.amt : 0) + amt, base: S.balance };
+  _wd.notifiedSig = ''; _wdToastSig = ''; wdHideToast();
+  if(S.res.granted.some(x => x.num === 6)) wdCompleteCycle(+(S.eff - S.res.sum).toFixed(2), S.eff); // Nivel 6 cobrado → ciclo nuevo
+  wdSave(); renderWithdrawPlan(false);
+}
+function wdClaimPrev(num) {
+  const S = wdState(); const x = S.res.info.find(i => i && i.num === num); if(!x || x.claimed) return;
+  _wd.claimed.push({num:x.num, amt:x.w, date:wdToday(), prev:true});
+  _wd.notifiedSig = ''; _wdToastSig = ''; wdHideToast();
+  if(num === 6) wdCompleteCycle(+S.eff.toFixed(2), S.eff);
+  wdSave(); renderWithdrawPlan(false);
+}
+function wdUndo() {
+  if(!_wd.claimed.length) return;
+  _wd.claimed.pop(); _wdAdj = null; _wd.notifiedSig = ''; _wdToastSig = ''; wdSave(); renderWithdrawPlan(false);
+}
+
+function wdInit() {
+  wdLoad(); wdRestoreRiskInputs(); wdInitControls();
+  const pct = document.getElementById('wdPct');
+  pct.addEventListener('input', () => { const v = parseFloat(pct.value); if(isFinite(v) && v >= 5 && v <= 90) { _wd.pct = v; wdSave(); renderWithdrawPlan(false); } });
+  pct.addEventListener('change', () => { let v = parseFloat(pct.value); if(!isFinite(v)) v = 40; _wd.pct = Math.min(90, Math.max(5, v)); pct.value = _wd.pct; wdSave(); renderWithdrawPlan(false); });
+  document.getElementById('wdStart').addEventListener('change', e => { _wd.startNum = +e.target.value; wdSave(); renderWithdrawPlan(false); });
+  document.getElementById('wdGoal').addEventListener('change', e => {
+    const g = +e.target.value; _wd.goal = g;
+    const S = wdState(); if(S.balance > 0 && S.balance >= S.levels[g-1].target) _wd.goalNotified = g; // ya alcanzado al elegirlo: sin aviso
+    wdSave(); renderWithdrawPlan(false);
+  });
+  // Cualquier cambio en Risk Scaling actualiza el plan sin tocar su HTML
+  ['riskDeposit', 'riskPct', 'riskThreshold'].forEach(id => document.getElementById(id).addEventListener('input', () => { wdSaveRiskInputs(); renderWithdrawPlan(false); }));
+  document.getElementById('riskDepAuto').addEventListener('change', () => {
+    wdSaveRiskInputs(); wdAutoDeposit(_lastData); renderRiskScaling(); renderWithdrawPlan(false);
+  });
+  renderWithdrawPlan(false);
+}
+wdInit();
 
 // ── JOURNAL ────────────────────────────────────────────────────────────────────
 let journalData = {}; // { 'YYYY-MM-DD': { tag, note, img } }
