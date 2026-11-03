@@ -689,6 +689,7 @@ input.jimglink:focus{border-color:var(--cyan);}
       <button class="menu-btn" id="menuBtn" aria-label="Menú" aria-haspopup="true" aria-expanded="false" onclick="toggleMenu(event)"><span></span><span></span><span></span></button>
       <div class="menu-pop" id="menuPop" role="menu">
         <button class="menu-item" id="btnAccount" role="menuitem" onclick="menuAction('account')">👤 Cuenta</button>
+        <button class="menu-item" id="btnPush" role="menuitem" onclick="menuAction('push')">🔔 Notificaciones</button>
         <button class="menu-item" id="themeToggle" role="menuitem" onclick="menuAction('theme')">☀️ Modo claro</button>
         <div class="menu-sep"></div>
         <button class="menu-item danger" id="btnDisconnect" role="menuitem" style="display:none;" onclick="menuAction('logout')">✕ Desconectar</button>
@@ -741,7 +742,7 @@ input.jimglink:focus{border-color:var(--cyan);}
 <div class="jmodal-overlay" id="acctOverlay">
   <div class="jmodal" style="max-width:440px;">
     <button class="jmodal-close" onclick="closeAccount()">✕</button>
-    <div class="jmodal-date">👤 Mi cuenta</div>
+    <div class="jmodal-date" id="acctTitle">👤 Mi cuenta</div>
     <div id="acctBody" style="margin-top:14px;"></div>
   </div>
 </div>
@@ -765,7 +766,7 @@ input.jimglink:focus{border-color:var(--cyan);}
   <!-- DD CONFIG ROW -->
   <div class="dd-config-row">
     <label>🛡️ Alerta Drawdown Diario:</label>
-    <input type="number" id="ddLimitPct" value="5" min="0.5" max="50" step="0.5" oninput="checkDailyDrawdown()" />
+    <input type="number" id="ddLimitPct" value="5" min="0.5" max="50" step="0.5" oninput="checkDailyDrawdown();ddLimitChanged()" />
     <span>% máximo del balance</span>
   </div>
 
@@ -1240,6 +1241,7 @@ function sessionExpired() {
 const _inp = 'width:100%;background:var(--s2);border:1px solid var(--b2);color:var(--text);padding:9px 12px;border-radius:8px;font-family:var(--font-mono);font-size:12px;outline:none;margin-bottom:10px;';
 const _lbl = 'font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin:4px 0 6px;display:block;';
 function openAccount() {
+  document.getElementById('acctTitle').textContent = '👤 Mi cuenta';
   const body = document.getElementById('acctBody');
   const logged = serverToken && serverToken.startsWith('s1.');
   if(logged) {
@@ -1726,7 +1728,7 @@ function calcMetrics(days, trades, balance, extra) {
 function renderAll(data) {
   document.getElementById('btnDisconnect').style.display='block';
   document.getElementById('dashboard').classList.add('on');
-  requestNotificationPermission();
+  if(typeof pushAutoRefresh==='function') pushAutoRefresh();
   const acc=data.account||{};
   const deals=(data.deals||[]).filter(d=>d.entry!=='BALANCE');
   _isDemo=!!data._demo; _lastAcc=acc; _lastData=data; _curSym=curSymbolOf(acc.currency);
@@ -1765,6 +1767,7 @@ function renderAll(data) {
   renderCoach(m, sessions, balance, dep, campaigns);
   renderROIProjection(m, sessions, balance);
   checkDailyDrawdown(sessions, balance);
+  if(typeof pushSyncConfig==='function') pushSyncConfig();
   _lastSessions = sessions; _lastTrades = trades; _lastBalance = balance; _lastM = m; _lastCampaigns = campaigns;
 }
 let _lastCampaigns = [];
@@ -2461,9 +2464,13 @@ function showRiskToast(title, body) {
   clearTimeout(toast._timer);
   toast._timer = setTimeout(() => toast.classList.remove('show'), 12000);
   // Browser notification if permitted
-  if(Notification.permission === 'granted') {
-    new Notification('TradeLens — Nuevo Nivel 🎯', { body: body.replace(/<[^>]+>/g,''), icon: '' });
-  }
+  try {
+    if('Notification' in window && Notification.permission === 'granted') {
+      const o = { body: body.replace(/<[^>]+>/g,''), tag:'tl-coach-lvl' };
+      if('serviceWorker' in navigator) navigator.serviceWorker.ready.then(r => r.showNotification('TradeLens — Nuevo Nivel 🎯', o)).catch(() => {});
+      else new Notification('TradeLens — Nuevo Nivel 🎯', o);
+    }
+  } catch(_) {}
 }
 
 function requestNotificationPermission() {
@@ -2572,6 +2579,7 @@ function wdLoad() {
 function wdSave() {
   if(_isDemo) return; // en demo no se guarda estado
   try { localStorage.setItem(WD_KEY, JSON.stringify(_wd)); } catch(_) {}
+  if(typeof pushSyncConfig==='function') pushSyncConfig();
 }
 
 // Persistencia de los 3 campos de Risk Scaling (los niveles de retiro dependen de ellos).
@@ -2596,6 +2604,7 @@ function wdSaveRiskInputs() {
       a: document.getElementById('riskDepAuto').checked
     }));
   } catch(_) {}
+  if(typeof pushSyncConfig==='function') pushSyncConfig();
 }
 
 // ── Cálculo puro ──
@@ -3436,6 +3445,7 @@ function toggleMenu(ev) {
 function menuAction(what) {
   closeMenu();
   if(what === 'account') openAccount();
+  else if(what === 'push' && typeof openPush==='function') openPush();
   else if(what === 'theme') toggleTheme();
   else if(what === 'logout') clearSession();
 }
@@ -3546,6 +3556,150 @@ function pxDigest(days){
   return e.length?e.map(([k,o])=>`${k}: MAE medio ${(o.a/o.n).toFixed(0)} pts / MFE medio ${(o.f/o.n).toFixed(0)} pts (n=${o.n} completas)`).join('; '):'N/D (sin mediciones completas)';
 }
 function pxModeChanged(v){ _pxMode=v; if(_lastData) renderAll(_lastData); }
+</script>
+<script>
+// ── NOTIFICACIONES PUSH (servidor → teléfono, funcionan con la app cerrada) ───────────────────────────────────
+// El servidor evalúa retiro, drawdown y Coach en cada envío de la EA y manda el push. Aquí solo se suscribe este
+// dispositivo y se le avisa al servidor tu configuración (límite de drawdown, plan de retiro, Risk Scaling).
+const _pIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+const _pStandalone = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true;
+let _pushCfgTimer = null, _pushCfgLast = '', _pushChecked = false;
+
+function pushSupported() { return 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window; }
+function pushOn() { try { return localStorage.getItem('tl_push_on') === '1'; } catch(_) { return false; } }
+function pushPrefs() {
+  const d = { wd:true, dd:true, coach:true };
+  try { return Object.assign(d, JSON.parse(localStorage.getItem('tl_push_prefs') || '{}')); } catch(_) { return d; }
+}
+function pushSetPref(k, v) {
+  const p = pushPrefs(); p[k] = !!v;
+  try { localStorage.setItem('tl_push_prefs', JSON.stringify(p)); } catch(_) {}
+  pushSyncConfig(true);
+}
+function pushB64ToU8(b64) {
+  const pad = '='.repeat((4 - b64.length % 4) % 4), raw = atob((b64 + pad).replace(/-/g, '+').replace(/_/g, '/'));
+  return Uint8Array.from([...raw].map(c => c.charCodeAt(0)));
+}
+function pushHeaders() { return { 'Content-Type':'application/json', 'x-token': serverToken }; }
+
+function pushBuildConfig() {
+  const num = (id, d) => parseFloat((document.getElementById(id) || {}).value) || d;
+  return {
+    deposit: num('riskDeposit', 0), threshold: num('riskThreshold', 25), riskPct: num('riskPct', 2.5),
+    ddLimitPct: num('ddLimitPct', 5), notify: pushPrefs(),
+    wd: { mode:_wd.mode, pct:_wd.pct, startNum:_wd.startNum, goal:_wd.goal, claimed:_wd.claimed.map(c => c.num),
+          cycleKey:String(_wd.cycles.length), adj:_wdAdj ? { amt:_wdAdj.amt, base:_wdAdj.base } : null }
+  };
+}
+// Solo los dispositivos con push activado envían configuración (evita que otro navegador pise tus valores).
+function pushSyncConfig(force) {
+  if(_isDemo || !serverToken || !serverURL || !pushOn()) return;
+  if(!('Notification' in window) || Notification.permission !== 'granted') return;
+  clearTimeout(_pushCfgTimer);
+  _pushCfgTimer = setTimeout(async () => {
+    try {
+      const body = JSON.stringify(pushBuildConfig());
+      if(!force && body === _pushCfgLast) return;
+      const r = await fetch(`${serverURL}/push/config`, { method:'POST', headers:pushHeaders(), body });
+      if(r.status === 401) { sessionExpired(); return; }
+      if(r.ok) _pushCfgLast = body;
+    } catch(_) {}
+  }, force ? 0 : 1500);
+}
+
+// Crea (o reutiliza) la suscripción de este teléfono y la registra en el servidor. Idempotente.
+async function pushRegister() {
+  if(!serverToken) throw new Error('Inicia sesión primero.');
+  const k = await (await fetch(`${serverURL || cloudBase()}/push/key`)).json();
+  if(!k.enabled || !k.publicKey) throw new Error('El servidor aún no tiene push activo (falta instalar "web-push" en Render).');
+  const reg = await navigator.serviceWorker.ready;
+  let sub = await reg.pushManager.getSubscription();
+  let lastKey = ''; try { lastKey = localStorage.getItem('tl_push_key') || ''; } catch(_) {}
+  if(sub && lastKey && lastKey !== k.publicKey) { try { await sub.unsubscribe(); } catch(_) {} sub = null; } // claves VAPID nuevas
+  if(!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly:true, applicationServerKey:pushB64ToU8(k.publicKey) });
+  try { localStorage.setItem('tl_push_key', k.publicKey); } catch(_) {}
+  const r = await fetch(`${serverURL || cloudBase()}/push/subscribe`, { method:'POST', headers:pushHeaders(), body:JSON.stringify({ subscription: sub.toJSON() }) });
+  if(r.status === 401) { sessionExpired(); throw new Error('Sesión vencida. Inicia sesión de nuevo.'); }
+  if(!r.ok) { let m = ''; try { m = (await r.json()).error; } catch(_) {} throw new Error(m || 'El servidor rechazó la suscripción.'); }
+  return sub;
+}
+async function pushEnable() {
+  const msg = t => { const e = document.getElementById('pushMsg'); if(e) { e.textContent = t; e.style.color = 'var(--red)'; } };
+  try {
+    if(!pushSupported()) throw new Error(_pIOS ? 'Este iPhone necesita iOS 16.4 o superior y la app añadida a la pantalla de inicio.' : 'Este navegador no admite notificaciones push.');
+    if(_pIOS && !_pStandalone) throw new Error('En iPhone abre TradeLens desde el icono de la pantalla de inicio (Compartir → Añadir a pantalla de inicio) y activa aquí las notificaciones.');
+    if(!serverToken) throw new Error('Inicia sesión primero.');
+    const perm = await Notification.requestPermission(); // debe ocurrir por un toque tuyo
+    if(perm !== 'granted') throw new Error('Permiso denegado. Actívalo en los ajustes del teléfono para TradeLens y vuelve a intentar.');
+    await pushRegister();
+    try { localStorage.setItem('tl_push_on', '1'); } catch(_) {}
+    try { if(navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch(_) {}
+    pushSyncConfig(true);
+    pushRefreshUI();
+  } catch(e) { msg(e.message || String(e)); }
+}
+async function pushDisable() {
+  try {
+    const reg = await navigator.serviceWorker.ready, sub = await reg.pushManager.getSubscription();
+    if(sub) {
+      try { await fetch(`${serverURL}/push/unsubscribe`, { method:'POST', headers:pushHeaders(), body:JSON.stringify({ endpoint: sub.endpoint }) }); } catch(_) {}
+      await sub.unsubscribe();
+    }
+  } catch(_) {}
+  try { localStorage.removeItem('tl_push_on'); } catch(_) {}
+  pushRefreshUI();
+}
+async function pushTest() {
+  const e = document.getElementById('pushMsg'); if(e) { e.textContent = 'Enviando prueba…'; e.style.color = 'var(--muted)'; }
+  try {
+    const r = await fetch(`${serverURL}/push/test`, { method:'POST', headers:pushHeaders(), body:'{}' });
+    let j = {}; try { j = await r.json(); } catch(_) {}
+    if(r.status === 401) { sessionExpired(); return; }
+    if(e) { e.textContent = r.ok && j.ok ? 'Prueba enviada: debería llegarte en unos segundos.' : (j.error || 'El servidor no pudo enviarla.'); e.style.color = r.ok && j.ok ? 'var(--green)' : 'var(--red)'; }
+  } catch(err) { if(e) { e.textContent = 'No se pudo contactar al servidor.'; e.style.color = 'var(--red)'; } }
+}
+// Al abrir la app con push ya activado: confirma que la suscripción sigue viva y que el servidor la tiene.
+async function pushAutoRefresh() {
+  if(_pushChecked || !serverToken || _isDemo || !pushOn() || !pushSupported() || Notification.permission !== 'granted') return;
+  _pushChecked = true;
+  try { await pushRegister(); pushSyncConfig(true); } catch(_) { _pushChecked = false; }
+}
+
+function openPush() {
+  document.getElementById('acctTitle').textContent = '🔔 Notificaciones';
+  document.getElementById('acctOverlay').classList.add('open');
+  pushRefreshUI();
+}
+async function pushRefreshUI() {
+  const body = document.getElementById('acctBody');
+  if(!body || document.getElementById('acctTitle').textContent.indexOf('Notificaciones') < 0) return;
+  const supported = pushSupported(), perm = supported ? Notification.permission : 'unsupported';
+  let subbed = false;
+  if(supported) { try { subbed = !!(await (await navigator.serviceWorker.ready).pushManager.getSubscription()) && pushOn(); } catch(_) {} }
+  const p = pushPrefs();
+  const chk = (k, t) => `<label style="display:flex;gap:10px;align-items:center;font-size:13px;margin:8px 0;cursor:pointer;"><input type="checkbox" ${p[k] ? 'checked' : ''} onchange="pushSetPref('${k}', this.checked)"/> ${t}</label>`;
+  let state = '', hint = '';
+  if(!supported) state = '<strong style="color:var(--red)">No disponible en este navegador.</strong>';
+  else if(subbed && perm === 'granted') state = '<strong style="color:var(--green)">✅ Activadas en este dispositivo.</strong>';
+  else if(perm === 'denied') state = '<strong style="color:var(--red)">Bloqueadas.</strong> Permítelas en los ajustes del teléfono para TradeLens.';
+  else state = '<strong style="color:var(--warn)">Desactivadas.</strong>';
+  if(_pIOS && !_pStandalone) hint = '<div style="font-size:11px;color:var(--warn);margin-top:10px;">En iPhone las notificaciones solo funcionan si abres TradeLens desde el icono de la pantalla de inicio (iOS 16.4+).</div>';
+  body.innerHTML = `
+    <div style="font-size:12px;color:var(--muted);margin-bottom:12px;line-height:1.6;">Avisos al teléfono aunque la app esté cerrada: cuando se habilita un retiro, se supera el límite de drawdown diario o el Coach tiene un aviso nuevo.</div>
+    <div style="font-size:13px;margin-bottom:12px;">${state}</div>
+    ${subbed ? chk('wd', '💸 Retiro disponible / objetivo alcanzado') + chk('dd', '⚠️ Drawdown diario superado') + chk('coach', '🧭 Avisos del Coach (rachas, PF, expectancy, nivel de riesgo)') : ''}
+    <div id="pushMsg" style="font-size:12px;min-height:16px;margin:10px 0;"></div>
+    ${subbed ? `<button class="btn btn-connect" onclick="pushTest()">📨 Enviar notificación de prueba</button>
+      <button class="btn" style="margin-top:8px;width:100%;" onclick="pushDisable()">Desactivar en este dispositivo</button>`
+      : (supported && perm !== 'denied' ? `<button class="btn btn-connect" onclick="pushEnable()">🔔 Activar notificaciones</button>` : '')}
+    ${hint}`;
+}
+function ddLimitChanged() {
+  try { localStorage.setItem('tl_dd_limit', document.getElementById('ddLimitPct').value); } catch(_) {}
+  pushSyncConfig();
+}
+try { const v = localStorage.getItem('tl_dd_limit'); if(v && +v > 0) document.getElementById('ddLimitPct').value = v; } catch(_) {}
+try { if(navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch(_) {} // evita que el sistema borre la sesión guardada
 </script>
 <script>
 if("serviceWorker" in navigator && location.protocol.startsWith("http")){
