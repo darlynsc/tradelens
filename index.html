@@ -287,14 +287,15 @@ canvas{max-height:200px;}
 .cal-cons-item{display:flex;flex-direction:column;gap:2px;}
 .cal-cons-l{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;}
 .cal-cons-v{font-size:14px;font-weight:700;}
-.cal-days-hdr{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:6px;}
+.cal-days-hdr{--cal-gap:9px;display:grid;grid-template-columns:repeat(7,1fr);gap:var(--cal-gap);margin-bottom:6px;}
 .cal-days-hdr span{font-size:10px;text-align:center;color:var(--muted);font-weight:600;}
-.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;}
+.cal-grid{--cal-gap:9px;display:grid;grid-template-columns:repeat(7,1fr);gap:var(--cal-gap);}   /* separación entre marcos: así, al agrandarse uno con el mouse, no choca con los vecinos */
 .cal-day{
   border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;
   padding:6px 3px;cursor:default;transition:.15s;min-height:54px;
 }
-.cal-day:hover{transform:scale(1.06);z-index:2;position:relative;}
+/* Solo los días con actividad (verde / rojo / break even) 'saltan' al pasar el mouse; los días sin operar no */
+.cal-day.win:hover,.cal-day.loss:hover,.cal-day.neu:hover{transform:scale(1.06);z-index:2;position:relative;}
 .cal-day .cal-num{font-size:13px;font-weight:700;line-height:1;}
 .cal-day .cal-pnl{font-size:10px;font-weight:600;line-height:1.3;margin-top:3px;text-align:center;}
 .cal-day .cal-trades{font-size:9px;opacity:0.7;margin-top:2px;text-align:center;}
@@ -302,16 +303,56 @@ canvas{max-height:200px;}
 .cal-day.loss{background:rgba(255,51,85,0.18);color:var(--red);border:1px solid rgba(255,51,85,0.25);}
 .cal-day.be{background:rgba(30,45,61,0.5);color:var(--muted);border:1px solid transparent;}
 .cal-day.neu{background:rgba(255,204,0,0.18);color:#ffcc00;border:1px solid rgba(255,204,0,0.3);}
-.cal-day.today-marker{box-shadow:0 0 0 2px var(--cyan) inset;}
+.cal-day.today-marker{box-shadow:0 0 0 1px var(--cyan) inset;}   /* marco de HOY: azul neón (trazo fino) */
 .cal-day.empty{background:transparent;min-height:54px;border:none;}
 /* SWING: las fechas del ciclo forman un bloque continuo (se cubre el hueco de la rejilla entre días contiguos) */
 .cal-day.swing{position:relative;}
-.cal-day.swing:hover{transform:none;filter:brightness(1.18);}
-.cal-day.swing.sw-jl{margin-left:-4px;border-left-width:0;border-top-left-radius:0;border-bottom-left-radius:0;}
+/* SWING: todas las celdas del ciclo saltan a la vez (se pegan entre sí, se ve como un solo bloque); si el mouse está en el mini-marco intradía, el bloque no salta */
+.cal-day.swing:hover:not(.sw-hover){transform:none;}
+/* Hover del SWING: resalta TODAS las celdas del ciclo a la vez (un solo bloque); el mini-marco intradía resalta por separado */
+/* ── SWING e INTRADÍA INDEPENDIENTES ──
+   La celda (.cal-swc) NUNCA se transforma. El marco del swing (.sw-bg) y sus letras (.sw-body) son capas aparte
+   que son las únicas que saltan al pasar el mouse; el mini-marco intradía es hermano de esas capas, así que no se ve afectado. */
+.cal-swc{position:relative;z-index:1;justify-content:flex-start;padding-top:8px;cursor:pointer;}
+.cal-swc.sw-hover{z-index:2;}
+.cal-swc.sw-note,.cal-swc.sw-note.sw-hover{z-index:3;}   /* la celda con el ícono del journal queda por encima de la siguiente: el ícono no se tapa */
+.cal-swc.sw-wjl{margin-left:calc(var(--cal-gap) * -1);}
+.cal-day.swing.sw-bg{position:absolute;inset:0;margin:0 !important;padding:0;min-height:0;pointer-events:none;z-index:0;}
+.cal-swc .sw-body{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;transition:transform .15s;}
+.cal-swc .sw-body.win{color:var(--green);}
+.cal-swc .sw-body.loss{color:var(--red);}
+.cal-swc .sw-body.neu{color:#ffcc00;}
+.cal-swc .cal-mini{position:relative;z-index:1;}
+.cal-swc.sw-hover .sw-bg,.cal-swc.sw-hover .sw-body{transform:scale(1.06);}
+/* Fondo OPACO (mismo tono que el translúcido sobre el fondo del calendario): al agrandarse, las celdas del ciclo se solapan sin sumar transparencias, así no aparece la franja más intensa entre días */
+.cal-day.swing.win{background:linear-gradient(rgba(0,255,136,0.18),rgba(0,255,136,0.18)),var(--s1);}
+.cal-day.swing.loss{background:linear-gradient(rgba(255,51,85,0.18),rgba(255,51,85,0.18)),var(--s1);}
+.cal-day.swing.neu{background:linear-gradient(rgba(255,204,0,0.18),rgba(255,204,0,0.18)),var(--s1);}
+/* El mini-marco intradía mantiene su tamaño cuando salta el bloque swing (contra-escala 1/1.06) */
+   /* --mx/--my los calcula el JS: anulan el desplazamiento que provoca el escalado del bloque, así el intradía queda 100% quieto */
+.cal-day .cal-mini{transition:.15s;}
+.cal-day .cal-mini:hover{filter:brightness(1.35);transform:scale(1.07);}
+.cal-day.swing.sw-jl{margin-left:calc(var(--cal-gap) * -1);border-left-width:0;border-top-left-radius:0;border-bottom-left-radius:0;}
 .cal-day.swing.sw-jr{border-right-width:0;border-top-right-radius:0;border-bottom-right-radius:0;}
 .cal-day.swing.sw-active{border-style:dashed;}
 .cal-day .cal-sw{font-size:9px;font-weight:800;letter-spacing:.5px;margin-top:2px;text-align:center;white-space:nowrap;}
 .cal-day .cal-intra{font-size:8px;line-height:1.2;margin-top:3px;padding:1px 4px;border-radius:8px;background:rgba(0,0,0,.28);border:1px solid rgba(255,255,255,.12);color:var(--text);cursor:pointer;white-space:nowrap;}
+.cal-day.swing{justify-content:flex-start;padding-top:8px;}   /* el número del día queda a la misma altura en todas las celdas del bloque */
+/* Mini-marco intradía: mismo estilo que un día normal (verde / rojo / break even), en pequeño y con esquinas poco redondeadas */
+.cal-day .cal-mini{position:relative;display:flex;flex-direction:column;align-items:center;gap:1px;margin-top:5px;padding:3px 12px 4px;border-radius:4px;border:1px solid;line-height:1.15;cursor:pointer;min-width:62%;}
+.cal-day .cal-mini .mi-t{font-size:8px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;opacity:.85;}
+.cal-day .cal-mini .mi-r{font-size:13px;font-weight:800;}
+.cal-day .cal-mini .mi-n{font-size:9px;opacity:.75;}
+.cal-day .cal-mini .mi-note{position:absolute;top:1px;right:3px;font-size:8px;opacity:.9;}
+.cal-day .cal-mini.win{background:linear-gradient(rgba(0,255,136,0.18),rgba(0,255,136,0.18)),var(--s1);color:var(--green);border-color:rgba(0,255,136,0.45);}
+.cal-day .cal-mini.loss{background:linear-gradient(rgba(255,51,85,0.18),rgba(255,51,85,0.18)),var(--s1);color:var(--red);border-color:rgba(255,51,85,0.5);}
+.cal-day .cal-mini.neu{background:linear-gradient(rgba(255,204,0,0.18),rgba(255,204,0,0.18)),var(--s1);color:#ffcc00;border-color:rgba(255,204,0,0.5);}
+.cal-day .cal-mini.today-marker{box-shadow:0 0 0 1px var(--cyan);}
+/* Hoy dentro de un SWING sin actividad intradía: el marco azul envuelve todo el bloque desde su inicio hasta hoy */
+.cal-day.swing.sw-hl{box-shadow:inset 0 1px 0 var(--cyan),inset 0 -1px 0 var(--cyan);}
+.cal-day.swing.sw-hl.sw-hl-l{box-shadow:inset 0 1px 0 var(--cyan),inset 0 -1px 0 var(--cyan),inset 1px 0 0 var(--cyan);}
+.cal-day.swing.sw-hl.sw-hl-r{box-shadow:inset 0 1px 0 var(--cyan),inset 0 -1px 0 var(--cyan),inset -1px 0 0 var(--cyan);}
+.cal-day.swing.sw-hl.sw-hl-l.sw-hl-r{box-shadow:inset 0 0 0 1px var(--cyan);}
 .jsw-badge{display:inline-block;font-size:9px;font-weight:800;letter-spacing:1px;padding:2px 8px;border-radius:10px;border:1px solid var(--cyan);color:var(--cyan);margin-right:6px;vertical-align:middle;}
 .jsw-warn{font-size:11px;color:var(--warn);background:rgba(255,204,0,.08);border:1px solid rgba(255,204,0,.25);border-radius:8px;padding:8px 10px;margin:0 0 12px;line-height:1.5;}
 .jsw-act{margin:0 0 16px;border:1px solid var(--b1);border-radius:10px;padding:10px 12px;background:var(--s2);}
@@ -326,7 +367,7 @@ canvas{max-height:200px;}
 .jsw-tag.OPEN,.jsw-tag.ADD{background:rgba(0,229,255,.12);color:var(--cyan);}
 .jsw-tag.PARTIAL{background:rgba(255,204,0,.12);color:var(--warn);}
 .jsw-tag.CLOSE{background:rgba(181,123,255,.14);color:var(--purple);}
-@media(max-width:700px){.cal-day .cal-sw{font-size:7px;letter-spacing:0;}.cal-day .cal-intra{display:none;}.jsw-tbl{display:block;overflow-x:auto;}}
+@media(max-width:700px){.cal-day .cal-sw{font-size:7px;letter-spacing:0;}.cal-day .cal-intra{font-size:7px;padding:0 3px;}.cal-day .cal-mini{padding:2px 4px;min-width:0;}.cal-day .cal-mini .mi-t,.cal-day .cal-mini .mi-n{font-size:7px;}.cal-day .cal-mini .mi-r{font-size:10px;}.jsw-tbl{display:block;overflow-x:auto;}}
 
 /* COACH */
 .coach-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin-bottom:24px;}
@@ -831,6 +872,17 @@ input.jimglink:focus{border-color:var(--cyan);}
     </div>
   </div>
 
+  <!-- ROI PROYECTADO -->
+  <div class="sec-label purple">ROI Proyectado</div>
+  <div class="roi-wrap">
+    <div class="roi-header">
+      <div style="font-family:var(--font-head);font-size:14px;font-weight:600;">Proyección basada en Expectancy actual</div>
+      <div style="font-size:11px;color:var(--muted);">Estimado con la expectancy por posición y el ritmo histórico de posiciones · Línea punteada en la curva de resultado realizado</div>
+    </div>
+    <div class="roi-cards" id="roiCards"></div>
+    <div style="font-size:10px;color:var(--muted);line-height:1.6;" id="roiNote">—</div>
+  </div>
+
   <!-- DRAWDOWN + PROGRESS BARS -->
   <div class="charts-2" style="margin-bottom:16px;">
     <div class="chart-box">
@@ -988,17 +1040,6 @@ input.jimglink:focus{border-color:var(--cyan);}
       <div class="wd-rule">Lleva la cuenta al nivel objetivo sin retirar nada. Mientras este modo esté activo no se habilita ningún retiro.</div>
       <div id="wdRecover"></div>
     </div>
-  </div>
-
-  <!-- ROI PROYECTADO -->
-  <div class="sec-label purple">ROI Proyectado</div>
-  <div class="roi-wrap">
-    <div class="roi-header">
-      <div style="font-family:var(--font-head);font-size:14px;font-weight:600;">Proyección basada en Expectancy actual</div>
-      <div style="font-size:11px;color:var(--muted);">Estimado con la expectancy por posición y el ritmo histórico de posiciones · Línea punteada en la curva de resultado realizado</div>
-    </div>
-    <div class="roi-cards" id="roiCards"></div>
-    <div style="font-size:10px;color:var(--muted);line-height:1.6;" id="roiNote">—</div>
   </div>
 
   <!-- EXPORT CSV -->
@@ -1828,6 +1869,7 @@ function _swDayLbl(k,long){
   return `${dn[d.getUTCDay()]} ${d.getUTCDate()} ${mn[d.getUTCMonth()]}`+(long?` ${d.getUTCFullYear()}`:'');
 }
 const _swHM=t=>{ const u=t-_nyBrokerOff; return new Date((u+nyOffsetSec(u))*1000).toISOString().slice(11,16); };   // hora de Nueva York
+const _swSign=v=>v>0?'var(--green)':v<0?'var(--red)':'var(--muted)';   // detalle: sin umbral (1 centavo = verde/rojo)
 const _swCol=v=>dayClass(v)==='win'?'var(--green)':dayClass(v)==='loss'?'var(--red)':'#ffcc00';
 const _swFlagTxt={sin_deal_apertura:'Sin deal de apertura en el historial recibido: no se pudo verificar su relación con otras posiciones.',
   estado_indeterminado:'Una posición no figura abierta ni cerrada por completo en el último envío; se trata como abierta hasta confirmarlo.',
@@ -1858,7 +1900,7 @@ function renderSwingJournalHead(c){
     st('Periodo',`${c.spanDays} día${c.spanDays>1?'s':''} (incluye fechas sin actividad)`)+
     st('Posiciones',`${k.total} total · ${k.closed} cerradas · ${k.open} abiertas${parcial}`,'var(--cyan)')+
     st(act?'Resultado realizado (hasta ahora)':'Resultado neto',fmt$(R.net),_swCol(R.net))+
-    st('Flotante',act?(fl.known?fmt$(fl.total):'N/D'):'—',act&&fl.known?_swCol(fl.total):'var(--muted)')+
+    st('Flotante',act?(fl.known?fmt$(fl.total):'N/D'):'—',act&&fl.known?_swSign(fl.total):'var(--muted)')+
     st('Beneficio bruto',fmt$(R.gross),'var(--muted)')+
     st('Comisiones',fmt$(R.comm),'var(--muted)')+
     st('Swap',fmt$(R.swap),'var(--muted)');
@@ -1870,13 +1912,13 @@ function renderSwingJournalHead(c){
       const lbl={OPEN:'Apertura',ADD:'Adición',PARTIAL:'Cierre parcial',CLOSE:'Cierre'}[e.kind]||e.kind;
       const op=pOpen[e.pid]!=null?_swDayLbl(nySession(pOpen[e.pid])):'—';
       return `<tr><td>${_swHM(e.t)}</td><td><span class="jsw-tag ${e.kind}">${lbl}</span></td><td>#${_swEsc(e.pid)} <span style="color:var(--muted)">(abierta ${op})</span></td>`+
-        `<td>${e.vol.toFixed(2)}</td><td>${fx(e.price,5)}</td><td style="color:${e.entry==='IN'?'var(--muted)':_swCol(e.profit+e.swap)}">${e.entry==='IN'?'—':fmt$(e.profit+e.swap)}</td>`+
+        `<td>${e.vol.toFixed(2)}</td><td>${fx(e.price,5)}</td><td style="color:${e.entry==='IN'?'var(--muted)':_swSign(e.profit+e.swap)}">${e.entry==='IN'?'—':fmt$(e.profit+e.swap)}</td>`+
         `<td style="color:var(--muted)">${fmt$(e.comm)}</td><td>${e.posRemaining.toFixed(2)}</td></tr>`;
     }).join('');
-    return `<details class="jsw-day"><summary>${_swDayLbl(s.day,true)} · <span style="color:${_swCol(s.net)}">${fmt$(s.net)}</span> `+
+    return `<details class="jsw-day"><summary>${_swDayLbl(s.day,true)} · <span style="color:${_swSign(s.net)}">${fmt$(s.net)}</span> `+
       `<span style="color:var(--muted);font-weight:500">· ${s.opened} abiertas · ${s.closed} cerradas${s.partialPids.length?` · ${s.partialPids.length} parcial(es)`:''}</span></summary>`+
       `<div class="jsw-grid">`+
-        stat('Realizado de la sesión',fmt$(s.net),_swCol(s.net))+stat('Ganancias realizadas',fmt$(s.gains),'var(--green)')+stat('Pérdidas realizadas',fmt$(s.losses),'var(--red)')+
+        stat('Realizado de la sesión',fmt$(s.net),_swSign(s.net))+stat('Ganancias realizadas',fmt$(s.gains),'var(--green)')+stat('Pérdidas realizadas',fmt$(s.losses),'var(--red)')+
         stat('Comisiones',fmt$(s.comm),'var(--muted)')+stat('Swap',fmt$(s.swap),'var(--muted)')+
         stat('Vol. abierto',s.volOpened.toFixed(2))+stat('Vol. cerrado',s.volClosed.toFixed(2))+stat('Vol. restante (ciclo)',s.volRemaining.toFixed(2))+
         stat('Siguen abiertas',s.openAtEnd.length?s.openAtEnd.map(p=>'#'+_swEsc(p)).join(' '):'ninguna')+
@@ -1951,6 +1993,7 @@ let _lastData = null, _pxMode = 'complete', _curSym = '$';
 // ── ACCOUNT BAR ────────────────────────────────────────────────────────────────
 function renderAccBar(acc, trades, isDemo) {
   const today=todayStr();
+  // P&L Realizado Hoy = TODO lo cerrado en la sesión NY actual (cierres parciales y totales), incluyendo posiciones de un ciclo SWING + intradía
   const todayPnl=(trades||[]).filter(s=>s.date===today).reduce((a,s)=>a+s.netPnl,0);
   const fields=[
     {l:'Cuenta',v:acc.number||'—',cls:'neu'},
@@ -2183,7 +2226,7 @@ function renderCharts(m, sessions) {
     type:'line',
     data:{labels: extLabels,
       datasets:[
-        {label:'Realizado acum.',data:[...m.equity, null, null, null],borderColor:'#00e5ff',backgroundColor:'rgba(0,229,255,0.07)',tension:.4,fill:true,pointRadius:3,pointHoverRadius:7,pointBackgroundColor:'#00e5ff',pointBorderColor:'#00e5ff'},
+        {label:'Realizado acum.',data:[...m.equity, null, null, null],borderColor:'#00e5ff',backgroundColor:'rgba(0,255,136,0.18)',borderWidth:2,tension:.4,fill:{target:'origin',above:'rgba(0,255,136,0.18)',below:'rgba(255,51,85,0.22)'},pointRadius:2.2,pointHoverRadius:6,pointBackgroundColor:'#00e5ff',pointBorderColor:'#00e5ff'},
         {label:'+30d',data:new Array(histLen).fill(null).concat([proj30,null,null]),borderColor:'rgba(181,123,255,0.8)',backgroundColor:'transparent',borderDash:[6,4],tension:0,pointRadius:6,pointHoverRadius:8,pointBackgroundColor:'rgba(181,123,255,0.8)',borderWidth:2},
         {label:'+60d',data:new Array(histLen).fill(null).concat([null,proj60,null]),borderColor:'rgba(181,123,255,0.6)',backgroundColor:'transparent',borderDash:[6,4],tension:0,pointRadius:6,pointHoverRadius:8,pointBackgroundColor:'rgba(181,123,255,0.6)',borderWidth:2},
         {label:'+90d',data:new Array(histLen).fill(null).concat([null,null,proj90]),borderColor:'rgba(181,123,255,0.4)',backgroundColor:'transparent',borderDash:[6,4],tension:0,pointRadius:6,pointHoverRadius:8,pointBackgroundColor:'rgba(181,123,255,0.4)',borderWidth:2},
@@ -2246,8 +2289,8 @@ function renderCharts(m, sessions) {
   charts['dd']=new Chart(document.getElementById('ddChart'),{
     type:'line',
     data:{labels:ddPts.map(q=>{const d=new Date(q.date+'T12:00:00');return (d.getMonth()+1)+'/'+d.getDate();}),
-      datasets:[{label:'Drawdown',data:ddPts.map(q=>-q.dd),borderColor:'rgba(255,51,85,0.8)',backgroundColor:'rgba(255,51,85,0.08)',tension:0,fill:true,
-        pointRadius:2,pointHoverRadius:6,pointHitRadius:14,pointBackgroundColor:'rgba(255,51,85,0.9)'}]},
+      datasets:[{label:'Drawdown',data:ddPts.map(q=>-q.dd),borderColor:'rgba(255,51,85,0.8)',backgroundColor:'rgba(255,51,85,0.08)',borderWidth:2,tension:0,fill:true,
+        pointRadius:2.2,pointHoverRadius:6,pointHitRadius:14,pointBackgroundColor:'rgba(255,51,85,0.9)'}]},
     options:{...cOpts(v=>'$'+v.toFixed(0)),responsive:true,
       interaction:{mode:'nearest',axis:'x',intersect:false},
       plugins:{legend:{display:false},tooltip:{
@@ -2605,6 +2648,17 @@ function _renderCalendarForMonth(sessions, year, month) {
   cal.innerHTML = '';
   const today = todayStr();
   const swShown = new Set();
+  if(!cal._swHover){   // una sola vez: resaltar el ciclo completo al pasar el mouse por cualquiera de sus días (no por el mini-marco intradía)
+    cal._swHover = true;
+    const setHover = id => {
+      document.querySelectorAll('#calGrid .cal-swc.sw-hover').forEach(e=>e.classList.remove('sw-hover'));
+      if(id) document.querySelectorAll('#calGrid .cal-swc[data-cyc="'+id+'"]').forEach(e=>e.classList.add('sw-hover'));
+    };
+    cal.addEventListener('mouseover', ev => { const c = ev.target.closest && ev.target.closest('.cal-swc'); const m = ev.target.closest && ev.target.closest('.cal-mini'); setHover(c && !m ? c.dataset.cyc : null); });
+    cal.addEventListener('mouseleave', () => setHover(null));
+  }
+  const swToday = (swMap[today] || [])[0];                       // SWING que cubre hoy
+  const hlOn = !!swToday && dayPnl[today] === undefined;         // hoy sin actividad intradía → marco sobre todo el bloque
   // Fill leading empty cells
   for(let i = 0; i < firstDay.getDay(); i++) cal.innerHTML += '<div class="cal-day empty"></div>';
   // Fill days of month
@@ -2623,11 +2677,18 @@ function _renderCalendarForMonth(sessions, year, month) {
       const swCls = dayClass(net)==='win' ? 'win' : dayClass(net)==='loss' ? 'loss' : 'neu';   // color = resultado REALIZADO (nunca el flotante)
       const fmtS = v => { const a=Math.abs(v); return a>=1000 ? (v>=0?'+':'-')+'$'+(a/1000).toFixed(1)+'k' : (v>=0?'+':'')+fmt$(v); };
       let inner = first ? `<div class="cal-pnl">${fmtS(net)}</div><div class="cal-sw">${sw.counts.total} pos. · SWING${act?' ●':''}</div>` : '';
-      const badges = swc.slice(1).map(c=>`<span class="cal-intra" onclick="event.stopPropagation();openSwingJournal('${c.id}')">+SWING</span>`).join('') +
-        (pnl !== undefined ? `<span class="cal-intra" onclick="event.stopPropagation();openJournal('${k}', _intraDays.find(s=>s.date==='${k}'))">intradía ${fmtS(pnl)}</span>` : '');
+      const chips = swc.slice(1).map(c=>`<span class="cal-intra" onclick="event.stopPropagation();openSwingJournal('${c.id}')">+SWING</span>`).join('');
+      const miniHtml = (pnl !== undefined ? `<div title="INTRADÍA ${k}: ${fmt$(pnl)} neto del día · ${cnt} posiciones — Click para el journal intradía" class="cal-mini ${dayClass(pnl)==='win'?'win':dayClass(pnl)==='loss'?'loss':'neu'} ${k === today ? 'today-marker' : ''}" onclick="event.stopPropagation();openJournal('${k}', _intraDays.find(s=>s.date==='${k}'))"><span class="mi-t">intradía</span><span class="mi-r">${fmtS(pnl)}</span><span class="mi-n">${cnt} pos.</span>${journalHas(k)?'<span class="mi-note">📝</span>':''}</div>` : '');
       const noteCls = (first && journalHas(sw.id)) ? 'has-note' : '';
-      cal.innerHTML += `<div class="cal-day swing ${swCls} ${jl?'sw-jl':''} ${jr?'sw-jr':''} ${act?'sw-active':''} ${noteCls} ${k === today ? 'today-marker' : ''}" onclick="openSwingJournal('${sw.id}')" style="cursor:pointer;" title="${sw.id}: ${fmt$(net)} realizado · ${sw.counts.total} posiciones · ${sw.startDay} → ${act?'en curso':sw.endDay} — Click para el journal SWING">
-        <div class="cal-num">${d.getDate()}</div>${inner}${badges}</div>`;
+      // Número del día: si el intradía de ese día coincide con el resultado del SWING se queda de ese color; si no coincide, blanco
+      const intraCls = pnl !== undefined ? (dayClass(pnl)==='win'?'win':dayClass(pnl)==='loss'?'loss':'neu') : null;
+      const numCol = intraCls ? (intraCls === swCls ? ({win:'var(--green)',loss:'var(--red)',neu:'#ffcc00'})[swCls] : '#fff') : '';
+      // Marco azul de HOY: con actividad intradía hoy rodea solo el círculo intradía; sin ella, envuelve el SWING desde su inicio hasta hoy
+      const inHl = hlOn && sw === swToday && k >= sw.startDay && k <= today;
+      const hl = inHl ? 'sw-hl' + ((col>0 && k > sw.startDay) ? '' : ' sw-hl-l') + ((col<6 && k < today) ? '' : ' sw-hl-r') : '';
+      cal.innerHTML += `<div data-cyc="${sw.id}" class="cal-day cal-swc ${jl?'sw-wjl':''} ${noteCls?'sw-note':''}" onclick="openSwingJournal('${sw.id}')" title="${sw.id}: ${fmt$(net)} realizado · ${sw.counts.total} posiciones · ${sw.startDay} → ${act?'en curso':sw.endDay} — Click para el journal SWING">
+        <div class="cal-day swing sw-bg ${swCls} ${jl?'sw-jl':''} ${jr?'sw-jr':''} ${act?'sw-active':''} ${noteCls} ${hl}"></div>
+        <div class="sw-body ${swCls}"><div class="cal-num"${numCol?` style="color:${numCol}"`:''}>${d.getDate()}</div>${inner}${chips}</div>${miniHtml}</div>`;
       continue;
     }
     const cls = pnl === undefined ? (isWeekend ? 'empty' : 'be') : dayClass(pnl)==='win' ? 'win' : dayClass(pnl)==='loss' ? 'loss' : 'neu';
@@ -3272,7 +3333,6 @@ function openJournal(dateStr, day) {
     <div class="jstat"><div class="jstat-l">Posiciones</div><div class="jstat-v" style="color:var(--cyan)">${nPos} (${day.wins}G / ${day.losses}P)</div></div>
     <div class="jstat"><div class="jstat-l">Media por posición</div><div class="jstat-v" style="color:${dayPnl>=0?'var(--green)':'var(--red)'}">${fmt$(nPos?dayPnl/nPos:0)}</div></div>
     <div class="jstat"><div class="jstat-l">Comisiones</div><div class="jstat-v" style="color:var(--muted)">${hasDay&&day.costsKnown?fmt$(day.comm):'N/D'}</div></div>
-    <div class="jstat"><div class="jstat-l">Swap</div><div class="jstat-v" style="color:var(--muted)">${hasDay&&day.costsKnown?fmt$(day.swap||0):'N/D'}</div></div>
   `;
   }
 
