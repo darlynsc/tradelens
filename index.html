@@ -2120,6 +2120,13 @@ document.addEventListener('click',e=>{
   if(c.classList.contains('tip-open')){ c.classList.remove('tip-open'); return; }
   clearKpiTips(c); c.classList.add('tip-open'); placeKpiTip(c);
 });
+// Drawdown y Curva acumulada: el tooltip se cierra al tocar fuera de la gráfica (en móvil Chart.js no lo cierra solo).
+document.addEventListener('pointerdown',e=>{
+  ['dd','eq'].forEach(k => {
+    const ch = typeof charts !== 'undefined' && charts[k]; if(!ch || e.target === ch.canvas) return;
+    const t = ch.tooltip; if(t && t.getActiveElements && t.getActiveElements().length){ ch.setActiveElements([]); t.setActiveElements([], {x:0, y:0}); ch.update('none'); }
+  });
+});
 // Explicación de «Métricas Clave — Progreso»: se abre/cierra tocando el círculo «i»; también con la X o tocando fuera.
 document.addEventListener('click',e=>{
   const mi=e.target.closest&&e.target.closest('.metric-info');
@@ -2272,6 +2279,11 @@ const cOpts=(cb)=>{
       y:{ticks:{color:tickColor,font:{size:9,family:'ZeroPlain, Inter, IBM Plex Mono'},callback:cb||undefined},grid:{color:gridColor}}
     }};
 };
+// Tooltips de Drawdown y Curva acumulada: globo con triangulito apuntando al día. El texto SIEMPRE va arriba del punto (triángulo hacia abajo),
+// así nunca tapa las fechas del eje inferior.
+const tipY = () => 'bottom';
+// Fecha corta para tooltips: "26 oct" (con año solo si no es el actual).
+const tipDate = d => { const [y, m, dd] = String(d).split('-').map(Number); if(!y) return d; return dd + ' ' + ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'][m - 1] + (y !== new Date().getFullYear() ? ' ' + y : ''); };
 function dc(id){ if(charts[id]){charts[id].destroy();delete charts[id];} }
 
 function renderCharts(m, sessions) {
@@ -2300,6 +2312,13 @@ function renderCharts(m, sessions) {
   const equityLabels = sessions.map((_,i)=>{const d=new Date(sessions[i].date+'T12:00:00');return (d.getMonth()+1)+'/'+(d.getDate());});
   const extLabels = [...equityLabels, '+30d', '+60d', '+90d'];
 
+  // Cursor vertical punteado (misma lógica visual que el Drawdown): marca el punto activo al deslizar/tocar.
+  const eqCursor={id:'eqCursor',afterDatasetsDraw(chart){
+    const t=chart.tooltip; if(!t||!t.getActiveElements||!t.getActiveElements().length) return;
+    const x=t.getActiveElements()[0].element.x, a=chart.chartArea, ctx=chart.ctx;
+    ctx.save(); ctx.beginPath(); ctx.moveTo(x,a.top); ctx.lineTo(x,a.bottom); ctx.lineWidth=1; ctx.setLineDash([4,3]);
+    ctx.strokeStyle=document.body.classList.contains('light')?'rgba(10,26,42,0.45)':'rgba(192,212,224,0.5)'; ctx.stroke(); ctx.restore();
+  }};
   charts['eq']=new Chart(document.getElementById('equityChart'),{
     type:'line',
     data:{labels: extLabels,
@@ -2313,7 +2332,8 @@ function renderCharts(m, sessions) {
       ]
     },
     options:{
-      ...cOpts(v=>'$'+v.toFixed(0)),
+      ...cOpts(v=>'$'+mny(v,0)),
+      interaction:{mode:'index',axis:'x',intersect:false},
       plugins:{
         legend:{display:true, labels:{color:'#c0d4e0',font:{size:9,family:'ZeroPlain, Inter, IBM Plex Mono'},filter:(item)=>item.text!==''}},
         tooltip:{
@@ -2321,36 +2341,38 @@ function renderCharts(m, sessions) {
             title: ctx => {
               const i = ctx[0].dataIndex;
               const s = sessions[i];
-              if(i >= histLen) return extLabels[i] + ' Proyectado';
-              return s ? s.date : ctx[0].label;
+              if(i >= histLen) return extLabels[i];
+              return s ? tipDate(s.date) : ctx[0].label;
             },
             label: ctx => {
               const i = ctx.dataIndex;
               if(ctx.dataset.label === '') return null;
-              if(i >= histLen) return ` Proyección: $${ctx.parsed.y?.toFixed(2) ?? '—'}`;
+              if(i >= histLen) return ` Proyección: $${ctx.parsed.y == null ? '—' : mny(ctx.parsed.y)}`;
               const cumVal = ctx.parsed.y;
               const dailyGain = equityDailyGain[i];
               if(cumVal === null || dailyGain === undefined) return null;
               const sign = dailyGain >= 0 ? '+' : '';
               return [
-                ` Resultado realizado acum.: $${cumVal.toFixed(2)}`,
-                ` Resultado del día: ${sign}$${dailyGain.toFixed(2)}`
+                ` Acum.: $${mny(cumVal)}`,
+                ` Día: ${sign}$${mny(dailyGain)}`
               ];
             }
           },
-          filter: item => item.parsed.y !== null,
+          filter: item => item.parsed.y !== null && item.dataset.label !== '',
           backgroundColor: document.body.classList.contains('light') ? 'rgba(240,244,248,0.97)' : 'rgba(8,13,18,0.95)',
           borderColor: document.body.classList.contains('light') ? 'rgba(0,119,170,0.4)' : 'rgba(0,229,255,0.4)',
           borderWidth:1,
           titleColor: document.body.classList.contains('light') ? '#0a1a2a' : '#c0d4e0',
           bodyColor: document.body.classList.contains('light') ? '#0a1a2a' : '#ddeeff',
           padding:10,
-          displayColors:false
+          displayColors:false,
+          yAlign:tipY, caretSize:7, caretPadding:8
         }
       },
       responsive:true,
       animation:{duration:600}
-    }
+    },
+    plugins:[eqCursor]
   });
 
   // DRAWDOWN — serie de resultados REALIZADOS (netos de costes) al cierre de cada día operado.
@@ -2369,19 +2391,18 @@ function renderCharts(m, sessions) {
     data:{labels:ddPts.map(q=>{const d=new Date(q.date+'T12:00:00');return (d.getMonth()+1)+'/'+d.getDate();}),
       datasets:[{label:'Drawdown',data:ddPts.map(q=>-q.dd),borderColor:'rgba(255,51,85,0.8)',backgroundColor:'rgba(255,51,85,0.08)',borderWidth:2,tension:0,fill:true,
         pointRadius:2.2,pointHoverRadius:6,pointHitRadius:14,pointBackgroundColor:'rgba(255,51,85,0.9)'}]},
-    options:{...cOpts(v=>'$'+v.toFixed(0)),responsive:true,
+    options:{...cOpts(v=>'$'+mny(v,0)),responsive:true,
       interaction:{mode:'nearest',axis:'x',intersect:false},
       plugins:{legend:{display:false},tooltip:{
         callbacks:{
-          title:c=>`${ddPts[c[0].dataIndex].date} · cierre del día`,
+          title:c=>tipDate(ddPts[c[0].dataIndex].date),
           label:c=>{ const q=ddPts[c.dataIndex]; return [
-            ` Drawdown: ${fmt$(-q.dd)}`,
-            q.pct==null?' Drawdown %: N/D (sin base de capital válida)':` Drawdown %: ${q.pct>0?'-':''}${q.pct.toFixed(2)} % del capital en el pico`,
-            ` Resultado del día: ${fmt$(q.day)} (${q.trades} pos.)`,
-            ` Realizado acumulado: ${fmt$(q.cum)}`]; }
+            ` Drawdown: ${fmt$(-q.dd)} (${q.pct==null?'N/D':(q.pct>0?'-':'')+q.pct.toFixed(2)+'%'})`,
+            ` Día: ${fmt$(q.day)} · ${q.trades} pos.`,
+            ` Acum.: ${fmt$(q.cum)}`]; }
         },
         backgroundColor:ddLight?'rgba(240,244,248,0.97)':'rgba(8,13,18,0.95)',borderColor:ddLight?'rgba(0,119,170,0.4)':'rgba(0,229,255,0.4)',borderWidth:1,
-        titleColor:ddLight?'#0a1a2a':'#c0d4e0',bodyColor:ddLight?'#0a1a2a':'#ddeeff',padding:10,displayColors:false}},
+        titleColor:ddLight?'#0a1a2a':'#c0d4e0',bodyColor:ddLight?'#0a1a2a':'#ddeeff',padding:10,displayColors:false,yAlign:tipY,caretSize:7,caretPadding:8}},
       animation:{duration:600}},
     plugins:[ddCursor]
   });
@@ -2452,6 +2473,7 @@ function renderCharts(m, sessions) {
       meta.data.forEach((arc, i) => {
         const val = chart.data.datasets[0].data[i];
         if(!val || val === 0) return;
+        if(!chart.getDataVisibility(i)) return;   // porción desactivada en la leyenda: sin dígito
         const cx = arc.x, cy = arc.y;
         const midAngle = (arc.startAngle + arc.endAngle) / 2;
         ctx.save();
@@ -2524,9 +2546,9 @@ function renderCharts(m, sessions) {
     type:'bar',
     data:{labels:wkIdx.map(i=>dayNames7[i]+' '+wkDates[i].slice(8)),
       datasets:[{data:weekVals,backgroundColor:weekVals.map(v=>v>=0?'rgba(0,229,255,0.55)':'rgba(255,51,85,0.75)'),borderColor:weekVals.map(v=>v>=0?'rgba(0,229,255,0.55)':'rgba(255,51,85,1)'),borderWidth:1,borderRadius:6}]},
-    options:{...cOpts(v=>'$'+v.toFixed(0)),responsive:true,plugins:{legend:{display:false},
+    options:{...cOpts(v=>'$'+mny(v,0)),responsive:true,plugins:{legend:{display:false},
         tooltip:{callbacks:{label:c=>c.parsed.y===null?' Sin operaciones':` Neto del día: ${fmt$(c.parsed.y)}`}}},
-      scales:{x:{...cOpts().scales.x,grid:{display:false}},y:cOpts(v=>'$'+v.toFixed(0)).scales.y},animation:{duration:600}},
+      scales:{x:{...cOpts().scales.x,grid:{display:false}},y:cOpts(v=>'$'+mny(v,0)).scales.y},animation:{duration:600}},
     plugins:[noDataPlugin]
   });
 
@@ -2570,7 +2592,7 @@ function renderMonthly(){
   const labels=keys.map(k=>MONTH_NAMES_S[+k.slice(5)-1]+' '+k.slice(0,4));
   const winM=vals.filter(v=>v>0).length, lossM=vals.filter(v=>v<0).length;
   const bm=document.getElementById('monthlyBestMonth');
-  if(bm){ if(vals.length){ const bi=vals.indexOf(Math.max(...vals)); bm.innerHTML=`Mejor: <span style="color:${vals[bi]>=0?'var(--green)':'var(--red)'}">${labels[bi]} (${vals[bi]>=0?'+':'-'}$${Math.abs(vals[bi]).toFixed(0)})</span>`; } else bm.innerHTML=''; }
+  if(bm){ if(vals.length){ const bi=vals.indexOf(Math.max(...vals)); bm.innerHTML=`Mejor: <span style="color:${vals[bi]>=0?'var(--green)':'var(--red)'}">${labels[bi]} (${vals[bi]>=0?'+':'-'}$${mny(Math.abs(vals[bi]))})</span>`; } else bm.innerHTML=''; }
   const wm=document.getElementById('monthlyWinCount'); if(wm) wm.textContent=vals.length?`✅ ${winM} mes${winM!==1?'es':''}`:'';
   const lm=document.getElementById('monthlyLossCount'); if(lm) lm.textContent=vals.length?`❌ ${lossM} mes${lossM!==1?'es':''}`:'';
   const cv=document.getElementById('monthlyChart'), em=document.getElementById('monthlyEmpty');
@@ -2584,9 +2606,9 @@ function renderMonthly(){
       backgroundColor:vals.map(v=>v>=0?'rgba(0,255,136,0.75)':'rgba(255,51,85,0.75)'),
       borderColor:vals.map(v=>v>=0?'rgba(0,255,136,1)':'rgba(255,51,85,1)'),borderWidth:1,borderRadius:5,borderSkipped:false,maxBarThickness:36,barPercentage:0.5,categoryPercentage:0.8}]},
     options:{responsive:true,
-      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` ${c.parsed.y>=0?'+':''}$${c.parsed.y.toFixed(2)}`,title:c=>c[0].label}}},
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` ${c.parsed.y>=0?'+':''}$${mny(c.parsed.y)}`,title:c=>c[0].label}}},
       scales:{x:{ticks:{color:tick,font:{size:10,family:'ZeroPlain, Inter, IBM Plex Mono'}},grid:{display:false}},
-        y:{ticks:{color:tick,font:{size:9,family:'ZeroPlain, Inter, IBM Plex Mono'},callback:v=>(v>=0?'+':'')+' $'+v.toFixed(0)},grid:{color:isLight?'rgba(150,180,210,0.45)':'rgba(22,32,48,0.6)'},border:{dash:[4,4]}}},
+        y:{ticks:{color:tick,font:{size:9,family:'ZeroPlain, Inter, IBM Plex Mono'},callback:v=>(v>=0?'+':'')+' $'+mny(v,0)},grid:{color:isLight?'rgba(150,180,210,0.45)':'rgba(22,32,48,0.6)'},border:{dash:[4,4]}}},
       animation:{duration:700}}
   });
 }
@@ -2870,29 +2892,29 @@ function renderRiskScaling(balanceOverride) {
     return `<div class="risk-level ${cls}">
       <div class="risk-level-num">Nivel ${l.num}</div>
       <div class="risk-level-target">$${l.target.toLocaleString('en',{minimumFractionDigits:2,maximumFractionDigits:2})}</div>
-      <div class="risk-level-amount">${riskPct}% = $${l.riskAmt.toFixed(2)}/trade</div>
+      <div class="risk-level-amount">${riskPct}% = $${mny(l.riskAmt)}/trade</div>
     </div>`;
   }).join('');
 
   document.getElementById('riskProgFill').style.width = progress.toFixed(1) + '%';
   document.getElementById('riskProgPct').textContent = progress.toFixed(1) + '%';
   document.getElementById('riskProgLabel').textContent =
-    `Nivel ${activeIdx+1} → Nivel ${nextIdx+1} | Balance actual: $${balance.toFixed(2)}`;
+    `Nivel ${activeIdx+1} → Nivel ${nextIdx+1} | Balance actual: $${mny(balance)}`;
 
   const tip = activeIdx === nextIdx
-    ? `<strong>🏆 ¡Máximo nivel alcanzado!</strong> Tu capital está en $${balance.toFixed(2)}. Sigue ejecutando con disciplina.`
-    : `<strong>Nivel actual: ${activeIdx+1}</strong> — Riesgo por trade: <strong>$${curr.riskAmt.toFixed(2)}</strong> (${riskPct}% de $${curr.target.toFixed(2)})<br>
-       Para subir al Nivel ${nextIdx+1} necesitas <strong>$${needed.toFixed(2)} más</strong> → llegarás a $${next.target.toFixed(2)} y podrás arriesgar <strong>$${next.riskAmt.toFixed(2)}/trade</strong>.<br>
-       <span style="color:var(--muted);font-size:11px;">⚙️ El umbral del ${threshold}% garantiza que subas solo cuando el crecimiento es real, no por suerte. Si caes por debajo de $${curr.target.toFixed(2)}, vuelves al riesgo del Nivel ${activeIdx+1}.</span>`;
+    ? `<strong>🏆 ¡Máximo nivel alcanzado!</strong> Tu capital está en $${mny(balance)}. Sigue ejecutando con disciplina.`
+    : `<strong>Nivel actual: ${activeIdx+1}</strong> — Riesgo por trade: <strong>$${mny(curr.riskAmt)}</strong> (${riskPct}% de $${mny(curr.target)})<br>
+       Para subir al Nivel ${nextIdx+1} necesitas <strong>$${mny(needed)} más</strong> → llegarás a $${mny(next.target)} y podrás arriesgar <strong>$${mny(next.riskAmt)}/trade</strong>.<br>
+       <span style="color:var(--muted);font-size:11px;">⚙️ El umbral del ${threshold}% garantiza que subas solo cuando el crecimiento es real, no por suerte. Si caes por debajo de $${mny(curr.target)}, vuelves al riesgo del Nivel ${activeIdx+1}.</span>`;
   document.getElementById('riskNextTip').innerHTML = tip;
 
   // ── Detectar subida de nivel y notificar
   if(_lastRiskLevel !== -1 && activeIdx > _lastRiskLevel) {
-    const newRiskAmt = curr.riskAmt.toFixed(2);
+    const newRiskAmt = mny(curr.riskAmt);
     showRiskToast(
       `🎯 ¡Subiste al Nivel ${activeIdx + 1}!`,
-      `Tu balance alcanzó <strong style="color:var(--cyan)">$${balance.toFixed(2)}</strong>.<br>
-       Nuevo riesgo por trade: <strong style="color:var(--green)">$${newRiskAmt}</strong> (${riskPct}% de $${curr.target.toFixed(2)}).<br>
+      `Tu balance alcanzó <strong style="color:var(--cyan)">$${mny(balance)}</strong>.<br>
+       Nuevo riesgo por trade: <strong style="color:var(--green)">$${newRiskAmt}</strong> (${riskPct}% de $${mny(curr.target)}).<br>
        <span style="color:var(--muted);font-size:10px;">Actualiza tu lot size en MT5.</span>`
     );
   }
@@ -3636,7 +3658,7 @@ async function openMonthlySummary() {
     '5) Si faltan riesgo inicial, stop, MAE/MFE o exposición, dilo; no inventes motivos, reglas ni intenciones. '+
     '6) El conteo de posiciones es un dato secundario por posición, no un resultado diario. '+
     '7) El MAE/MFE en PUNTOS es distancia de precio (por símbolo) y NO es dinero: no lo compares ni lo mezcles con importes de P/L. Solo cuenta como medición fiable la marcada completa; las parciales son cotas inferiores y las aproximadas son estimaciones. No recomiendes stops por un promedio de MAE ni asumas que el pasado fija extremos futuros.';
-  const money=v=>`${v>=0?'+':'-'}$${Math.abs(v).toFixed(2)}`;
+  const money=v=>`${v>=0?'+':'-'}$${mny(Math.abs(v))}`;
   const digest = COACH_RULES+'\n\nDATOS POR DÍA OPERATIVO:\n'+entries.map(([date, e]) => {
     if(/^SWING-\d{4}-\d{6}$/.test(date)){
       const c=_swingCycles.find(x=>x.id===date);
@@ -3679,8 +3701,8 @@ function renderCoach(m, days, balance, deposit, campaigns) {
   while(bal >= lvlTarget * factor) { lvl++; lvlTarget*=factor; }
   const nextTarget = lvlTarget * factor;
   const pctToNext = ((bal - lvlTarget)/(nextTarget - lvlTarget)*100).toFixed(1);
-  const needed = (nextTarget - bal).toFixed(2);
-  tips.push({c:'c',l:`Nivel de Riesgo ${lvl+1} 📊`,t:`Riesgo actual: <strong>$${(lvlTarget*rPct/100).toFixed(2)}/trade</strong> (${rPct}% de $${lvlTarget.toFixed(2)}). Llevas un <strong>${pctToNext}%</strong> del camino al Nivel ${lvl+2} — necesitas <strong>$${needed}</strong> más para escalar el riesgo a $${(nextTarget*rPct/100).toFixed(2)}/trade.`});
+  const needed = mny(nextTarget - bal);
+  tips.push({c:'c',l:`Nivel de Riesgo ${lvl+1} 📊`,t:`Riesgo actual: <strong>$${mny((lvlTarget*rPct/100))}/trade</strong> (${rPct}% de $${mny(lvlTarget)}). Llevas un <strong>${pctToNext}%</strong> del camino al Nivel ${lvl+2} — necesitas <strong>$${needed}</strong> más para escalar el riesgo a $${mny((nextTarget*rPct/100))}/trade.`});
 
   // ── (1) Resultado diario primero
   const dayTxt = `${S.wins} días ganadores, ${S.losses} perdedores${S.be?`, ${S.be} BreakEven`:''} de ${S.N} días operados (win rate ${fmtPct(S.winPct,0)}, sin contar BreakEven)`;
@@ -3837,7 +3859,7 @@ function checkDailyDrawdown(sessionsArg, balanceArg) {
   const eqLoss=acc.equity!=null?Math.max(0,base-acc.equity):null;
   const used=eqLoss!=null?eqLoss:realLoss;
   if(base>0&&used>=limit){
-    sub.innerHTML=`Pérdida del día (${eqLoss!=null?'último equity recibido vs balance de inicio, incl. flotante; la EA lo envía solo por eventos':'solo realizada'}): <strong style="color:var(--red)">-$${used.toFixed(2)} (${(used/base*100).toFixed(2)}%)</strong> · Realizada: -$${realLoss.toFixed(2)} · Límite: <strong>${limitPct}% = $${limit.toFixed(2)}</strong>`;
+    sub.innerHTML=`Pérdida del día (${eqLoss!=null?'último equity recibido vs balance de inicio, incl. flotante; la EA lo envía solo por eventos':'solo realizada'}): <strong style="color:var(--red)">-$${mny(used)} (${(used/base*100).toFixed(2)}%)</strong> · Realizada: -$${mny(realLoss)} · Límite: <strong>${limitPct}% = $${mny(limit)}</strong>`;
     banner.classList.add('show');
   } else { banner.classList.remove('show'); }
 }
@@ -3863,15 +3885,15 @@ function renderROIProjection(m, sessions, balance) {
     return `<div class="roi-card">
       <div class="roi-card-label">+${days} días</div>
       <div class="roi-card-val" style="color:${color}">${sign}${pct.toFixed(1)}%</div>
-      <div class="roi-card-sub">${sign}$${gain.toFixed(2)}</div>
+      <div class="roi-card-sub">${sign}$${mny(gain)}</div>
     </div>`;
   }
   document.getElementById('roiCards').innerHTML = roiCard(30,p30)+roiCard(60,p60)+roiCard(90,p90);
   const spd = m.tpd.toFixed(2);
   const expSign = m.exp >= 0 ? '+' : '';
   document.getElementById('roiNote').innerHTML =
-    `Base: <strong style="color:var(--cyan)">$${lastEquity.toFixed(2)}</strong> resultado realizado acumulado (no es el equity de la cuenta) · ` +
-    `Expectancy por posición: <strong style="color:${m.exp>=0?'var(--green)':'var(--red)'}">${expSign}$${m.exp.toFixed(2)}/posición</strong> · ` +
+    `Base: <strong style="color:var(--cyan)">$${mny(lastEquity)}</strong> resultado realizado acumulado (no es el equity de la cuenta) · ` +
+    `Expectancy por posición: <strong style="color:${m.exp>=0?'var(--green)':'var(--red)'}">${expSign}$${mny(m.exp)}/posición</strong> · ` +
     `Ritmo: <strong>${spd} posiciones/día calendario</strong> (histórico). ` +
     `<span style="color:var(--muted);">ESCENARIO HIPOTÉTICO (no es historial): expectativa por operación × ritmo histórico constante. No incluye varianza, drawdowns, costes futuros ni cambios de riesgo.</span>`;
 }
@@ -3901,6 +3923,7 @@ function exportCSV() {
 
 // ── HELPERS ────────────────────────────────────────────────────────────────────
 function curSymbolOf(c){ c=String(c||'USD').toUpperCase(); return ({USD:'$',EUR:'€',GBP:'£'})[c]||(c+' '); }
+function mny(v,d=2){ v=Number(v); return isFinite(v) ? v.toLocaleString('en',{minimumFractionDigits:d,maximumFractionDigits:d}) : String(v); }   // dinero con comas de miles y punto decimal
 function fmt$(v){ const s=v>=0?_curSym:'-'+_curSym; return s+Math.abs(v).toLocaleString('en',{minimumFractionDigits:2,maximumFractionDigits:2}); }
 
 // ── EXCURSIÓN DE PRECIO (MAE/MFE en PUNTOS de SYMBOL_POINT) ──
