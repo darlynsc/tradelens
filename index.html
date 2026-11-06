@@ -304,6 +304,29 @@ canvas{max-height:200px;}
 .cal-day.neu{background:rgba(255,204,0,0.18);color:#ffcc00;border:1px solid rgba(255,204,0,0.3);}
 .cal-day.today-marker{box-shadow:0 0 0 2px var(--cyan) inset;}
 .cal-day.empty{background:transparent;min-height:54px;border:none;}
+/* SWING: las fechas del ciclo forman un bloque continuo (se cubre el hueco de la rejilla entre días contiguos) */
+.cal-day.swing{position:relative;}
+.cal-day.swing:hover{transform:none;filter:brightness(1.18);}
+.cal-day.swing.sw-jl{margin-left:-4px;border-left-width:0;border-top-left-radius:0;border-bottom-left-radius:0;}
+.cal-day.swing.sw-jr{border-right-width:0;border-top-right-radius:0;border-bottom-right-radius:0;}
+.cal-day.swing.sw-active{border-style:dashed;}
+.cal-day .cal-sw{font-size:9px;font-weight:800;letter-spacing:.5px;margin-top:2px;text-align:center;white-space:nowrap;}
+.cal-day .cal-intra{font-size:8px;line-height:1.2;margin-top:3px;padding:1px 4px;border-radius:8px;background:rgba(0,0,0,.28);border:1px solid rgba(255,255,255,.12);color:var(--text);cursor:pointer;white-space:nowrap;}
+.jsw-badge{display:inline-block;font-size:9px;font-weight:800;letter-spacing:1px;padding:2px 8px;border-radius:10px;border:1px solid var(--cyan);color:var(--cyan);margin-right:6px;vertical-align:middle;}
+.jsw-warn{font-size:11px;color:var(--warn);background:rgba(255,204,0,.08);border:1px solid rgba(255,204,0,.25);border-radius:8px;padding:8px 10px;margin:0 0 12px;line-height:1.5;}
+.jsw-act{margin:0 0 16px;border:1px solid var(--b1);border-radius:10px;padding:10px 12px;background:var(--s2);}
+.jsw-act>summary{cursor:pointer;font-size:11px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--cyan);}
+.jsw-day{margin:8px 0 0;border-top:1px solid var(--b1);padding-top:8px;}
+.jsw-day>summary{cursor:pointer;font-size:12px;font-weight:700;}
+.jsw-grid{display:flex;flex-wrap:wrap;gap:6px 18px;margin:10px 0;}
+.jsw-tbl{width:100%;border-collapse:collapse;font-size:11px;margin-top:6px;}
+.jsw-tbl th{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;text-align:left;padding:3px 6px;font-weight:600;}
+.jsw-tbl td{padding:4px 6px;border-top:1px solid var(--b1);white-space:nowrap;}
+.jsw-tag{font-size:9px;font-weight:800;letter-spacing:.8px;padding:1px 6px;border-radius:8px;}
+.jsw-tag.OPEN,.jsw-tag.ADD{background:rgba(0,229,255,.12);color:var(--cyan);}
+.jsw-tag.PARTIAL{background:rgba(255,204,0,.12);color:var(--warn);}
+.jsw-tag.CLOSE{background:rgba(181,123,255,.14);color:var(--purple);}
+@media(max-width:700px){.cal-day .cal-sw{font-size:7px;letter-spacing:0;}.cal-day .cal-intra{display:none;}.jsw-tbl{display:block;overflow-x:auto;}}
 
 /* COACH */
 .coach-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin-bottom:24px;}
@@ -791,6 +814,11 @@ input.jimglink:focus{border-color:var(--cyan);}
   <div class="kpi-grid" id="kpiC"></div>
   <div id="campNote" style="font-size:10px;color:var(--muted);line-height:1.6;margin:-6px 0 18px;"></div>
 
+  <!-- CICLOS SWING (unidad estadística propia: 1 ciclo finalizado = 1 unidad) -->
+  <div class="sec-label purple">Ciclos SWING</div>
+  <div class="kpi-grid" id="kpiS"></div>
+  <div id="swNote" style="font-size:10px;color:var(--muted);line-height:1.6;margin:-6px 0 18px;"></div>
+
   <!-- RACHA ACTUAL + MAX RACHAS -->
   <div class="sec-label purple">Rachas de Días Operativos</div>
   <div class="streak-row" id="streakRow"></div>
@@ -988,6 +1016,7 @@ input.jimglink:focus{border-color:var(--cyan);}
       <button class="jmodal-close" onclick="closeJournal()">✕</button>
       <div class="jmodal-date" id="jmodalDate">—</div>
       <div class="jmodal-stats" id="jmodalStats"></div>
+      <div id="jswingAct" style="display:none"></div>
       <div class="jtag-label">¿Cómo ejecutaste hoy?</div>
       <div class="jtags">
         <div class="jtag" data-tag="ok" onclick="selectTag(this)">✅ Ejecuté bien</div>
@@ -1056,10 +1085,16 @@ let _brokerToday='', _lastAcc={}, _dataAgeSec=null, _isDemo=false;
 // Fecha "de hoy" coherente con las sesiones: fecha del servidor del bróker, avanzada con el reloj real.
 // offset = hora del bróker (EA) − hora real del envío; así el día cambia solo aunque la EA no envíe datos.
 let _brokerOffsetMs=null;
-function todayStr(){
-  if(_brokerOffsetMs==null) return ymd(new Date());
-  return new Date(Date.now()+_brokerOffsetMs).toISOString().slice(0,10);
-}
+// ── SESIÓN DE NUEVA YORK ───────────────────────────────────────────────────────
+// El día del calendario/Journal NO es el día del bróker: la sesión cambia a las 17:00 hora de Nueva York (con DST de EE. UU.).
+// Los deals traen la hora del servidor del bróker codificada como epoch; se resta el offset del bróker (_nyBrokerOff, en s) para
+// obtener UTC, se pasa a Nueva York y se suman 7 h: la fecha resultante es la sesión. Misma regla que swing-engine.js.
+let _nyBrokerOff=0;
+function _nthSun(y,m,n){ const f=1+((7-new Date(Date.UTC(y,m,1)).getUTCDay())%7); return f+7*(n-1); }
+function nyOffsetSec(u){ const y=new Date(u*1000).getUTCFullYear(), a=Date.UTC(y,2,_nthSun(y,2,2),7)/1000, b=Date.UTC(y,10,_nthSun(y,10,1),6)/1000; return (u>=a&&u<b)?-14400:-18000; }
+function nySessionUtc(u){ return new Date((u+nyOffsetSec(u)+25200)*1000).toISOString().slice(0,10); }
+function nySession(tBroker){ return nySessionUtc(tBroker-_nyBrokerOff); }
+function todayStr(){ return nySessionUtc(Math.floor(Date.now()/1000)); }   // sesión NY actual
 const ymd=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
 const fx=(v,d=2)=>(v==null||!isFinite(v))?'n/d':v.toFixed(d);
 const fxPF=v=>v==null?'n/d':(v===Infinity?'∞':v.toFixed(2));
@@ -1352,6 +1387,7 @@ function connectServer() {
   fetchAndRender(true);
 }
 
+let _swingSig = '';
 async function fetchAndRender(force) {
   try {
     const r = await fetch(`${serverURL}/data?token=${encodeURIComponent(serverToken)}`);
@@ -1362,8 +1398,11 @@ async function fetchAndRender(force) {
     const data = await r.json();
     const deals = (data.deals||[]).filter(d=>d.entry!=='BALANCE');
     const newCount = deals.length;
-    if(force || newCount !== lastDealCount) {
-      lastDealCount = newCount;
+    // Un ciclo SWING puede cambiar sin deals nuevos (snapshot de inicio de sesión: la posición sigue abierta y el bloque se extiende un día).
+    // La firma ignora el flotante para no redibujar todo el panel en cada envío periódico.
+    const swSig = data.swing ? JSON.stringify((data.swing.cycles||[]).map(c=>[c.id,c.state,c.lastDay,c.counts&&c.counts.total,c.counts&&c.counts.closed,c.realized&&c.realized.net])) : '';
+    if(force || newCount !== lastDealCount || swSig !== _swingSig) {
+      lastDealCount = newCount; _swingSig = swSig;
       showMsg('','');
       saveSession();
       document.getElementById('connectPanel').style.display='none';
@@ -1490,7 +1529,7 @@ function buildSessions(deals, openIds, exc, pxe) {
     const maxVol=entries.length?Math.max(...entries.map((_,i)=>entries.slice(0,i+1).reduce((a,b)=>a+b.volume,0))):totalVol;
     // Fecha operativa = día del servidor del bróker en que se CIERRA la posición (resultado realizado).
     // Los deals llevan hora del servidor codificada como epoch: toISOString() la lee sin convertir zona.
-    const date=new Date(endT*1000).toISOString().split('T')[0];
+    const date=nySession(endT);
     const x=exc[pid]; // MAE/MFE solo si la EA los midió desde la apertura (ob=1); nunca estimados
     const xok=x&&+x.ob===1;
     const maxFloatDD=xok?+Math.abs(+x.mae||0).toFixed(2):null;
@@ -1566,7 +1605,7 @@ function buildCampaigns(trades, campaignsEA) {
     const eaOk=ea&&+ea.ob===1;
     const endT=Math.max(...ts.map(t=>t.endT));
     return {id:ts[0].id,positions:ts.length,ids:ts.map(t=>t.id),sym:ts[0].sym,side:ts[0].side,
-      date:new Date(endT*1000).toISOString().split('T')[0],startT:ts[0].startT,endT,
+      date:nySession(endT),startT:ts[0].startT,endT,
       entries:ts.reduce((a,t)=>a+t.entries,0),totalVol:+ts.reduce((a,t)=>a+t.totalVol,0).toFixed(2),
       netPnl:net,risk0,r:risk0?+(net/risk0).toFixed(2):null,
       mae:eaOk?+Math.abs(+ea.mae||0).toFixed(2):null, mfe:eaOk?+(+ea.mfe||0).toFixed(2):null,
@@ -1647,7 +1686,7 @@ function calcMetrics(days, trades, balance, extra) {
   const rf=maxDD>0?total/maxDD:null;
   // Sharpe diario: retorno del día = neto del día / capital al inicio del día (balance previo + depósitos/retiros hasta ese día).
   // Solo días con operaciones (sin días ficticios a 0), σ muestral, √252, rf=0. n/d si falta la base de capital.
-  const cash=(extra.cashflows||[]).map(c=>({d:new Date(c.time*1000).toISOString().split('T')[0],a:+c.amount||0}));
+  const cash=(extra.cashflows||[]).map(c=>({d:nySession(c.time),a:+c.amount||0}));
   const cashKnown=extra.cashflows!==undefined;
   const cashTotal=_sum(cash.map(c=>c.a));
   const initial=balance!=null?balance-total-cashTotal:null;
@@ -1715,6 +1754,8 @@ function calcMetrics(days, trades, balance, extra) {
     cAvgPos:camps.length?_sum(camps.map(c=>c.positions))/camps.length:null,
     cAvgMAE:cex.length?_sum(cex.map(c=>c.mae))/cex.length:null,cAvgMFE:cex.length?_sum(cex.map(c=>c.mfe))/cex.length:null,cExcN:cex.length,
     cAvgR:crs.length?_sum(crs.map(c=>c.r))/crs.length:null,cRN:crs.length,
+    // ciclos SWING (unidad propia, separada de posiciones y días)
+    S:swingStatsOf(extra.swing),
     // día
     days:D.length,dayWins,dayLosses,dayBE:D.length-dayWins-dayLosses,dayWinPct:(dayWins+dayLosses)?dayWins/(dayWins+dayLosses)*100:null,
     streaks:calcDayStreaks(D),equity,pnls:dpn,maxDD,peak,rf,sharpe,sharpeWhy,sharpeProvisional:D.length<20,cashKnown,
@@ -1722,6 +1763,130 @@ function calcMetrics(days, trades, balance, extra) {
     commTotal:_sum(T.map(t=>t.comm||0)),swapTotal:_sum(T.map(t=>t.swap||0)),costsKnown:T.every(t=>t.costsKnown),
     maxTradesDay:D.length?Math.max(...D.map(d=>d.trades)):0,avgTradesDay:D.length?n/D.length:0
   };
+}
+
+// ── CICLOS SWING ───────────────────────────────────────────────────────────────
+// El SERVIDOR (swing-engine.js) identifica el ciclo, mantiene su continuidad y calcula sus resultados a partir de
+// los datos originales de MT5 (que no se modifican). El navegador SOLO representa lo ya calculado: no reconstruye
+// continuidad con información incompleta.
+// Regla: un ciclo sigue activo mientras quede ≥1 posición suya abierta; al cerrarse todas, termina y no admite más.
+// Unidad estadística: cada ciclo SWING FINALIZADO cuenta UNA vez (no por posición, deal, sesión ni día).
+// Los ciclos abiertos quedan fuera del win rate definitivo. El desglose por sesión es informativo: no se suma de nuevo.
+let _swingCycles = [], _intraDays = [];
+function swingPrep(sw, trades){
+  const cycles = (sw && Array.isArray(sw.cycles)) ? sw.cycles.filter(c=>c&&c.id&&c.realized&&c.counts) : [];
+  const pidCycle = (sw && sw.pidCycle) || {};
+  const byId = {}; trades.forEach(t=>{ byId[String(t.id)] = t; });
+  const units = cycles.filter(c=>c.state==='finished').map(c=>{
+    const tradeObjs = c.pids.map(p=>byId[p]).filter(Boolean);
+    const net = c.realized.net;
+    return {id:c.id, date:c.endDay, trades:c.counts.total, sym:c.sym,
+      entries:tradeObjs.reduce((a,t)=>a+(t.entries||0),0),
+      totalVol:+c.positions.reduce((a,p)=>a+p.volIn,0).toFixed(2),
+      grossPnl:c.realized.gross, comm:c.realized.comm, swap:c.realized.swap, costsKnown:true,
+      netPnl:net, cls:dayClass(net),
+      wins:c.positions.filter(p=>p.net>0).length, losses:c.positions.filter(p=>p.net<0).length,
+      tradeObjs, startT:c.startT, swing:true, cycleId:c.id, startDay:c.startDay};
+  });
+  return {cycles, pidCycle, units};
+}
+function swingStatsOf(sw){
+  const cs = (sw && Array.isArray(sw.cycles)) ? sw.cycles.filter(c=>c&&c.realized&&c.counts) : [];
+  if(!cs.length) return null;
+  const fin = cs.filter(c=>c.state==='finished'), act = cs.filter(c=>c.state==='active');
+  const wins = fin.filter(c=>dayClass(c.realized.net)==='win').length, losses = fin.filter(c=>dayClass(c.realized.net)==='loss').length;
+  return {n:cs.length, finished:fin.length, active:act.length, wins, losses, be:fin.length-wins-losses,
+    winPct:(wins+losses)?wins/(wins+losses)*100:null,
+    positions:cs.reduce((a,c)=>a+c.counts.total,0),
+    net:+fin.reduce((a,c)=>a+c.realized.net,0).toFixed(2),
+    activeRealized:+act.reduce((a,c)=>a+c.realized.net,0).toFixed(2),
+    activeFloating:+act.reduce((a,c)=>a+(c.floating&&c.floating.total||0),0).toFixed(2),
+    floatKnown:act.every(c=>c.floating&&c.floating.known)};
+}
+function renderSwingKPIs(m){
+  const S=m.S, note=document.getElementById('swNote');
+  if(!S){ kpiGrid('kpiS',[{l:'Ciclos SWING',v:'0',cls:'neu',c:'c',icon:'🔗',sub:'Ninguna posición ha cruzado de una fecha a otra'}]); if(note) note.textContent=''; return; }
+  kpiGrid('kpiS',[
+    {l:'Ciclos SWING',v:S.n,cls:'neu',c:'c',icon:'🔗',sub:`${S.finished} finalizados · ${S.active} abiertos`,
+      tip:'Un ciclo es una cadena de posiciones del mismo símbolo y sentido: sigue activo mientras quede al menos una abierta y termina cuando todas se cierran.'},
+    {l:'Win Rate · ciclos',v:fmtPct(S.winPct),cls:'neu',c:'c',icon:'🎯',sub:`${S.wins}G / ${S.losses}P · ${S.be} BE`,
+      tip:'Solo ciclos FINALIZADOS, uno por ciclo (no por posición, sesión ni día). Los ciclos abiertos no entran hasta cerrarse.'},
+    {l:'Posiciones en ciclos',v:S.positions,cls:'neu',c:'c',icon:'🧱',sub:'Posiciones individuales (no son ciclos)',
+      tip:'Cantidad de posiciones incorporadas a los ciclos SWING. Un cierre parcial no cuenta como otra posición.'},
+    {l:'Neto · ciclos finalizados',v:fmt$(S.net),cls:S.net>=0?'pos':'neg',c:S.net>=0?'g':'r',icon:'💼',sub:'Beneficio + comisión + swap',
+      tip:'Resultado realizado de los ciclos terminados; cada ciclo se suma una sola vez.'},
+    {l:'Ciclos abiertos',v:S.active,cls:'neu',c:'c',icon:'⏳',sub:S.active?`Realizado ${fmt$(S.activeRealized)} · Flotante ${S.floatKnown?fmt$(S.activeFloating):'N/D'}`:'—',
+      tip:'El realizado y el flotante se muestran por separado: el flotante no convierte en realizado una posición abierta.'}
+  ]);
+  if(note) note.textContent='Ciclo SWING = posiciones del mismo símbolo y sentido encadenadas mientras alguna siga abierta entre fechas. Cada ciclo finalizado cuenta como una sola unidad (también en el win rate diario, donde sustituye a los días que abarca).';
+}
+
+const _swEsc=v=>String(v==null?'':v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function _swDayLbl(k,long){
+  if(!k) return '—';
+  const d=new Date(k+'T12:00:00Z'), dn=['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'], mn=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+  return `${dn[d.getUTCDay()]} ${d.getUTCDate()} ${mn[d.getUTCMonth()]}`+(long?` ${d.getUTCFullYear()}`:'');
+}
+const _swHM=t=>{ const u=t-_nyBrokerOff; return new Date((u+nyOffsetSec(u))*1000).toISOString().slice(11,16); };   // hora de Nueva York
+const _swCol=v=>dayClass(v)==='win'?'var(--green)':dayClass(v)==='loss'?'var(--red)':'#ffcc00';
+const _swFlagTxt={sin_deal_apertura:'Sin deal de apertura en el historial recibido: no se pudo verificar su relación con otras posiciones.',
+  estado_indeterminado:'Una posición no figura abierta ni cerrada por completo en el último envío; se trata como abierta hasta confirmarlo.',
+  INOUT_no_verificable:'Hay un deal INOUT (inversión de posición) que no se puede verificar.'};
+function swingCycleAt(k){ return _swingCycles.filter(c=>k>=c.startDay&&k<=c.lastDay).sort((a,b)=>a.startT-b.startT); }
+function _swingDayMap(){
+  const m={};
+  _swingCycles.forEach(c=>{
+    const end=new Date(c.lastDay+'T12:00:00Z');
+    for(let d=new Date(c.startDay+'T12:00:00Z'); d<=end; d.setUTCDate(d.getUTCDate()+1)){ const k=d.toISOString().slice(0,10); (m[k]=m[k]||[]).push(c); }
+  });
+  Object.values(m).forEach(a=>a.sort((x,y)=>x.startT-y.startT));
+  return m;
+}
+function openSwingJournal(id){ openJournal(id); }
+
+// Encabezado + actividad por sesión del Journal SWING (mismo modal que el Journal normal)
+function renderSwingJournalHead(c){
+  const act=c.state==='active', fl=c.floating||{}, R=c.realized, k=c.counts;
+  document.getElementById('jmodalDate').innerHTML=`<span class="jsw-badge">SWING</span>${_swEsc(c.sym)} · ${c.side==='BUY'?'Compra':'Venta'}`+
+    `<div style="font-size:11px;font-weight:500;color:var(--muted);margin-top:4px;">${_swEsc(c.id)} · ${_swDayLbl(c.startDay,true)} → ${act?'<b style="color:var(--cyan)">en curso</b>':_swDayLbl(c.endDay,true)}</div>`;
+  const st=(l,v,col)=>`<div class="jstat"><div class="jstat-l">${l}</div><div class="jstat-v" style="${col?'color:'+col:''}">${v}</div></div>`;
+  const parcial=k.partialOpen?` (${k.partialOpen} parcial${k.partialOpen>1?'es':''})`:'';
+  document.getElementById('jmodalStats').innerHTML=
+    st('Estado',act?'SWING activo':'SWING finalizado',act?'var(--cyan)':'var(--text)')+
+    st('Inicio',_swDayLbl(c.startDay,true))+
+    st('Fin',act?'En curso':_swDayLbl(c.endDay,true))+
+    st('Periodo',`${c.spanDays} día${c.spanDays>1?'s':''} (incluye fechas sin actividad)`)+
+    st('Posiciones',`${k.total} total · ${k.closed} cerradas · ${k.open} abiertas${parcial}`,'var(--cyan)')+
+    st(act?'Resultado realizado (hasta ahora)':'Resultado neto',fmt$(R.net),_swCol(R.net))+
+    st('Flotante',act?(fl.known?fmt$(fl.total):'N/D'):'—',act&&fl.known?_swCol(fl.total):'var(--muted)')+
+    st('Beneficio bruto',fmt$(R.gross),'var(--muted)')+
+    st('Comisiones',fmt$(R.comm),'var(--muted)')+
+    st('Swap',fmt$(R.swap),'var(--muted)');
+  const warn=(c.flags||[]).map(f=>_swFlagTxt[f]).filter(Boolean);
+  const pOpen={}; c.positions.forEach(p=>{ pOpen[p.pid]=p.openT; });
+  const rows=c.sessions.map(s=>{
+    const stat=(l,v,col)=>`<div class="jstat"><div class="jstat-l">${l}</div><div class="jstat-v" style="font-size:12px;${col?'color:'+col:''}">${v}</div></div>`;
+    const ev=s.events.map(e=>{
+      const lbl={OPEN:'Apertura',ADD:'Adición',PARTIAL:'Cierre parcial',CLOSE:'Cierre'}[e.kind]||e.kind;
+      const op=pOpen[e.pid]!=null?_swDayLbl(nySession(pOpen[e.pid])):'—';
+      return `<tr><td>${_swHM(e.t)}</td><td><span class="jsw-tag ${e.kind}">${lbl}</span></td><td>#${_swEsc(e.pid)} <span style="color:var(--muted)">(abierta ${op})</span></td>`+
+        `<td>${e.vol.toFixed(2)}</td><td>${fx(e.price,5)}</td><td style="color:${e.entry==='IN'?'var(--muted)':_swCol(e.profit+e.swap)}">${e.entry==='IN'?'—':fmt$(e.profit+e.swap)}</td>`+
+        `<td style="color:var(--muted)">${fmt$(e.comm)}</td><td>${e.posRemaining.toFixed(2)}</td></tr>`;
+    }).join('');
+    return `<details class="jsw-day"><summary>${_swDayLbl(s.day,true)} · <span style="color:${_swCol(s.net)}">${fmt$(s.net)}</span> `+
+      `<span style="color:var(--muted);font-weight:500">· ${s.opened} abiertas · ${s.closed} cerradas${s.partialPids.length?` · ${s.partialPids.length} parcial(es)`:''}</span></summary>`+
+      `<div class="jsw-grid">`+
+        stat('Realizado de la sesión',fmt$(s.net),_swCol(s.net))+stat('Ganancias realizadas',fmt$(s.gains),'var(--green)')+stat('Pérdidas realizadas',fmt$(s.losses),'var(--red)')+
+        stat('Comisiones',fmt$(s.comm),'var(--muted)')+stat('Swap',fmt$(s.swap),'var(--muted)')+
+        stat('Vol. abierto',s.volOpened.toFixed(2))+stat('Vol. cerrado',s.volClosed.toFixed(2))+stat('Vol. restante (ciclo)',s.volRemaining.toFixed(2))+
+        stat('Siguen abiertas',s.openAtEnd.length?s.openAtEnd.map(p=>'#'+_swEsc(p)).join(' '):'ninguna')+
+      `</div><div style="overflow-x:auto"><table class="jsw-tbl"><thead><tr><th>Hora NY</th><th>Evento</th><th>Posición</th><th>Lotes</th><th>Precio</th><th>Resultado</th><th>Comis.</th><th>Resta pos.</th></tr></thead><tbody>${ev}</tbody></table></div></details>`;
+  }).join('');
+  const box=document.getElementById('jswingAct');
+  box.style.display='';
+  box.innerHTML=(warn.length?`<div class="jsw-warn">⚠️ ${warn.map(_swEsc).join('<br>')}</div>`:'')+
+    `<details class="jsw-act"><summary>Actividad por sesión · ${c.sessions.length} con actividad</summary>`+
+    `<div style="font-size:10px;color:var(--muted);margin:6px 0 2px;line-height:1.5;">Desglose informativo del mismo ciclo (no es un resultado aparte). Las fechas sin apertura, cierre ni cierre parcial no aparecen, aunque sí forman parte del periodo.</div>${rows}</details>`;
 }
 
 // ── RENDER ALL ─────────────────────────────────────────────────────────────────
@@ -1736,14 +1901,24 @@ function renderAll(data) {
     const ref = data.server_time ? Date.parse(data.server_time) : Date.now();
     _brokerOffsetMs = isFinite(ref) ? Math.round((data.timestamp*1000 - ref)/900000)*900000 : null;
   } else _brokerOffsetMs = null;
+  // Offset del bróker para convertir la hora del servidor a Nueva York: EA (exacto) → servidor → estimación por reloj → 0
+  _nyBrokerOff = (data.session&&typeof data.session.broker_offset==='number') ? data.session.broker_offset
+    : (data.swing&&typeof data.swing.brokerOffset==='number') ? data.swing.brokerOffset
+    : (_brokerOffsetMs!=null ? _brokerOffsetMs/1000 : 0);
   _brokerToday = todayStr();
   _dataAgeSec = data.server_time ? Math.max(0,Math.round((Date.now()-Date.parse(data.server_time))/1000)) : null;
   const openIds=new Set((data.positions||[]).flatMap(p=>[String(p.ticket),...(p.position_id!=null?[String(p.position_id)]:[])]));
   const trades=buildSessions(deals,openIds,data.excursions,data.price_exc);   // nivel posición: cada posición CERRADA
-  const sessions=buildDays(trades);                            // nivel día: 1 día operativo = 1 sesión
+  // SWING: el servidor entrega los ciclos. Las posiciones de un ciclo SWING no forman Journals/días intradía propios:
+  // el ciclo FINALIZADO es UNA unidad (en lugar de los días que abarca) y el abierto queda fuera hasta cerrarse.
+  const swp=swingPrep(data.swing,trades);
+  _swingCycles=swp.cycles;
+  const intraDays=buildDays(trades.filter(t=>!swp.pidCycle[String(t.id)]));   // nivel día: Journals intradía normales
+  _intraDays=intraDays;
+  const sessions=[...intraDays,...swp.units].sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:(a.startT-b.startT));
   const campaigns=buildCampaigns(trades,data.campaigns);       // nivel campaña (scaling in)
   _journalSessions = sessions;
-  const m=calcMetrics(sessions, trades, acc.balance, {campaigns,cashflows:data.cashflows,pxMode:_pxMode});
+  const m=calcMetrics(sessions, trades, acc.balance, {campaigns,cashflows:data.cashflows,pxMode:_pxMode,swing:data.swing});
   if(!m){ renderAccBar(acc,[],_isDemo); document.getElementById('kpi1').innerHTML='<div class="kpi"><div class="kpi-label">Sin operaciones cerradas</div><div class="kpi-sub">No hay datos para calcular métricas.</div></div>'; document.getElementById('kpi2').innerHTML=''; ['kpiC','streakRow','campNote'].forEach(i=>{const e=document.getElementById(i); if(e) e.innerHTML='';}); return; }
   m.openCount=openIds.size;
   // Alcance del historial de deals que entrega la EA (envía como máximo los 2000 deals de trading más recientes).
@@ -1919,6 +2094,7 @@ function renderLevelKPIs(m) {
     ]);
   }
   document.getElementById('campNote').textContent='Campaña = posiciones del mismo símbolo y sentido abiertas al mismo tiempo (scaling in).';
+  renderSwingKPIs(m);
 }
 
 // ── STREAKS (días operativos) ──────────────────────────────────────────────────
@@ -2369,19 +2545,21 @@ function _renderCalendarForMonth(sessions, year, month) {
   // Build day maps from all sessions
   // `sessions` = días operativos (1 por fecha). El color depende SOLO del neto realizado del día.
   const dayPnl={}, dayCnt={};
-  sessions.forEach(s=>{ dayPnl[s.date]=s.netPnl; dayCnt[s.date]=s.trades; });
+  sessions.forEach(s=>{ if(s.swing) return; dayPnl[s.date]=s.netPnl; dayCnt[s.date]=s.trades; });   // solo días intradía: los ciclos SWING se pintan como bloque
+  const swMap=_swingDayMap();
 
   // Consistency stats for THIS month
   const prefix = year + '-' + String(month+1).padStart(2,'0');
-  const monthDates = Object.keys(dayPnl).filter(k => k.startsWith(prefix));
-  const tradingDays = monthDates.length;
-  const greenDays = monthDates.filter(k => dayClass(dayPnl[k]) === 'win').length;
-  const redDays = monthDates.filter(k => dayClass(dayPnl[k]) === 'loss').length;
+  // Unidades del mes: cada día intradía y cada ciclo SWING finalizado (en su fecha de cierre) cuentan UNA vez.
+  const monthUnits = sessions.filter(s => s.date.startsWith(prefix));
+  const tradingDays = monthUnits.length;
+  const greenDays = monthUnits.filter(s => dayClass(s.netPnl) === 'win').length;
+  const redDays = monthUnits.filter(s => dayClass(s.netPnl) === 'loss').length;
   const neutralDays = tradingDays - greenDays - redDays;
   // Consistencia = verdes / (verdes + rojos). Los días BreakEven (dentro del umbral fijo) no cuentan.
   const decisiveDays = greenDays + redDays;
   const consistencyPct = decisiveDays > 0 ? (greenDays / decisiveDays * 100).toFixed(0) : 0;
-  const monthPnl = monthDates.reduce((a,k) => a + dayPnl[k], 0);
+  const monthPnl = monthUnits.reduce((a,s) => a + s.netPnl, 0);
 
   // Business days in month (Mon-Fri)
   let bizDays = 0;
@@ -2426,6 +2604,7 @@ function _renderCalendarForMonth(sessions, year, month) {
   const cal = document.getElementById('calGrid');
   cal.innerHTML = '';
   const today = todayStr();
+  const swShown = new Set();
   // Fill leading empty cells
   for(let i = 0; i < firstDay.getDay(); i++) cal.innerHTML += '<div class="cal-day empty"></div>';
   // Fill days of month
@@ -2434,6 +2613,23 @@ function _renderCalendarForMonth(sessions, year, month) {
     const pnl = dayPnl[k];
     const cnt = dayCnt[k] || 0;
     const isWeekend = [0,6].includes(d.getDay());
+    const swc = swMap[k] || [];
+    if(swc.length){
+      const sw = swc[0], col = d.getDay();
+      const prevK = ymd(new Date(d.getFullYear(), d.getMonth(), d.getDate()-1)), nextK = ymd(new Date(d.getFullYear(), d.getMonth(), d.getDate()+1));
+      const jl = col>0 && (swMap[prevK]||[])[0] === sw, jr = col<6 && (swMap[nextK]||[])[0] === sw;
+      const first = !swShown.has(sw.id); if(first) swShown.add(sw.id);          // el resultado se muestra UNA sola vez por bloque
+      const net = sw.realized.net, act = sw.state === 'active';
+      const swCls = dayClass(net)==='win' ? 'win' : dayClass(net)==='loss' ? 'loss' : 'neu';   // color = resultado REALIZADO (nunca el flotante)
+      const fmtS = v => { const a=Math.abs(v); return a>=1000 ? (v>=0?'+':'-')+'$'+(a/1000).toFixed(1)+'k' : (v>=0?'+':'')+fmt$(v); };
+      let inner = first ? `<div class="cal-pnl">${fmtS(net)}</div><div class="cal-sw">${sw.counts.total} pos. · SWING${act?' ●':''}</div>` : '';
+      const badges = swc.slice(1).map(c=>`<span class="cal-intra" onclick="event.stopPropagation();openSwingJournal('${c.id}')">+SWING</span>`).join('') +
+        (pnl !== undefined ? `<span class="cal-intra" onclick="event.stopPropagation();openJournal('${k}', _intraDays.find(s=>s.date==='${k}'))">intradía ${fmtS(pnl)}</span>` : '');
+      const noteCls = (first && journalHas(sw.id)) ? 'has-note' : '';
+      cal.innerHTML += `<div class="cal-day swing ${swCls} ${jl?'sw-jl':''} ${jr?'sw-jr':''} ${act?'sw-active':''} ${noteCls} ${k === today ? 'today-marker' : ''}" onclick="openSwingJournal('${sw.id}')" style="cursor:pointer;" title="${sw.id}: ${fmt$(net)} realizado · ${sw.counts.total} posiciones · ${sw.startDay} → ${act?'en curso':sw.endDay} — Click para el journal SWING">
+        <div class="cal-num">${d.getDate()}</div>${inner}${badges}</div>`;
+      continue;
+    }
     const cls = pnl === undefined ? (isWeekend ? 'empty' : 'be') : dayClass(pnl)==='win' ? 'win' : dayClass(pnl)==='loss' ? 'loss' : 'neu';
     const hasNote = journalHas(k) ? 'has-note' : '';
     const isToday = k === today ? 'today-marker' : '';
@@ -2444,7 +2640,7 @@ function _renderCalendarForMonth(sessions, year, month) {
       inner = `<div class="cal-pnl">${str}</div><div class="cal-trades">${cnt} pos.</div>`;
     }
     const clickable = pnl !== undefined
-      ? `onclick="openJournal('${k}', _journalSessions.find(s=>s.date==='${k}'))" style="cursor:pointer;"`
+      ? `onclick="openJournal('${k}', _intraDays.find(s=>s.date==='${k}'))" style="cursor:pointer;"`
       : '';
     cal.innerHTML += `<div class="cal-day ${cls} ${hasNote} ${isToday}" ${clickable} title="${k}: ${pnl!==undefined?fmt$(pnl)+' neto del día · '+cnt+' posiciones — Click para journal':'Sin operaciones'}">
       <div class="cal-num">${d.getDate()}</div>${inner}</div>`;
@@ -3051,6 +3247,15 @@ function jimgMsg(t, bad){ const e=document.getElementById('jimgMsg'); if(e){ e.t
 function openJournal(dateStr, day) {
   currentJournalDate = dateStr;
   const entry = journalData[dateStr] || {};
+  const swAct = document.getElementById('jswingAct');
+  const isSw = /^SWING-\d{4}-\d{6}$/.test(dateStr);
+  if(isSw){
+    // Journal SWING consolidado: el mismo para cualquier fecha del bloque
+    const cy = _swingCycles.find(x=>x.id===dateStr); if(!cy) return;
+    renderSwingJournalHead(cy);
+    day = {tradeObjs: cy.positions.map(p=>({id:p.pid, sym:cy.sym, side:cy.side, netPnl:p.net}))};
+  } else {
+  if(swAct){ swAct.style.display='none'; swAct.innerHTML=''; }
   const d = new Date(dateStr + 'T12:00:00');
   const days = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
   const months = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
@@ -3069,6 +3274,7 @@ function openJournal(dateStr, day) {
     <div class="jstat"><div class="jstat-l">Comisiones</div><div class="jstat-v" style="color:var(--muted)">${hasDay&&day.costsKnown?fmt$(day.comm):'N/D'}</div></div>
     <div class="jstat"><div class="jstat-l">Swap</div><div class="jstat-v" style="color:var(--muted)">${hasDay&&day.costsKnown?fmt$(day.swap||0):'N/D'}</div></div>
   `;
+  }
 
   document.querySelectorAll('.jtag').forEach(t => t.className='jtag');
   if(entry.tag) {
@@ -3272,6 +3478,10 @@ async function openMonthlySummary() {
     '7) El MAE/MFE en PUNTOS es distancia de precio (por símbolo) y NO es dinero: no lo compares ni lo mezcles con importes de P/L. Solo cuenta como medición fiable la marcada completa; las parciales son cotas inferiores y las aproximadas son estimaciones. No recomiendes stops por un promedio de MAE ni asumas que el pasado fija extremos futuros.';
   const money=v=>`${v>=0?'+':'-'}$${Math.abs(v).toFixed(2)}`;
   const digest = COACH_RULES+'\n\nDATOS POR DÍA OPERATIVO:\n'+entries.map(([date, e]) => {
+    if(/^SWING-\d{4}-\d{6}$/.test(date)){
+      const c=_swingCycles.find(x=>x.id===date);
+      if(c) return `${date} | CICLO SWING ${c.sym} ${c.side} (${c.startDay} → ${c.state==='active'?'en curso':c.endDay}) | Resultado realizado (beneficio + comisión + swap): ${money(c.realized.net)} | Posiciones: ${c.counts.total} (${c.counts.closed} cerradas, ${c.counts.open} abiertas) | Un ciclo cuenta como una sola unidad; el desglose por sesión no es un resultado aparte | Etiqueta: ${(journalData[date]||{}).tag||'—'} | Nota: ${((journalData[date]||{}).note||'').slice(0,600)}`;
+    }
     const ds = sessByDate[date]||[];
     const pnl = ds.reduce((a,s)=>a+s.netPnl,0);
     const cnt = ds.reduce((a,s)=>a+s.trades,0);
