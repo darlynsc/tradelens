@@ -488,6 +488,12 @@ canvas{max-height:200px;}
 .risk-input-group label.risk-auto{display:flex;align-items:center;gap:6px;font-size:10px;letter-spacing:.3px;text-transform:none;cursor:pointer;margin-top:4px;}
 .risk-input-group input[type=checkbox]{width:auto;padding:0;margin:0;accent-color:var(--cyan);}
 .risk-input-group input[readonly]{opacity:.75;cursor:not-allowed;}
+.risk-field{display:flex;align-items:center;gap:3px;background:var(--s2);border:1px solid var(--b2);border-radius:8px;padding:8px 12px;min-width:130px;width:auto;box-sizing:border-box;font-family:var(--font-mono);font-size:13px;color:var(--text);cursor:text;transition:.2s;}
+.risk-field:focus-within{border-color:var(--cyan);box-shadow:0 0 0 2px rgba(0,229,255,0.08);}
+.risk-field .sym{color:var(--muted);}
+.risk-input-group .risk-field input{background:transparent;border:0;box-shadow:none;padding:0;margin:0;width:1ch;min-width:1ch;max-width:none;font-size:inherit;flex:0 1 auto;-moz-appearance:textfield;appearance:textfield;}
+.risk-field input::-webkit-outer-spin-button,.risk-field input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0;}
+@media(min-width:601px){.risk-header{flex-direction:column;align-items:stretch;gap:16px;}.risk-inputs{align-items:flex-start;flex-wrap:wrap;gap:16px;}}   /* PC: título arriba; Depósito · Riesgo · Umbral en una fila, alineados por el título */
 .risk-auto-note{font-size:10px;color:var(--muted);line-height:1.5;max-width:230px;}
 /* PLAN DE RETIRO */
 .wd-wrap{background:var(--s1);border:1px solid var(--b1);border-radius:16px;padding:24px;margin-bottom:20px;transition:border-color .3s,box-shadow .3s;}
@@ -707,8 +713,11 @@ input.jimglink:focus{border-color:var(--cyan);}
   /* Risk scaling */
   .risk-wrap{padding:16px;}
   .risk-header{flex-direction:column;gap:12px;}
-  .risk-inputs{gap:8px;}
-  .risk-input-group input{width:100px;font-size:12px;}
+  .risk-inputs{display:grid;grid-template-columns:1fr 1fr;gap:8px 12px;align-items:start;width:100%;}
+  .risk-inputs .risk-input-group:first-child{grid-column:1 / -1;}
+  .risk-input-group input{width:100%;box-sizing:border-box;font-size:12px;}
+  .risk-input-group input[type=checkbox]{width:auto;}
+  .risk-field{width:100%;}
   .risk-levels{grid-template-columns:repeat(2,1fr);gap:8px;}
   .risk-level{padding:10px;}
   .risk-level-target{font-size:13px;}
@@ -992,22 +1001,22 @@ input.jimglink:focus{border-color:var(--cyan);}
     <div class="risk-header">
       <div>
         <div style="font-family:var(--font-head);font-size:15px;font-weight:600;margin-bottom:4px;">Gestión de Riesgo por Etapas</div>
-        <div style="font-size:11px;color:var(--muted);">Sube el riesgo solo cuando el capital alcance cada umbral. Umbral recomendado: 25%.</div>
+        <div style="font-size:11px;color:var(--muted);">Sube el riesgo solo cuando alcances el siguiente nivel.</div>
       </div>
       <div class="risk-inputs">
         <div class="risk-input-group">
-          <label>Depósito Inicial ($)</label>
-          <input type="number" id="riskDeposit" value="1000" min="1" oninput="renderRiskScaling();"/>
-          <label class="risk-auto"><input type="checkbox" id="riskDepAuto" checked/> Auto: depósitos de la cuenta</label>
+          <label>Depósito Inicial</label>
+          <div class="risk-field" onclick="this.querySelector('input').focus()"><span class="sym" id="riskCur">$</span><input type="text" inputmode="decimal" autocomplete="off" id="riskDeposit" value="1000" oninput="renderRiskScaling();"/></div>
+          <label class="risk-auto"><input type="checkbox" id="riskDepAuto" checked/> <span id="riskDepLbl">Auto</span></label>
           <div class="risk-auto-note" id="riskDepNote"></div>
         </div>
         <div class="risk-input-group">
-          <label>Riesgo por Trade (%)</label>
-          <input type="number" id="riskPct" value="2.5" min="0.1" step="0.1" oninput="renderRiskScaling();"/>
+          <label>Riesgo por Trade</label>
+          <div class="risk-field" onclick="this.querySelector('input').focus()"><input type="number" id="riskPct" value="2.5" min="0.1" step="0.1" oninput="renderRiskScaling();"/><span class="sym">%</span></div>
         </div>
         <div class="risk-input-group">
-          <label>Umbral de Subida (%)</label>
-          <input type="number" id="riskThreshold" value="25" min="5" step="5" oninput="renderRiskScaling();"/>
+          <label>Umbral de Subida</label>
+          <div class="risk-field" onclick="this.querySelector('input').focus()"><input type="number" id="riskThreshold" value="25" min="5" step="5" oninput="renderRiskScaling();"/><span class="sym">%</span></div>
         </div>
       </div>
     </div>
@@ -2808,7 +2817,28 @@ function requestNotificationPermission() {
   });
 }
 
+function riskFit(){ const cu = document.getElementById('riskCur'); if(cu){ const c = String((typeof _lastAcc !== 'undefined' && _lastAcc && _lastAcc.currency) || 'USD').toUpperCase(), sy = curSymbolOf(c).trim(); cu.textContent = sy === c ? c : c + sy; } ['riskDeposit','riskPct','riskThreshold'].forEach(id => { const e = document.getElementById(id); if(e) e.style.width = Math.max(1, Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').get.call(e).length) + 'ch'; }); }
+
+// Depósito con comas de miles: se muestra "2,161.06" pero .value sigue devolviendo "2161.06" (el resto del código no cambia)
+(function(){
+  const el = document.getElementById('riskDeposit'); if(!el) return;
+  const d = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value');
+  const fmt = s => {
+    s = String(s).replace(/[^0-9.]/g, ''); const i = s.indexOf('.');
+    let a = i < 0 ? s : s.slice(0, i); const b = i < 0 ? null : s.slice(i + 1).replace(/\./g, '');
+    a = a.replace(/^0+(?=\d)/, '').replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    return b === null ? a : a + '.' + b;
+  };
+  Object.defineProperty(el, 'value', { configurable:true, get(){ return d.get.call(el).replace(/,/g, ''); }, set(v){ d.set.call(el, fmt(v)); } });
+  el.addEventListener('input', () => {
+    const cur = d.get.call(el), n = cur.slice(0, el.selectionStart).replace(/[^0-9.]/g, '').length, f = fmt(cur);
+    if(f !== cur) { d.set.call(el, f); let c = 0, k = 0; for(; k < f.length && c < n; k++) if(/[0-9.]/.test(f[k])) c++; el.setSelectionRange(k, k); }
+    riskFit();
+  });
+  d.set.call(el, fmt(d.get.call(el)));
+})();
 function renderRiskScaling(balanceOverride) {
+  riskFit();
   if(balanceOverride !== undefined) _riskBalance = balanceOverride;
   const deposit   = parseFloat(document.getElementById('riskDeposit').value)   || 1000;
   const riskPct   = parseFloat(document.getElementById('riskPct').value)        || 2.5;
@@ -2878,7 +2908,7 @@ let _wdView = null;          // null = ciclo actual; número = índice de un cic
 let _wdToastSig = '';        // firma mostrada en el tooltip en esta carga (memoria)
 let _wdAdj = null;           // {amt, base}: retiros recién registrados que el balance aún no refleja
 
-const wdF = n => '$' + Number(n).toLocaleString('en', {minimumFractionDigits:2, maximumFractionDigits:2});
+const wdF = n => String(_curSym || '$') + Number(n).toLocaleString('en', {minimumFractionDigits:2, maximumFractionDigits:2});
 const wdToday = () => { const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); };
 
 function wdLoad() {
@@ -3188,15 +3218,16 @@ function wdUndoCycle() {
 function wdDismissNotice() { _wd.notice = null; _wd.undoSnap = null; wdSave(); renderWithdrawPlan(false); }
 
 function wdAutoDeposit(data) {
-  const cb = document.getElementById('riskDepAuto'), inp = document.getElementById('riskDeposit'), note = document.getElementById('riskDepNote');
+  const cb = document.getElementById('riskDepAuto'), inp = document.getElementById('riskDeposit'), note = document.getElementById('riskDepNote'), lbl = document.getElementById('riskDepLbl');
   if(!cb) return;
+  const say = t => { if(lbl) lbl.textContent = t ? 'Auto: ' + t : 'Auto'; note.textContent = ''; };
   const cf = data && Array.isArray(data.cashflows) ? data.cashflows : null;
   const dep = cf ? cf.filter(c => c && +c.amount > 0) : [];
   const sum = +dep.reduce((a, c) => a + (+c.amount), 0).toFixed(2);
-  if(!cb.checked) { inp.readOnly = false; note.textContent = ''; return; }
+  if(!cb.checked) { inp.readOnly = false; say(''); return; }
   if(_isDemo || !cf || sum <= 0) {
     inp.readOnly = false;
-    note.textContent = _isDemo ? 'Demo: usa el depósito manual.' : !cf ? 'La EA no envía depósitos: usa el valor manual.' : 'No se detectaron depósitos: usa el valor manual.';
+    say(_isDemo ? 'demo, manual' : !cf ? 'sin datos de la EA, manual' : 'sin depósitos, manual');
     return;
   }
   if(_wd.depSeen == null || !(_wd.base > 0)) { _wd.depSeen = sum; _wd.base = sum; if(!_wd.cycleStart) _wd.cycleStart = wdToday(); wdSave(); }
@@ -3210,7 +3241,7 @@ function wdAutoDeposit(data) {
   }
   if(Math.abs((parseFloat(inp.value) || 0) - _wd.base) > 0.004) inp.value = _wd.base;
   inp.readOnly = true;
-  note.textContent = `Auto: ${dep.length} depósito${dep.length === 1 ? '' : 's'} detectado${dep.length === 1 ? '' : 's'} (${wdF(sum)}). Base del ciclo: ${wdF(_wd.base)}.${data.deals_truncated === true ? ' Historial parcial: puede faltar algún depósito.' : ''}`;
+  say(`${dep.length} depósito${dep.length === 1 ? '' : 's'}${Math.abs(sum - _wd.base) > 0.005 ? ' · base ' + wdF(_wd.base) : ''}${data.deals_truncated === true ? ' · historial parcial' : ''}`);
 }
 
 
