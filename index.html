@@ -2281,10 +2281,39 @@ const cOpts=(cb)=>{
 };
 // Tooltips de Drawdown y Curva acumulada: globo con triangulito apuntando al día. El texto SIEMPRE va arriba del punto (triángulo hacia abajo),
 // así nunca tapa las fechas del eje inferior.
-const tipY = () => 'bottom';
+// Chart.js recorta su tooltip de canvas al borde del canvas (y desde 0): en puntos altos lo empujaba hacia abajo y ya no salía desde el punto.
+// Este globo es HTML fuera del canvas: siempre nace en el punto activo y crece hacia arriba, esté el punto donde esté.
+const chartTip = ({chart, tooltip}) => {
+  let el = chart.$tipEl;
+  if(!el){
+    el = document.createElement('div');
+    el.style.cssText = 'position:absolute;z-index:200;pointer-events:none;display:none;white-space:nowrap;border-width:1px;border-style:solid;border-radius:6px;line-height:1.4;';
+    el.innerHTML = '<div class="ct-txt"></div><div class="ct-caret" style="position:absolute;bottom:-6px;width:10px;height:10px;transform:rotate(45deg);border-style:solid;border-width:0 1px 1px 0;"></div>';
+    document.body.appendChild(el); chart.$tipEl = el;
+  }
+  const dp = tooltip.dataPoints && tooltip.dataPoints[0];
+  if(!tooltip.getActiveElements().length || !dp){ el.style.display = 'none'; return; }
+  const o = tooltip.options, f = Chart.defaults.font;
+  el.style.display = 'block';
+  el.style.background = o.backgroundColor; el.style.borderColor = o.borderColor;
+  el.style.padding = o.padding + 'px'; el.style.fontFamily = f.family; el.style.fontSize = f.size + 'px';
+  const caret = el.querySelector('.ct-caret'); caret.style.background = o.backgroundColor; caret.style.borderColor = o.borderColor;
+  const txt = el.querySelector('.ct-txt'); txt.textContent = '';
+  (tooltip.title || []).forEach(t => { const d = document.createElement('div'); d.textContent = t; d.style.cssText = 'font-weight:700;color:' + o.titleColor; txt.appendChild(d); });
+  (tooltip.body || []).forEach(b => b.lines.forEach(l => { const d = document.createElement('div'); d.textContent = l; d.style.color = o.bodyColor; txt.appendChild(d); }));
+  // Posición del punto activo en la página (coordenadas del canvas → página).
+  const r = chart.canvas.getBoundingClientRect(), k = (chart.width && r.width / chart.width) || 1;
+  const px = r.left + window.scrollX + (dp.element ? dp.element.x : tooltip.caretX) * k;
+  const py = r.top + window.scrollY + (dp.element ? dp.element.y : tooltip.caretY) * k;
+  const w = el.offsetWidth, h = el.offsetHeight, vw = document.documentElement.clientWidth;
+  const left = Math.max(window.scrollX + 6, Math.min(px - w / 2, window.scrollX + vw - w - 6));
+  el.style.left = left + 'px';
+  el.style.top = (py - h - 15) + 'px';   // 15 = triángulo (7) + separación (8), igual que antes
+  caret.style.left = Math.max(8, Math.min(px - left - 5, w - 18)) + 'px';
+};
 // Fecha corta para tooltips: "26 oct" (con año solo si no es el actual).
 const tipDate = d => { const [y, m, dd] = String(d).split('-').map(Number); if(!y) return d; return dd + ' ' + ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'][m - 1] + (y !== new Date().getFullYear() ? ' ' + y : ''); };
-function dc(id){ if(charts[id]){charts[id].destroy();delete charts[id];} }
+function dc(id){ if(charts[id]){ if(charts[id].$tipEl) charts[id].$tipEl.remove(); charts[id].destroy();delete charts[id];} }
 
 function renderCharts(m, sessions) {
   // EQUITY
@@ -2319,11 +2348,13 @@ function renderCharts(m, sessions) {
     ctx.save(); ctx.beginPath(); ctx.moveTo(x,a.top); ctx.lineTo(x,a.bottom); ctx.lineWidth=1; ctx.setLineDash([4,3]);
     ctx.strokeStyle=document.body.classList.contains('light')?'rgba(10,26,42,0.45)':'rgba(192,212,224,0.5)'; ctx.stroke(); ctx.restore();
   }};
+  // Curva realizada en blanco (en tema claro se mantiene el cian original: blanco sobre fondo claro no se vería).
+  const eqLine=document.body.classList.contains('light')?'#00e5ff':'rgba(255,255,255,0.8)';
   charts['eq']=new Chart(document.getElementById('equityChart'),{
     type:'line',
     data:{labels: extLabels,
       datasets:[
-        {label:'Realizado acum.',data:[...m.equity, null, null, null],borderColor:'#00e5ff',backgroundColor:'rgba(0,255,136,0.18)',borderWidth:2,tension:.4,fill:{target:'origin',above:'rgba(0,255,136,0.18)',below:'rgba(255,51,85,0.22)'},pointRadius:2.2,pointHoverRadius:6,pointBackgroundColor:'#00e5ff',pointBorderColor:'#00e5ff'},
+        {label:'Realizado acum.',data:[...m.equity, null, null, null],borderColor:eqLine,backgroundColor:'rgba(0,255,136,0.18)',borderWidth:2,tension:.4,fill:{target:'origin',above:'rgba(0,255,136,0.18)',below:'rgba(255,51,85,0.22)'},pointRadius:2.2,pointHoverRadius:6,pointBackgroundColor:eqLine,pointBorderColor:eqLine},
         {label:'+30d',data:new Array(histLen).fill(null).concat([proj30,null,null]),borderColor:'rgba(181,123,255,0.8)',backgroundColor:'transparent',borderDash:[6,4],tension:0,pointRadius:6,pointHoverRadius:8,pointBackgroundColor:'rgba(181,123,255,0.8)',borderWidth:2},
         {label:'+60d',data:new Array(histLen).fill(null).concat([null,proj60,null]),borderColor:'rgba(181,123,255,0.6)',backgroundColor:'transparent',borderDash:[6,4],tension:0,pointRadius:6,pointHoverRadius:8,pointBackgroundColor:'rgba(181,123,255,0.6)',borderWidth:2},
         {label:'+90d',data:new Array(histLen).fill(null).concat([null,null,proj90]),borderColor:'rgba(181,123,255,0.4)',backgroundColor:'transparent',borderDash:[6,4],tension:0,pointRadius:6,pointHoverRadius:8,pointBackgroundColor:'rgba(181,123,255,0.4)',borderWidth:2},
@@ -2366,7 +2397,7 @@ function renderCharts(m, sessions) {
           bodyColor: document.body.classList.contains('light') ? '#0a1a2a' : '#ddeeff',
           padding:10,
           displayColors:false,
-          yAlign:tipY, caretSize:7, caretPadding:8
+          enabled:false, external:chartTip
         }
       },
       responsive:true,
@@ -2402,7 +2433,7 @@ function renderCharts(m, sessions) {
             ` Acum.: ${fmt$(q.cum)}`]; }
         },
         backgroundColor:ddLight?'rgba(240,244,248,0.97)':'rgba(8,13,18,0.95)',borderColor:ddLight?'rgba(0,119,170,0.4)':'rgba(0,229,255,0.4)',borderWidth:1,
-        titleColor:ddLight?'#0a1a2a':'#c0d4e0',bodyColor:ddLight?'#0a1a2a':'#ddeeff',padding:10,displayColors:false,yAlign:tipY,caretSize:7,caretPadding:8}},
+        titleColor:ddLight?'#0a1a2a':'#c0d4e0',bodyColor:ddLight?'#0a1a2a':'#ddeeff',padding:10,displayColors:false,enabled:false,external:chartTip}},
       animation:{duration:600}},
     plugins:[ddCursor]
   });
