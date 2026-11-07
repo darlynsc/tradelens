@@ -1748,10 +1748,10 @@ function dayStats(D){
   const gw=_sum(w.map(d=>d.netPnl)), glAbs=Math.abs(_sum(l.map(d=>d.netPnl)));
   const avgWin=w.length?gw/w.length:null, avgLossAbs=l.length?glAbs/l.length:null;
   const total=_sum(D.map(d=>d.netPnl));
-  const dec=w.length+l.length;                          // días decisivos: fuera del umbral (los BreakEven no cuentan)
+  const dec=w.length+l.length;                          // días decisivos: fuera del umbral (los Break Even no cuentan)
   return {N,dec,wins:w.length,losses:l.length,be:N-dec,
     winPct:dec>0?w.length/dec*100:null,                  // win rate diario = ganadores / (ganadores + perdedores); null = N/D
-    total,exp:total/N,                                   // expectancy diaria: usa todos los días operados (incluye BreakEven porque su neto en dólares es real)
+    total,exp:total/N,                                   // expectancy diaria: usa todos los días operados (incluye Break Even porque su neto en dólares es real)
     grossWin:gw,grossLoss:glAbs,avgWin,avgLossAbs,
     pf:glAbs>0?gw/glAbs:null,                            // null = N/D (nunca Infinity); solo-perdedores da 0 válido
     pfWhy:glAbs>0?'':(w.length?'no hay días perdedores en el periodo':'no hay días ganadores ni perdedores'),
@@ -1967,6 +1967,75 @@ function swPidColors(pids){
   return map;
 }
 
+// Actividad de la sesión (Journal INTRADÍA): mismo desglose que el SWING, pero de UNA sola sesión → se despliega directo, sin días anidados.
+function renderIntraActivity(day){
+  const box=document.getElementById('jswingAct'); if(!box) return;
+  const hide=()=>{ box.style.display='none'; box.innerHTML=''; };
+  const tos=(day&&day.tradeObjs)||[];
+  if(!tos.length) return hide();
+  const ids=new Set(tos.map(t=>String(t.id)));
+  const raw=((_lastData&&_lastData.deals)||[]).filter(d=>d&&d.entry!=='BALANCE'&&ids.has(String(d.position_id)));
+  if(!raw.length) return hide();
+  const num=v=>{ const x=+v; return isFinite(x)?x:0; };
+  const r2=v=>Math.round((v+Number.EPSILON)*100)/100;
+  const ord=(a,b)=>(num(a.time)-num(b.time))||(num(a.time_msc)-num(b.time_msc))||(num(a.ticket)-num(b.ticket));
+  const byPid={};
+  raw.slice().sort(ord).forEach(d=>{ (byPid[String(d.position_id)]=byPid[String(d.position_id)]||[]).push(d); });
+  const pids=Object.keys(byPid);
+  const openT={}, lastOut={};
+  pids.forEach(p=>{
+    const ds=byPid[p], ins=ds.filter(d=>d.entry==='IN'), outs=ds.filter(d=>d.entry!=='IN');
+    openT[p]=num((ins[0]||ds[0]).time);
+    lastOut[p]=outs.length?outs[outs.length-1].ticket:null;
+  });
+  pids.sort((a,b)=>openT[a]-openT[b]);
+  const pCol=swPidColors(pids);
+  const tk=pid=>`<b style="color:${pCol[String(pid)]||'var(--text)'}">#${_swEsc(pid)}</b>`;
+  // Eventos con estado acumulado por posición (misma lógica que el motor SWING)
+  const inSo={}, outSo={}, ev=[];
+  raw.slice().sort(ord).forEach(d=>{
+    const p=String(d.position_id), vol=num(d.volume);
+    inSo[p]=inSo[p]||0; outSo[p]=outSo[p]||0;
+    let kind;
+    if(d.entry==='IN'){ kind=inSo[p]<=1e-7?'OPEN':'ADD'; inSo[p]+=vol; }
+    else { outSo[p]+=vol; kind=(lastOut[p]!=null&&d.ticket===lastOut[p])?'CLOSE':'PARTIAL'; }
+    ev.push({t:num(d.time),kind,pid:p,entry:d.entry,vol,price:num(d.price),profit:num(d.profit),comm:num(d.commission),swap:num(d.swap),
+      rest:Math.max(0,inSo[p]-outSo[p])});
+  });
+  const outs=ev.filter(e=>e.entry!=='IN');
+  const net=r2(ev.reduce((a,e)=>a+e.profit+e.comm+e.swap,0));
+  const gains=r2(outs.reduce((a,e)=>a+(e.profit+e.swap>0?e.profit+e.swap:0),0));
+  const losses=r2(outs.reduce((a,e)=>a+(e.profit+e.swap<0?e.profit+e.swap:0),0));
+  const comm=r2(ev.reduce((a,e)=>a+e.comm,0)), swap=r2(ev.reduce((a,e)=>a+e.swap,0));
+  const volIn=r2(ev.filter(e=>e.entry==='IN').reduce((a,e)=>a+e.vol,0)), volOut=r2(outs.reduce((a,e)=>a+e.vol,0));
+  const nOpened=new Set(ev.filter(e=>e.kind==='OPEN').map(e=>e.pid)).size;
+  const nClosed=new Set(ev.filter(e=>e.kind==='CLOSE').map(e=>e.pid)).size;
+  const nPart=new Set(ev.filter(e=>e.kind==='PARTIAL').map(e=>e.pid)).size;
+  const stat=(l,v,col)=>`<div class="jstat"><div class="jstat-l">${l}</div><div class="jstat-v" style="font-size:12px;${col?'color:'+col:''}">${v}</div></div>`;
+  const rows=ev.map(e=>{
+    const lbl={OPEN:'Apertura',ADD:'Adición',PARTIAL:'Parcial',CLOSE:'Cierre'}[e.kind]||e.kind;
+    const op=_swDayLbl(nySession(openT[e.pid]));
+    const c=fmt$(e.comm), n=c.charAt(0)==='-';
+    return `<tr><td>${_swHM(e.t)}</td><td><span class="jsw-tag ${e.kind}">${lbl}</span></td><td>${tk(e.pid)}</td><td style="color:var(--muted);font-size:10px;">${op}</td>`+
+      `<td>${e.vol.toFixed(2)}</td><td>${fx(e.price,2)}</td><td style="color:${e.entry==='IN'?'var(--muted)':_swSign(e.profit+e.swap)}">${e.entry==='IN'?'—':fmt$(e.profit+e.swap)}</td>`+
+      `<td style="color:var(--muted)"><span style="display:inline-block;width:1ch;">${n?'-':''}</span>${n?c.slice(1):c}</td><td>${e.rest.toFixed(2)}</td></tr>`;
+  }).join('');
+  box.style.display='';
+  box.innerHTML=`<details class="jsw-act"><summary>Actividad de la sesión · ${pids.length>1?pids.length+' posiciones':'1 posición'}</summary>`+
+    `<div class="jsw-grid">`+
+      stat('Realizado de la sesión',fmt$(net),_swSign(net))+stat('Ganancias realizadas',fmt$(gains),'var(--green)')+stat('Pérdidas realizadas',fmt$(losses),'var(--red)')+
+      stat('Comisiones',fmt$(comm),'var(--muted)')+stat('Swap',fmt$(swap),'var(--muted)')+
+      stat('Vol. abierto',volIn.toFixed(2))+stat('Vol. cerrado',volOut.toFixed(2))+
+      `<div class="jstat"><div style="display:grid;grid-template-columns:auto auto auto;column-gap:6px;justify-items:center;align-items:baseline;">`+
+        `<div class="jstat-l">Abiertas</div><div class="jstat-l">/</div><div class="jstat-l">Cerradas</div>`+
+        `<div class="jstat-v" style="font-size:12px">${nOpened}</div><div class="jstat-v" style="font-size:12px">/</div><div class="jstat-v" style="font-size:12px">${nClosed}</div>`+
+        (nPart?`<div class="jstat-l" style="grid-column:1/4;margin-top:2px;">${nPart} parcial(es)</div>`:'')+
+      `</div></div>`+
+    `</div><div style="overflow-x:auto"><table class="jsw-tbl"><thead><tr><th>Hora</th><th>Evento</th><th>Posición</th><th>Fecha de apertura</th><th>Lotes</th><th>Precio</th><th>Resultado</th><th>Comis.</th><th>Resta pos.</th></tr></thead><tbody>${rows}</tbody></table></div></details>`;
+  const det=box.querySelector('details');
+  if(det) det.addEventListener('toggle',()=>{ const st=document.getElementById('jmodalStats'); if(st) st.style.display=det.open?'none':''; });
+}
+
 // Encabezado + actividad por sesión del Journal SWING (mismo modal que el Journal normal)
 function renderSwingJournalHead(c){
   const act=c.state==='active', fl=c.floating||{}, R=c.realized, k=c.counts;
@@ -2083,7 +2152,7 @@ function renderAccBar(acc, trades, isDemo) {
     {l:'Broker',v:acc.broker||'—',cls:''},
     {l:'Balance',v:fmt$(acc.balance),cls:'neu'},
     {l:'Apalanc. · Moneda',v:'1:'+(acc.leverage||'—')+' · '+(acc.currency||'USD'),cls:''},
-    {l:'P&L Realizado Hoy',v:fmt$(todayPnl),cls:todayPnl>=0?'pos':'neg'},
+    {l:'P&L Realizado Hoy',v:fmt$(todayPnl),cls:Math.abs(todayPnl)<0.005?'':(todayPnl>0?'pos':'neg')},
   ];
   if(isDemo) fields.push({l:'Modo',v:'DEMO · datos simulados',cls:'neg'});
   document.getElementById('accBar').innerHTML=fields.map((f,i)=>`
@@ -2144,8 +2213,8 @@ function renderKPIs(m, acc) {
   const g1=[
     {l:'Resultado Neto',v:fmt$(m.total),cls:m.total>=0?'pos':'neg',c:m.total>=0?'g':'r',icon:'💰',sub:`${m.days} días · ${m.n} posiciones`,
       tip:'Neto realizado con comisión y swap. Importa la tendencia a lo largo de muchos días, no un día aislado.'},
-    {l:'Win Rate',v:fmtPct(S.winPct),cls:'neu',c:'c',icon:'🎯',sub:`${S.wins} de ${S.dec} días ganadores${S.be?` · ${S.be} BreakEven fuera`:''}`,
-      tip:'Porcentaje de días ganadores sobre días ganadores + perdedores; los días BreakEven (dentro del umbral fijo) no cuentan. Léelo junto a la ganancia/pérdida: puedes ser rentable con win rate bajo si ganas más de lo que pierdes.'},
+    {l:'Win Rate',v:fmtPct(S.winPct),cls:'neu',c:'c',icon:'🎯',sub:`${S.wins} de ${S.dec} días ganadores${S.be?` · ${S.be} Break Even fuera`:''}`,
+      tip:'Porcentaje de días ganadores sobre días ganadores + perdedores; los días Break Even (dentro del umbral fijo) no cuentan. Léelo junto a la ganancia/pérdida: puedes ser rentable con win rate bajo si ganas más de lo que pierdes.'},
     {l:'Profit Factor',v:S.pf==null?'N/D':S.pf.toFixed(2),cls:_cl(S.pf,1.5,1),c:_cc(S.pf,1.5,1),icon:'⚖️',sub:S.pf==null?'N/D':'',
       tip:'Referencia: menos de 1 pierde dinero · 1.3 a 1.5 aceptable · más de 2 muy sólido. Con pocos días es inestable.'},
     {l:'Expectancy',v:fmt$(S.exp),cls:S.exp>=0?'pos':'neg',c:S.exp>=0?'g':'r',icon:'🧮',sub:'Neto medio por día operado',
@@ -2246,7 +2315,7 @@ function renderStreaks(m) {
       <div class="streak-info">
         <div class="streak-label">${curLabel}</div>
         <div class="streak-val ${curColor}">${cur.count} ${unit(cur.count)}</div>
-        <div class="streak-sub">${cur.count?`${fmt$(cur.net)} neto acumulado · ${rng(cur)}`:'Último día operado BreakEven o sin datos'}<br>Días operativos consecutivos según su resultado neto</div>
+        <div class="streak-sub">${cur.count?`${fmt$(cur.net)} neto acumulado · ${rng(cur)}`:'Último día operado Break Even o sin datos'}<br>Días operativos consecutivos según su resultado neto</div>
       </div>
     </div>
     <div class="streak-card" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
@@ -2441,7 +2510,7 @@ function renderCharts(m, sessions) {
   // PROGRESS BARS
   const progs=[
     {l:'Win Rate (diario)',v:m.D.winPct==null?0:m.D.winPct,max:100,c:'c',fv:v=>fmtPct(v),
-     info:'Porcentaje de días ganadores sobre días ganadores + perdedores (X de Y días); los días BreakEven no cuentan. Es una proporción, no un P/L: un 21 % no es «−21 %». No cuenta posiciones.',
+     info:'Porcentaje de días ganadores sobre días ganadores + perdedores (X de Y días); los días Break Even no cuentan. Es una proporción, no un P/L: un 21 % no es «−21 %». No cuenta posiciones.',
      rec:'Léelo junto con la relación ganancia/pérdida diaria y la expectancy diaria: un win rate diario bajo puede ser coherente con ganancias medias mayores que las pérdidas.'},
     {l:'Profit Factor (diario)',v:Math.min(m.D.pf==null?0:m.D.pf,5),max:5,c:'c',fv:_=>m.D.pf==null?'N/D':m.D.pf.toFixed(2),
      info:'Suma de los netos de los días ganadores dividida entre el valor absoluto de la suma de los netos de los días perdedores. N/D si no hay días perdedores.',
@@ -2542,7 +2611,7 @@ function renderCharts(m, sessions) {
   };
   charts['wl']=new Chart(document.getElementById('wlChart'),{
     type:'doughnut',
-    data:{labels:[`Ganadores ${wlPctWin}% (${m.dayWins})`,`Perdedores ${wlPctLoss}% (${m.dayLosses})`,`BreakEven ${wlPctBE}% (${m.dayBE})`],
+    data:{labels:[`Ganadores ${wlPctWin}% (${m.dayWins})`,`Perdedores ${wlPctLoss}% (${m.dayLosses})`,`Break Even ${wlPctBE}% (${m.dayBE})`],
       datasets:[{data:[m.dayWins,m.dayLosses,m.dayBE],
         backgroundColor:['rgba(0,255,136,0.75)','rgba(255,51,85,0.75)','rgba(255,204,0,0.75)'],borderWidth:0,hoverBorderWidth:0}]},
     options:{
@@ -2730,7 +2799,7 @@ function _renderCalendarForMonth(sessions, year, month) {
   const greenDays = monthUnits.filter(s => dayClass(s.netPnl) === 'win').length;
   const redDays = monthUnits.filter(s => dayClass(s.netPnl) === 'loss').length;
   const neutralDays = tradingDays - greenDays - redDays;
-  // Consistencia = verdes / (verdes + rojos). Los días BreakEven (dentro del umbral fijo) no cuentan.
+  // Consistencia = verdes / (verdes + rojos). Los días Break Even (dentro del umbral fijo) no cuentan.
   const decisiveDays = greenDays + redDays;
   const consistencyPct = decisiveDays > 0 ? (greenDays / decisiveDays * 100).toFixed(0) : 0;
   const monthPnl = monthUnits.reduce((a,s) => a + s.netPnl, 0);
@@ -2760,7 +2829,7 @@ function _renderCalendarForMonth(sessions, year, month) {
         <div class="cal-cons-v" style="color:var(--red)">${redDays}</div>
       </div>
       <div class="cal-cons-item">
-        <div class="cal-cons-l">BreakEven</div>
+        <div class="cal-cons-l">Break Even</div>
         <div class="cal-cons-v" style="color:#ffcc00">${neutralDays}</div>
       </div>
       <div class="cal-cons-item">
@@ -2777,7 +2846,7 @@ function _renderCalendarForMonth(sessions, year, month) {
   // Render the month grid
   const cal = document.getElementById('calGrid');
   cal.innerHTML = '';
-  const today = todayStr();
+  const today = (()=>{ const t = todayStr(), wd = new Date(t+'T12:00:00').getDay(); return (wd===0||wd===6) ? '' : t; })();   // marco azul de HOY solo en días operables (lun–vie)
   const swShown = new Set();
   if(!cal._swHover){   // una sola vez: resaltar el ciclo completo al pasar el mouse por cualquiera de sus días (no por el mini-marco intradía)
     cal._swHover = true;
@@ -3462,6 +3531,7 @@ function openJournal(dateStr, day) {
   currentJournalDate = dateStr;
   const entry = journalData[dateStr] || {};
   const swAct = document.getElementById('jswingAct');
+  { const stEl=document.getElementById('jmodalStats'); if(stEl) stEl.style.display=''; }   // el resumen vuelve a mostrarse en cada apertura
   const isSw = /^SWING-\d{4}-\d{6}$/.test(dateStr);
   if(isSw){
     // Journal SWING consolidado: el mismo para cualquier fecha del bloque
@@ -3478,14 +3548,16 @@ function openJournal(dateStr, day) {
   // El día se clasifica por su neto realizado; las posiciones se muestran aparte.
   const hasDay = !!day;
   day = day || {netPnl:0,trades:0,wins:0,losses:0,tradeObjs:[]};
+  renderIntraActivity(day);
   const dayPnl = day.netPnl, nPos = day.trades;
-  const dayLbl = dayClass(day.netPnl)==='win'?'Día ganador':dayClass(day.netPnl)==='loss'?'Día perdedor':'BreakEven';
+  const dayLbl = dayClass(day.netPnl)==='win'?'Día ganador':dayClass(day.netPnl)==='loss'?'Día perdedor':'Break Even';
   document.getElementById('jmodalStats').innerHTML = `
     <div class="jstat"><div class="jstat-l">Neto del Día</div><div class="jstat-v" style="color:${dayClass(dayPnl)==='win'?'var(--green)':dayClass(dayPnl)==='loss'?'var(--red)':'#ffcc00'}">${fmt$(dayPnl)}</div></div>
     <div class="jstat"><div class="jstat-l">Resultado</div><div class="jstat-v" style="color:var(--cyan)">${dayLbl}</div></div>
     <div class="jstat"><div class="jstat-l">Posiciones</div><div class="jstat-v" style="color:var(--cyan)">${nPos} (${day.wins}G / ${day.losses}P)</div></div>
     <div class="jstat"><div class="jstat-l">Media por posición</div><div class="jstat-v" style="color:${dayPnl>=0?'var(--green)':'var(--red)'}">${fmt$(nPos?dayPnl/nPos:0)}</div></div>
     <div class="jstat"><div class="jstat-l">Comisiones</div><div class="jstat-v" style="color:var(--muted)">${hasDay&&day.costsKnown?fmt$(day.comm):'N/D'}</div></div>
+    <div class="jstat"><div class="jstat-l">Volumen</div><div class="jstat-v">${hasDay&&day.totalVol!=null?(+day.totalVol).toFixed(2):'N/D'}</div></div>
   `;
   }
 
@@ -3701,7 +3773,7 @@ async function openMonthlySummary() {
     const pxd = pxDigest(ds);
     const known = ds.length>0 && ds.every(s=>s.costsKnown);
     const comm = known?money(ds.reduce((a,s)=>a+s.comm,0)):'N/D', swp = known?money(ds.reduce((a,s)=>a+(s.swap||0),0)):'N/D';
-    return `${date} | Neto del día (neto de comisión y swap): ${money(pnl)} (${dayClass(pnl)==='win'?'día ganador':dayClass(pnl)==='loss'?'día perdedor':'BreakEven'}) | Comisiones del día: ${comm} | Swap del día: ${swp} | Posiciones cerradas ese día (dato secundario por posición): ${cnt} | MAE/MFE en puntos de precio (solo completas, por símbolo, no es dinero): ${pxd} | Etiqueta: ${tagLabels[e.tag]||'Sin etiqueta'} | Nota: ${e.note||'(sin nota)'}`;
+    return `${date} | Neto del día (neto de comisión y swap): ${money(pnl)} (${dayClass(pnl)==='win'?'día ganador':dayClass(pnl)==='loss'?'día perdedor':'Break Even'}) | Comisiones del día: ${comm} | Swap del día: ${swp} | Posiciones cerradas ese día (dato secundario por posición): ${cnt} | MAE/MFE en puntos de precio (solo completas, por símbolo, no es dinero): ${pxd} | Etiqueta: ${tagLabels[e.tag]||'Sin etiqueta'} | Nota: ${e.note||'(sin nota)'}`;
   }).join('\n');
 
   try {
@@ -3736,11 +3808,11 @@ function renderCoach(m, days, balance, deposit, campaigns) {
   tips.push({c:'c',l:`Nivel de Riesgo ${lvl+1} 📊`,t:`Riesgo actual: <strong>$${mny((lvlTarget*rPct/100))}/trade</strong> (${rPct}% de $${mny(lvlTarget)}). Llevas un <strong>${pctToNext}%</strong> del camino al Nivel ${lvl+2} — necesitas <strong>$${needed}</strong> más para escalar el riesgo a $${mny((nextTarget*rPct/100))}/trade.`});
 
   // ── (1) Resultado diario primero
-  const dayTxt = `${S.wins} días ganadores, ${S.losses} perdedores${S.be?`, ${S.be} BreakEven`:''} de ${S.N} días operados (win rate ${fmtPct(S.winPct,0)}, sin contar BreakEven)`;
+  const dayTxt = `${S.wins} días ganadores, ${S.losses} perdedores${S.be?`, ${S.be} Break Even`:''} de ${S.N} días operados (win rate ${fmtPct(S.winPct,0)}, sin contar Break Even)`;
   tips.push({c:'c',l:'Resultado Diario Primero 🧭',t:`La lectura principal es por día operado (neto realizado, ya con comisión y swap): ${dayTxt}. Expectancy diaria ${fmt$(S.exp)}${S.pf!=null?` · profit factor diario ${S.pf.toFixed(2)}`:''}${S.payoff!=null?` · relación ganancia/pérdida diaria ${S.payoff.toFixed(2)}:1`:''}. Las posiciones (${m.wins}G/${m.losses}P de ${m.n}) son evidencia secundaria: con scaling in, varias posiciones rojas pueden convivir con un día verde si una posición mayor las compensa.`});
 
   if(S.dec>=5){
-    if(S.winPct>=60) tips.push({c:'g',l:'Consistencia Diaria ✅',t:`${fmtPct(S.winPct,0)} de tus días ganadores y perdedores (sin contar BreakEven) cierran en positivo según su resultado neto.`});
+    if(S.winPct>=60) tips.push({c:'g',l:'Consistencia Diaria ✅',t:`${fmtPct(S.winPct,0)} de tus días ganadores y perdedores (sin contar Break Even) cierran en positivo según su resultado neto.`});
     else if(S.winPct<40){
       if(S.exp>0) tips.push({c:'p',l:'Win Rate Diario Bajo, Expectancy Positiva',t:`Solo ${fmtPct(S.winPct,0)} de tus ${S.dec} días ganadores y perdedores cierran en positivo, pero la expectancy diaria es ${fmt$(S.exp)}${S.payoff!=null?` (los días ganadores superan a los perdedores ${S.payoff.toFixed(2)}:1)`:''}. Un win rate diario bajo no es un problema por sí solo.`});
       else tips.push({c:'w',l:'Pocos Días Ganadores',t:`Solo ${fmtPct(S.winPct,0)} de tus ${S.dec} días ganadores y perdedores cierran en positivo y la expectancy diaria es ${fmt$(S.exp)}. Revisa en el journal qué tienen en común los días perdedores (mercado, horario, tamaño).`});
