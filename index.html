@@ -892,7 +892,7 @@ input.jimglink:focus{border-color:var(--cyan);}
     <div class="cal-header">
       <div class="chart-title">Calendario de P&L — Resultado Neto por Día</div>
       <div class="cal-nav">
-        <button class="cal-nav-btn" onclick="calNavMonth(-1)" title="Mes anterior">&#8249;</button>
+        <button class="cal-nav-btn" id="calPrevBtn" onclick="calNavMonth(-1)" title="Mes anterior">&#8249;</button>
         <span class="cal-month-label" id="calMonthLabel">—</span>
         <button class="cal-nav-btn" id="calNextBtn" onclick="calNavMonth(1)" title="Mes siguiente">&#8250;</button>
       </div>
@@ -2435,7 +2435,7 @@ function renderCharts(m, sessions) {
       ...cOpts(v=>'$'+mny(v,0)),
       interaction:{mode:'index',axis:'x',intersect:false},
       plugins:{
-        legend:{display:true, labels:{color:'#c0d4e0',font:{size:9,family:'ZeroPlain, Inter, IBM Plex Mono'},filter:(item)=>item.text!==''}},
+        legend:{display:true, labels:{color:'#c0d4e0',font:{size:9,family:'ZeroPlain, Inter, IBM Plex Mono'},filter:(item)=>item.text!=='',generateLabels:(ch)=>Chart.defaults.plugins.legend.labels.generateLabels(ch).map(l=>l.datasetIndex===0?{...l,fillStyle:'transparent'}:l)}},
         tooltip:{
           callbacks:{
             title: ctx => {
@@ -2736,12 +2736,22 @@ let _calViewMonth = null; // 0-indexed
 // Límite de navegación: el mes de la fecha actual (calculada, nunca fija). Hacia el pasado no hay límite.
 function _calMax(){ const t=todayStr(); return {y:+t.slice(0,4), m:+t.slice(5,7)-1}; }
 function _calIsFuture(y,m){ const c=_calMax(); return y>c.y || (y===c.y && m>c.m); }
+function _calActiveMonths(){
+  const set=new Set(), add=k=>{ if(k&&k.length>=7){ const y=+k.slice(0,4), m=+k.slice(5,7)-1; if(!_calIsFuture(y,m)) set.add(y*12+m); } };
+  (_calAllSessions||[]).forEach(s=>add(s.date));
+  (_swingCycles||[]).forEach(c=>{ const end=new Date(c.lastDay+'T12:00:00Z'); for(let d=new Date(c.startDay+'T12:00:00Z'); d<=end; d.setUTCMonth(d.getUTCMonth()+1,1)) add(d.toISOString().slice(0,10)); add(c.lastDay); });
+  return [...set].sort((a,b)=>a-b);
+}
+function _calNavTarget(y,m,delta){
+  const cur=y*12+m, a=_calActiveMonths();
+  const t=delta>0 ? a.find(v=>v>cur) : [...a].reverse().find(v=>v<cur);
+  return t==null?null:{y:Math.floor(t/12), m:t%12};
+}
 function calNavMonth(delta) {
   if(_calViewMonth === null) return;
-  let y=_calViewYear, m=_calViewMonth+delta;
-  if(m < 0) { m = 11; y--; } else if(m > 11) { m = 0; y++; }
-  if(_calIsFuture(y,m)) return; // bloqueo real, no solo visual
-  _calViewYear=y; _calViewMonth=m;
+  const t=_calNavTarget(_calViewYear,_calViewMonth,delta);
+  if(!t) return;
+  _calViewYear=t.y; _calViewMonth=t.m;
   _renderCalendarForMonth(_calAllSessions, _calViewYear, _calViewMonth);
 }
 
@@ -2778,8 +2788,7 @@ function renderCalendar(sessions) {
 
 function _renderCalendarForMonth(sessions, year, month) {
   if(_calIsFuture(year,month)){ const c=_calMax(); year=_calViewYear=c.y; month=_calViewMonth=c.m; } // nunca renderiza un mes futuro
-  const nb=document.getElementById('calNextBtn');
-  if(nb){ let ny=year, nm=month+1; if(nm>11){nm=0;ny++;} const blocked=_calIsFuture(ny,nm); nb.disabled=blocked; nb.style.opacity=blocked?'.35':''; nb.style.cursor=blocked?'default':''; }
+  [['calNextBtn',1],['calPrevBtn',-1]].forEach(([id,dl])=>{ const bt=document.getElementById(id); if(bt){ const blocked=!_calNavTarget(year,month,dl); bt.disabled=blocked; bt.style.opacity=blocked?'.35':''; bt.style.cursor=blocked?'default':''; } });
   const monthNames = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
   // Label
   const labelEl = document.getElementById('calMonthLabel');
