@@ -107,7 +107,9 @@ header{
 
 /* JOURNAL: imágenes subidas */
 .jimg-label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin:14px 0 6px;}
-.jimg-actions{display:flex;gap:10px;align-items:center;flex-wrap:nowrap;}
+.jimg-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
+.jimg-add.jimg-hide{display:none;}
+.jimg-add.rec{background:rgba(255,51,85,0.15);color:var(--red);border-color:rgba(255,51,85,0.45);}
 .jimg-actions .jimg-add{flex-shrink:0;}
 .jimg-actions .jimg-trade{flex:0 1 auto;width:auto;min-width:0;max-width:100%;}
 .jimg-add{background:rgba(0,229,255,0.1);color:var(--cyan);border:1px solid rgba(0,229,255,0.3);padding:9px 16px;border-radius:8px;font-family:var(--font-head);font-weight:600;font-size:12px;cursor:pointer;transition:.2s;}
@@ -1109,10 +1111,14 @@ input.jimglink:focus{border-color:var(--cyan);}
       <textarea class="jnote" id="jnoteText" oninput="autoGrowNote()" placeholder="Describe qué viste en el mercado, por qué entraste, cómo escalaste, qué salió bien o mal..."></textarea>
       <div class="jimg-label">Capturas (opcional)</div>
       <div class="jimg-actions">
-        <button class="jimg-add" id="jimgAddBtn" type="button" onclick="document.getElementById('jimgFile').click()">📷 Subir imagen</button>
+        <button class="jimg-add" id="jimgAddBtn" type="button" onclick="document.getElementById('jimgFile').click()">🖼️ Subir imagen</button>
+        <button class="jimg-add jimg-hide" id="jimgCamBtn" type="button" onclick="document.getElementById('jimgCam').click()">📸 Cámara</button>
+        <button class="jimg-add jimg-hide" id="jimgScrBtn" type="button" onclick="capMt5()">🖥️ Capturar MT5</button>
         <select class="jimg-trade" id="jimgTrade" title="Operación relacionada (opcional)"></select>
       </div>
+      <div style="font-size:10px;color:var(--muted);margin-top:6px;">💡 En PC: «Capturar MT5» saca el gráfico directamente desde MetaTrader (requiere la EA v3.6). También puedes pegar una captura del sistema con Ctrl+V.</div>
       <input type="file" id="jimgFile" accept="image/jpeg,image/png,image/webp,image/gif" multiple style="display:none" onchange="onImgPicked(this)"/>
+      <input type="file" id="jimgCam" accept="image/*" capture="environment" style="display:none" onchange="onImgPicked(this)"/>
       <div class="jimg-msg" id="jimgMsg"></div>
       <div class="jimg-grid" id="jimgGrid"></div>
       <div id="jimgLegacy" style="margin-top:8px;font-size:10px;color:var(--muted);"></div>
@@ -3590,6 +3596,7 @@ function openJournal(dateStr, day) {
   document.getElementById('jbtnDel').style.display = journalHas(dateStr) ? '' : 'none';
   document.getElementById('jmodalOverlay').classList.add('open');
   autoGrowNote(); // el modal ya es visible: se puede medir el texto
+  capArm();
 }
 
 // La caja de notas crece o se encoge según el largo del texto (sin espacio vacío sobrante).
@@ -3601,6 +3608,7 @@ function autoGrowNote() {
 window.addEventListener('resize', autoGrowNote);
 
 function closeJournal() {
+  capCancel();
   document.getElementById('jmodalOverlay').classList.remove('open');
   jPending.forEach(p=>URL.revokeObjectURL(p.url)); jPending = []; jRemoved = [];
 }
@@ -3657,6 +3665,95 @@ async function onImgPicked(input) {
   }
   renderImgGrid();
 }
+// ── CÁMARA (móvil) Y CAPTURA DE PANTALLA (PC) ──
+(function(){
+  const coarse = window.matchMedia && window.matchMedia('(pointer:coarse)').matches;
+  const cam = document.getElementById('jimgCam'), camBtn = document.getElementById('jimgCamBtn'), scrBtn = document.getElementById('jimgScrBtn');
+  if(coarse && camBtn) camBtn.classList.remove('jimg-hide');
+  if(!coarse && scrBtn) scrBtn.classList.remove('jimg-hide');
+})();
+const _isTouch = !!(window.matchMedia && window.matchMedia('(pointer:coarse)').matches);
+let _capWait = null; // {id, day, timer}
+function capArm(){
+  if(_isTouch || !serverURL || !serverToken) return;
+  try { fetch(journalUrl('/capture/arm'), {method:'POST'}).catch(()=>{}); } catch(_){}
+}
+function capUI(){
+  const b = document.getElementById('jimgScrBtn'); if(!b) return;
+  b.disabled = !!_capWait;
+  b.textContent = _capWait ? '⏳ Capturando MT5…' : '🖥️ Capturar MT5';
+}
+function capCancel(){ if(_capWait){ clearTimeout(_capWait.timer); _capWait = null; } capUI(); }
+function capAddImg(im, day){
+  if(currentJournalDate !== day || !document.getElementById('jmodalOverlay').classList.contains('open')) return;
+  if(jImgs.some(i=>i.id===im.id)) return;
+  jImgs.push({id:im.id, ref:im.ref||''});
+  const old = journalData[day] || {}, refs = {...(old.imgRefs||{})}; if(im.ref) refs[im.id] = im.ref;
+  journalData[day] = { tag:old.tag||'', note:old.note||'', img:old.img||'', imgs:[...(old.imgs||[]).filter(x=>x!==im.id), im.id], imgRefs:refs, saved:new Date().toISOString() };
+  saveJournalToStorage();
+  renderImgGrid();
+}
+function capFinish(j){
+  const day = _capWait && _capWait.day;
+  capCancel();
+  if(j.state === 'done') jimgMsg('✅ Captura de MT5 subida ('+jImgs.length+')');
+  else jimgMsg(j.error || 'No se pudo capturar MT5.', true);
+}
+async function capMt5(){
+  const day = currentJournalDate; if(!day || _capWait) return;
+  if(!serverURL || !serverToken){ jimgMsg('Inicia sesión en la nube (☰ → Cuenta) para subir capturas.', true); return; }
+  if(jImgs.length + jPending.length >= IMG_MAX_PER_DAY){ jimgMsg(`Máximo ${IMG_MAX_PER_DAY} imágenes por día.`, true); return; }
+  _capWait = {id:'', day, timer:null}; capUI(); jimgMsg('Pidiendo captura a MT5…');
+  try {
+    const r = await fetch(journalUrl('/capture/request'), {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({day, ref:document.getElementById('jimgTrade').value})});
+    let j = {}; try { j = await r.json(); } catch(_){}
+    if(r.status === 401){ capCancel(); sessionExpired(); return; }
+    if(r.status === 404 && !j.error) throw new Error('El servidor desplegado no tiene /capture. Despliega el server.js actualizado.');
+    if(!r.ok) throw new Error(j.error || ('Error '+r.status));
+    if(!_capWait) return;   // se cerró el Journal mientras tanto
+    _capWait.id = j.id;
+    jimgMsg(j.eaSeen ? 'Capturando MT5…' : 'La EA no ha respondido recientemente: comprueba que MT5 esté abierto y la EA sea la v3.6. Sigo esperando…', !j.eaSeen);
+    const t0 = Date.now(), id = j.id;
+    const tick = async () => {
+      if(!_capWait || _capWait.id !== id) return;
+      try {
+        const rs = await fetch(journalUrl('/capture/status')+'&id='+encodeURIComponent(id));
+        const st = await rs.json();
+        (st.imgs||[]).forEach(im => capAddImg(im, day));
+        if(st.state === 'done' || st.state === 'failed'){ capFinish(st); return; }
+      } catch(_){}
+      if(Date.now()-t0 > 65000){ capFinish({state:'failed', error:'La EA no respondió. Comprueba que MT5 esté abierto y la EA actualizada (v3.6).'}); return; }
+      if(_capWait && _capWait.id === id) _capWait.timer = setTimeout(tick, 1000);
+    };
+    tick();
+  } catch(e){ capCancel(); jimgMsg(e.message || String(e), true); }
+}
+// Pegar (Ctrl+V) una captura nativa del sistema: calidad idéntica a la del sistema, se sube al instante.
+async function imgUploadNow(blob, name){
+  const day = currentJournalDate; if(!day) return;
+  if(!serverURL || !serverToken){ jimgMsg('Inicia sesión en la nube (☰ → Cuenta) para subir capturas.', true); return; }
+  if(jImgs.length + jPending.length >= IMG_MAX_PER_DAY){ jimgMsg(`Máximo ${IMG_MAX_PER_DAY} imágenes por día.`, true); return; }
+  try {
+    if(!IMG_TYPES.includes(blob.type)) throw new Error('Formato no permitido (usa JPG, PNG, WEBP o GIF).');
+    if(blob.size > IMG_MAX_BYTES) blob = await prepareImage(blob);
+    if(blob.size > IMG_MAX_BYTES) throw new Error('La imagen supera 5 MB.');
+    jimgMsg('Subiendo captura…');
+    const ref = document.getElementById('jimgTrade').value;
+    const j = await uploadImage(day, {blob, ref, name:name||'captura'});
+    jImgs.push({id:j.id, ref});
+    const old = journalData[day] || {}, refs = {...(old.imgRefs||{})}; if(ref) refs[j.id] = ref;
+    journalData[day] = { tag:old.tag||'', note:old.note||'', img:old.img||'', imgs:[...(old.imgs||[]), j.id], imgRefs:refs, saved:new Date().toISOString() };
+    saveJournalToStorage(); journalDirty.add(day); saveDirty(); pushJournalEntry(day);
+    renderImgGrid(); jimgMsg('✅ Captura subida ('+jImgs.length+')');
+  } catch(e){ jimgMsg(e.message||String(e), true); }
+}
+document.addEventListener('paste', e => {
+  const ov = document.getElementById('jmodalOverlay'); if(!ov || !ov.classList.contains('open')) return;
+  const items = [...(e.clipboardData && e.clipboardData.items || [])].filter(i => i.kind==='file' && i.type.startsWith('image/'));
+  if(!items.length) return;
+  e.preventDefault();
+  items.forEach(i => { const f = i.getAsFile(); if(f) imgUploadNow(f, f.name); });
+});
 // Errores clasificados para saber QUÉ falló: ruta, permisos, validación, almacenamiento o conexión.
 async function uploadImage(day, p) {
   let r;
