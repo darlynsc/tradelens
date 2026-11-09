@@ -419,6 +419,7 @@ canvas{max-height:200px;}
 .jsw-tag.OPEN,.jsw-tag.ADD{background:hsla(170,85%,50%,.30);}      /* apertura / adición: turquesa (como el ticket ...2454) */
 .jsw-tag.PARTIAL{background:hsla(62,50%,42%,.40);}                  /* cierre parcial = cobro: verde-amarillo envejecido (oliva/mostaza apagado) */
 .jsw-tag.CLOSE{background:hsla(0,55%,58%,.34);}                     /* cierre: rojo (como el ticket ...7800) */
+.jsw-trh td{background:rgba(0,229,255,.08);border-top:1px solid var(--cyan);font-size:11px;padding:6px;white-space:nowrap;}   /* encabezado de cada Trade (cadena) en Actividad de la sesión intradía */
 @media(max-width:700px){.cal-day .cal-sw{font-size:7px;letter-spacing:0;}.cal-day .cal-intra{font-size:7px;padding:0 3px;}.cal-day .cal-mini{padding:2px 4px;min-width:0;}.cal-day .cal-mini .mi-t,.cal-day .cal-mini .mi-n{font-size:7px;}.cal-day .cal-mini .mi-r{font-size:10px;}.jsw-tbl{display:block;overflow-x:auto;}}
 
 /* COACH */
@@ -636,6 +637,17 @@ canvas{max-height:200px;}
 .jnote-label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:6px;}
 textarea.jnote{width:100%;background:var(--s2);border:1px solid var(--b2);color:var(--text);padding:12px;border-radius:8px;font-family:var(--font-mono);font-size:12px;line-height:1.65;resize:none;overflow:hidden;min-height:110px;outline:none;transition:border-color .2s;}
 textarea.jnote:focus{border-color:var(--cyan);}
+/* Notas: "Trade 1/2/3…" se pinta (capa detrás del texto, mismas métricas que el textarea) y al tocarlo abre ese Trade en Actividad de la sesión */
+.jnote-wrap{position:relative;background:var(--s2);border-radius:8px;}
+.jnote-wrap textarea.jnote{display:block;position:relative;z-index:1;background:transparent;color:transparent;caret-color:var(--text);}
+.jnote-wrap textarea.jnote::placeholder{color:var(--muted);opacity:.7;}
+.jnote-bd{position:absolute;inset:0;z-index:0;overflow:hidden;pointer-events:none;white-space:pre-wrap;overflow-wrap:break-word;word-wrap:break-word;border:1px solid transparent;padding:12px;border-radius:8px;font-family:var(--font-mono);font-size:12px;line-height:1.65;color:var(--text);}
+.jnote-bd .tl-tr{color:var(--cyan);background:rgba(0,229,255,.14);border-radius:3px;}
+@keyframes jswflash{0%{background:rgba(0,229,255,.5);}100%{background:rgba(0,229,255,.08);}}
+.jsw-trh.flash td{animation:jswflash 1.4s ease-out;}
+.jsw-trh{cursor:pointer;user-select:none;-webkit-user-select:none;}
+.jsw-trh .jsw-chev{display:inline-block;margin-right:5px;transition:transform .15s;color:var(--cyan);}
+.jsw-trh.col .jsw-chev{transform:rotate(-90deg);}
 .jimglink-label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin:14px 0 6px;}
 input.jimglink{width:100%;background:var(--s2);border:1px solid var(--b2);color:var(--text);padding:9px 12px;border-radius:8px;font-family:var(--font-mono);font-size:11px;outline:none;transition:.2s;}
 input.jimglink:focus{border-color:var(--cyan);}
@@ -648,6 +660,16 @@ input.jimglink:focus{border-color:var(--cyan);}
 .jbtn-summary:hover{background:rgba(181,123,255,0.25);}
 .jbtn-del{background:rgba(255,51,85,0.12);color:var(--red);border:1px solid rgba(255,51,85,0.35);padding:9px 20px;border-radius:8px;font-family:var(--font-head);font-weight:600;font-size:12px;cursor:pointer;transition:.2s;margin-right:auto;}
 .jbtn-del:hover{background:rgba(255,51,85,0.22);}
+/* Confirmación propia (mismo estilo que el modal del journal) */
+#tlConfirm{z-index:700;}
+#tlConfirm .jmodal{max-width:400px;padding:24px;}
+#tlConfirm .tlc-text{font-size:13px;color:var(--text);line-height:1.6;margin-top:10px;}
+#tlConfirm .jbtn-row{margin-top:20px;}
+#tlConfirm .jbtn-del{margin-right:0;}
+.jbtn-cancel{background:var(--s2);color:var(--muted);border:1px solid var(--b2);padding:9px 20px;border-radius:8px;font-family:var(--font-head);font-weight:600;font-size:12px;cursor:pointer;transition:.2s;}
+.jbtn-cancel:hover{color:var(--text);background:var(--b2);}
+@media(max-width:700px),(hover:none){ .jtip-pc{display:none;} }   /* consejo de Ctrl+V: solo en PC */
+@media(max-width:700px){ #tlConfirm .jbtn-row button{width:100%;text-align:center;padding:11px;} }
 .cal-day.has-note{position:relative;}
 .cal-day.has-note::after{content:'📝';position:absolute;top:3px;right:3px;font-size:8px;opacity:0.8;}
 
@@ -884,6 +906,16 @@ input.jimglink:focus{border-color:var(--cyan);}
 </div>
 
 <!-- ACCOUNT MODAL -->
+<div class="jmodal-overlay" id="tlConfirm">
+  <div class="jmodal" role="dialog" aria-modal="true" aria-labelledby="tlcTitle">
+    <div class="jmodal-date" id="tlcTitle">—</div>
+    <div class="tlc-text" id="tlcText"></div>
+    <div class="jbtn-row">
+      <button class="jbtn-cancel" id="tlcNo" type="button">Cancelar</button>
+      <button class="jbtn-del" id="tlcYes" type="button">🗑 Eliminar</button>
+    </div>
+  </div>
+</div>
 <div class="jmodal-overlay" id="acctOverlay">
   <div class="jmodal" style="max-width:440px;">
     <button class="jmodal-close" onclick="closeAccount()">✕</button>
@@ -1148,15 +1180,15 @@ input.jimglink:focus{border-color:var(--cyan);}
         <div class="jtag" data-tag="lesson" onclick="selectTag(this)">📚 Lección clave</div>
       </div>
       <div class="jnote-label">Notas de la sesión</div>
-      <textarea class="jnote" id="jnoteText" oninput="autoGrowNote()" placeholder="Describe qué viste en el mercado, por qué entraste, cómo escalaste, qué salió bien o mal..."></textarea>
+      <div class="jnote-wrap"><div class="jnote-bd" id="jnoteBd" aria-hidden="true"></div><textarea class="jnote" id="jnoteText" oninput="autoGrowNote()" placeholder="Describe qué viste en el mercado, por qué entraste, cómo escalaste, qué salió bien o mal..."></textarea></div>
       <div class="jimg-label">Capturas (opcional)</div>
       <div class="jimg-actions">
         <button class="jimg-add" id="jimgAddBtn" type="button" onclick="document.getElementById('jimgFile').click()">🖼️ Subir imagen</button>
         <button class="jimg-add jimg-hide" id="jimgCamBtn" type="button" onclick="document.getElementById('jimgCam').click()">📸 Cámara</button>
         <button class="jimg-add jimg-hide" id="jimgScrBtn" type="button" onclick="capMt5()">🖥️ Capturar MT5</button>
-        <select class="jimg-trade" id="jimgTrade" title="Operación relacionada (opcional)"></select>
+        <select class="jimg-trade" id="jimgTrade" title="Operación relacionada (opcional)" hidden></select>
       </div>
-      <div style="font-size:10px;color:var(--muted);margin-top:6px;">💡 En PC: también puedes pegar una captura del sistema con Ctrl+V.</div>
+      <div class="jtip-pc" style="font-size:10px;color:var(--muted);margin-top:6px;">💡Pega captura con Ctrl+V</div>
       <input type="file" id="jimgFile" accept="image/jpeg,image/png,image/webp,image/gif" multiple style="display:none" onchange="onImgPicked(this)"/>
       <input type="file" id="jimgCam" accept="image/*" capture="environment" style="display:none" onchange="onImgPicked(this)"/>
       <div class="jimg-msg" id="jimgMsg"></div>
@@ -2050,7 +2082,7 @@ function swPidColors(pids){
 // Actividad de la sesión (Journal INTRADÍA): mismo desglose que el SWING, pero de UNA sola sesión → se despliega directo, sin días anidados.
 function renderIntraActivity(day){
   const box=document.getElementById('jswingAct'); if(!box) return;
-  const hide=()=>{ box.style.display='none'; box.innerHTML=''; };
+  const hide=()=>{ box.style.display='none'; box.innerHTML=''; window._intraTrades=0; if(typeof noteHL==='function') noteHL(); };
   const tos=(day&&day.tradeObjs)||[];
   if(!tos.length) return hide();
   const ids=new Set(tos.map(t=>String(t.id)));
@@ -2092,16 +2124,53 @@ function renderIntraActivity(day){
   const nClosed=new Set(ev.filter(e=>e.kind==='CLOSE').map(e=>e.pid)).size;
   const nPart=new Set(ev.filter(e=>e.kind==='PARTIAL').map(e=>e.pid)).size;
   const stat=(l,v,col)=>`<div class="jstat"><div class="jstat-l">${l}</div><div class="jstat-v" style="font-size:12px;${col?'color:'+col:''}">${v}</div></div>`;
-  const rows=ev.map(e=>{
+  const rowOf=e=>{
     const lbl={OPEN:'Apertura',ADD:'Adición',PARTIAL:'Parcial',CLOSE:'Cierre'}[e.kind]||e.kind;
     const op=_swDayLbl(nySession(openT[e.pid]));
     const c=fmt$(e.comm), n=c.charAt(0)==='-';
     return `<tr><td>${_swHM(e.t)}</td><td><span class="jsw-tag ${e.kind}">${lbl}</span></td><td>${tk(e.pid)}</td><td style="color:var(--muted);font-size:10px;">${op}</td>`+
       `<td>${e.vol.toFixed(2)}</td><td>${fx(e.price,2)}</td><td style="color:${e.entry==='IN'?'var(--muted)':_swSign(e.profit+e.swap)}">${e.entry==='IN'?'—':fmt$(e.profit+e.swap)}</td>`+
       `<td style="color:var(--muted)"><span style="display:inline-block;width:1ch;">${n?'-':''}</span>${n?c.slice(1):c}</td><td>${e.rest.toFixed(2)}</td></tr>`;
+  };
+  // ── Trades de la sesión (cadenas): MISMA regla de continuidad que los ciclos SWING, escrita aparte (el motor SWING no se toca).
+  // Mientras haya ≥1 posición del Trade abierta, toda posición nueva del mismo símbolo y dirección se incorpora; al cerrarse todas,
+  // el Trade termina y la siguiente apertura es el Trade siguiente. Orden: hora → ms → ticket; en empate exacto el cierre va primero.
+  const openNow=new Set(((_lastData&&_lastData.positions)||[]).flatMap(q=>[String(q.ticket),...(q.position_id!=null?[String(q.position_id)]:[])]));
+  const cmpD=(a,b)=>(a.t-b.t)||((a.m!=null&&b.m!=null&&a.m!==b.m)?a.m-b.m:0)||(a.k-b.k);
+  const ordD=d=>({t:num(d.time),m:(d.time_msc==null||!isFinite(+d.time_msc))?null:+d.time_msc,k:num(d.ticket)});
+  const chEv=[], solo=[];
+  pids.forEach(pp=>{
+    const ds=byPid[pp], ins=ds.filter(d=>d.entry==='IN'), os=ds.filter(d=>d.entry!=='IN');
+    const side=ins.length?ins[0].type:(os.length?(os[0].type==='SELL'?'BUY':'SELL'):'');
+    const sym=String((ds[0]&&ds[0].symbol)||''), vIn=ins.reduce((a,d)=>a+num(d.volume),0), vOut=os.reduce((a,d)=>a+num(d.volume),0);
+    const closed=!openNow.has(pp)&&os.length>0&&vOut>=vIn-1e-7;
+    if(!ins.length||!sym||!side){ solo.push({pid:pp,sym,side}); return; }   // sin deal de apertura: Trade propio, nunca se une a una cadena
+    chEv.push({k:'OPEN',o:ordD(ins[0]),pid:pp,sym,side});
+    if(closed) chEv.push({k:'CLOSE',o:ordD(os[os.length-1]),pid:pp,sym,side});
+  });
+  chEv.sort((a,b)=>cmpD(a.o,b.o)||(a.k!==b.k?(a.k==='CLOSE'?-1:1):0));
+  const chains=[], actv=new Map(), chOf={};
+  chEv.forEach(x=>{
+    const key=x.sym+'|'+x.side;
+    if(x.k==='OPEN'){
+      let c=actv.get(key);
+      if(!c||c.open.size===0){ c={sym:x.sym,side:x.side,pids:[],open:new Set(),done:false,o:x.o}; actv.set(key,c); chains.push(c); }
+      c.pids.push(x.pid); c.open.add(x.pid); chOf[x.pid]=c;
+    } else {
+      const c=chOf[x.pid]; c.open.delete(x.pid);
+      if(c.open.size===0){ c.done=true; actv.delete(key); }
+    }
+  });
+  solo.forEach(x=>{ const c={sym:x.sym,side:x.side,pids:[x.pid],open:new Set(),done:true,o:{t:openT[x.pid],m:null,k:0}}; chains.push(c); chOf[x.pid]=c; });
+  chains.sort((a,b)=>cmpD(a.o,b.o));
+  const rows=chains.map((c,i)=>{
+    const es=ev.filter(e=>chOf[e.pid]===c);
+    const cnet=r2(es.reduce((a,e)=>a+e.profit+e.comm+e.swap,0));
+    const fin=c.done&&es.length?_swHM(es[es.length-1].t):'en curso';
+    return `<tr class="jsw-trh" data-trade="${i+1}"><td colspan="9"><span class="jsw-chev">▾</span><b style="color:var(--cyan)">Trade ${i+1}</b> · ${_swEsc(c.sym)} · ${c.side==='BUY'?'Compra':c.side==='SELL'?'Venta':'—'} · ${c.pids.length} posici${c.pids.length===1?'ón':'ones'} · ${es.length?_swHM(es[0].t):'—'} → ${fin} · <b style="color:${_swSign(cnet)}">${fmt$(cnet)}</b></td></tr>`+es.map(e=>rowOf(e).replace('<tr>','<tr data-tr="'+(i+1)+'">')).join('');
   }).join('');
   box.style.display='';
-  box.innerHTML=`<details class="jsw-act"><summary>Actividad de la sesión · ${pids.length>1?pids.length+' posiciones':'1 posición'}</summary>`+
+  box.innerHTML=`<details class="jsw-act"><summary>Actividad de la sesión · ${pids.length>1?pids.length+' posiciones':'1 posición'} · ${chains.length} trade${chains.length===1?'':'s'}</summary>`+
     `<div class="jsw-grid">`+
       stat('Realizado de la sesión',fmt$(net),_swSign(net))+stat('Ganancias realizadas',fmt$(gains),'var(--green)')+stat('Pérdidas realizadas',fmt$(losses),'var(--red)')+
       stat('Comisiones',fmt$(comm),'var(--muted)')+stat('Swap',fmt$(swap),'var(--muted)')+
@@ -2113,7 +2182,12 @@ function renderIntraActivity(day){
       `</div></div>`+
     `</div><div style="overflow-x:auto"><table class="jsw-tbl"><thead><tr><th>Hora</th><th>Evento</th><th>Posición</th><th>Fecha de apertura</th><th>Lotes</th><th>Precio</th><th>Resultado</th><th>Comis.</th><th>Resta pos.</th></tr></thead><tbody>${rows}</tbody></table></div></details>`;
   const det=box.querySelector('details');
-  if(det) det.addEventListener('toggle',()=>{ const st=document.getElementById('jmodalStats'); if(st) st.style.display=det.open?'none':''; });
+  if(det) det.addEventListener('toggle',()=>{
+    const st=document.getElementById('jmodalStats'); if(st) st.style.display=det.open?'none':'';
+    if(det.open){ if(det._jump) det._jump=false; else _trAll(box,true); }   // abierta a mano: todos los Trades desplegados (si viene de una nota, solo el tocado)
+  });
+  if(det) det.addEventListener('click',e=>{ const h=e.target.closest&&e.target.closest('tr.jsw-trh'); if(h) _trSet(box,+h.dataset.trade,h.classList.contains('col')); });
+  window._intraTrades=chains.length; if(typeof noteHL==='function') noteHL();   // las notas pintan solo los Trades que existen en esta sesión
 }
 
 // Encabezado + actividad por sesión del Journal SWING (mismo modal que el Journal normal)
@@ -3619,6 +3693,7 @@ function jimgMsg(t, bad){ const e=document.getElementById('jimgMsg'); if(e){ e.t
 
 function openJournal(dateStr, day) {
   currentJournalDate = dateStr;
+  window._intraTrades = 0;   // se recalcula en renderIntraActivity (el journal SWING no tiene Trades)
   const entry = journalData[dateStr] || {};
   const swAct = document.getElementById('jswingAct');
   { const stEl=document.getElementById('jmodalStats'); if(stEl) stEl.style.display=''; }   // el resumen vuelve a mostrarse en cada apertura
@@ -3662,7 +3737,7 @@ function openJournal(dateStr, day) {
   jPending = []; jRemoved = [];
   jImgs = (entry.imgs||[]).map(id=>({id,ref:(entry.imgRefs||{})[id]||''}));
   const sel = document.getElementById('jimgTrade');
-  sel.innerHTML = '<option value="">Toda la sesión</option>' + (day.tradeObjs||[]).map(t=>`<option value="${t.id}">${t.sym} ${t.side} · ${fmt$(t.netPnl)} · #${t.id}</option>`).join('');
+  sel.innerHTML = '<option value="">Toda la sesión</option>';   // selector oculto: la sesión se segmenta por Trades (las capturas nuevas van sin ticket)
   const legacy = document.getElementById('jimgLegacy');
   legacy.innerHTML = entry.img ? `Enlace antiguo conservado: <a href="${encodeURI(entry.img)}" target="_blank" rel="noopener" style="color:var(--cyan)">abrir</a>` : '';
   jimgMsg('');
@@ -3679,8 +3754,60 @@ function autoGrowNote() {
   const t = document.getElementById('jnoteText'); if(!t) return;
   t.style.height = 'auto';
   t.style.height = (t.scrollHeight + 2) + 'px';
+  noteHL();
 }
 window.addEventListener('resize', autoGrowNote);
+
+// "Trade 1", "trade2", "TRADE 3"… (mayúsculas o minúsculas) → se pintan si ese Trade existe en la sesión; al tocarlos se abre su desglose.
+const _TR_RE=/\btrade\s*(\d{1,3})\b/gi;
+function _noteTokens(v){
+  const n=window._intraTrades||0, out=[]; let m; _TR_RE.lastIndex=0;
+  while((m=_TR_RE.exec(v))){ const k=+m[1]; if(k>=1&&k<=n) out.push({s:m.index,e:m.index+m[0].length,n:k}); }
+  return out;
+}
+function noteHL(){
+  const t=document.getElementById('jnoteText'), bd=document.getElementById('jnoteBd'); if(!t||!bd) return;
+  const v=t.value, esc=x=>x.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  let h='', i=0;
+  _noteTokens(v).forEach(k=>{ h+=esc(v.slice(i,k.s))+'<span class="tl-tr" data-n="'+k.n+'">'+esc(v.slice(k.s,k.e))+'</span>'; i=k.e; });
+  bd.innerHTML=h+esc(v.slice(i))+'\n';
+}
+function _trSet(box,n,open){   // despliega (open=true) o pliega el Trade n de Actividad de la sesión
+  const h=box&&box.querySelector('tr.jsw-trh[data-trade="'+n+'"]'); if(!h) return;
+  h.classList.toggle('col',!open);
+  box.querySelectorAll('tr[data-tr="'+n+'"]').forEach(r=>{ r.style.display=open?'':'none'; });
+}
+function _trAll(box,open){ if(box) box.querySelectorAll('tr.jsw-trh').forEach(h=>_trSet(box,+h.dataset.trade,open)); }
+function jumpToTrade(n){
+  const box=document.getElementById('jswingAct'), det=box&&box.querySelector('details'); if(!det) return;
+  if(!det.open){ det._jump=true; det.open=true; }   // la marca evita que el toggle abra todos los Trades
+  _trAll(box,false); _trSet(box,n,true);            // desde la nota: solo se despliega el Trade tocado; los demás se abren tocando su encabezado
+  const row=box.querySelector('tr.jsw-trh[data-trade="'+n+'"]'); if(!row) return;
+  setTimeout(()=>{ row.scrollIntoView({behavior:'smooth',block:'center'}); row.classList.remove('flash'); void row.offsetWidth; row.classList.add('flash'); setTimeout(()=>row.classList.remove('flash'),1500); },60);
+}
+// ¿El puntero está ENCIMA de un "Trade N" pintado? (se mide con la posición real de la palabra; los ~4 px de cada borde, izquierdo y derecho, cuentan como texto editable)
+function _noteHit(e){
+  const bd=document.getElementById('jnoteBd'); if(!bd) return 0;
+  const m=4;
+  for(const el of bd.querySelectorAll('.tl-tr')){
+    for(const r of el.getClientRects()){
+      if(e.clientX>r.left+m&&e.clientX<r.right-m&&e.clientY>=r.top&&e.clientY<=r.bottom) return +el.dataset.n;
+    }
+  }
+  return 0;
+}
+(function(){
+  const t=document.getElementById('jnoteText'); if(!t) return;
+  t.addEventListener('mousemove',e=>{ t.style.cursor=_noteHit(e)?'pointer':''; });   // encima de "Trade N": cursor de clic normal; en los bordes y fuera: cursor de texto
+  t.addEventListener('mouseleave',()=>{ t.style.cursor=''; });
+  t.addEventListener('mousedown',e=>{ if(e.button===0&&_noteHit(e)) e.preventDefault(); });   // encima de la palabra no se coloca el cursor de edición
+  t.addEventListener('click',e=>{   // clic/toque encima de "Trade N" → abre ese desglose
+    if(t.selectionStart!==t.selectionEnd) return;
+    const n=_noteHit(e); if(!n) return;
+    if(e.pointerType==='touch') t.blur();
+    jumpToTrade(n);
+  });
+})();
 
 function closeJournal() {
   capCancel();
@@ -3770,9 +3897,10 @@ function closeImgViewer(){
 // ── Anotaciones: guardado (servidor + copia local) ───────────────────────────
 function _anSync(msg,bad){   // indicador visible del estado de sincronización (arriba a la izquierda del visor)
   const v=document.getElementById('jimgViewer'); if(!v) return;
+  _anSync.last={msg,bad};   // se recuerda para mostrarlo al entrar en modo dibujo
   let el=document.getElementById('jimgSync');
   if(!el){ el=document.createElement('div'); el.id='jimgSync'; el.style.cssText='position:fixed;left:calc(10px + env(safe-area-inset-left,0px));top:calc(10px + env(safe-area-inset-top,0px));max-width:calc(100% - 140px);z-index:3;font:11px var(--font-mono);line-height:1.3;background:rgba(0,0,0,.6);border-radius:8px;padding:4px 8px;pointer-events:none;'; v.appendChild(el); }
-  el.textContent=msg; el.style.color=bad?'#ff8a8a':'#7cf5a0'; el.style.display=msg?'block':'none';
+  el.textContent=msg; el.style.color=bad?'#ff8a8a':'#7cf5a0'; el.style.display=(msg&&(bad||_iv.edit))?'block':'none';   // el aviso verde solo en modo dibujo; los errores (⚠) se ven siempre
 }
 function _anPut(id,payload){   // devuelve {ok,msg}: ok solo si el servidor confirmó el guardado
   if(!serverURL||!serverToken) return Promise.resolve({ok:false,msg:'no hay sesión con el servidor'});
@@ -3895,7 +4023,7 @@ function _anRender(){
           x1=Math.min(x1,b.x-sw); y1=Math.min(y1,b.y-sw); x2=Math.max(x2,b.x+b.width+sw); y2=Math.max(y2,b.y+b.height+sw);
         });
         if(x2>x1){
-          const pd=5; _s('rect',{x:x1-pd,y:y1-pd,width:x2-x1+2*pd,height:y2-y1+2*pd,fill:'none',stroke:'#fff','stroke-width':_WMIN,'stroke-dasharray':'9 7','pointer-events':'none',opacity:.9},svg);
+          const pd=5; _s('rect',{x:x1-pd,y:y1-pd,width:x2-x1+2*pd,height:y2-y1+2*pd,fill:'none',stroke:'#fff','stroke-width':_WMIN*0.6,'stroke-dasharray':'5.4 4.2','pointer-events':'none',opacity:.9},svg);
           if(it.t==='lvl'){   // el borde derecho del recuadro se desliza para alargar o acortar la línea (sin puntos extra)
             const hz=_s('rect',{x:x2+pd-16,y:y1-pd,width:32,height:y2-y1+2*pd,fill:'transparent','data-handle':'xr','data-dx':(x2+pd-it.x)},svg); hz.style.cursor='ew-resize';
           }
@@ -4027,7 +4155,7 @@ function _anSetEdit(on){
   _iv.edit=!!on; v.classList.toggle('edit',!!on); document.getElementById('jimgEditBtn').classList.toggle('on',!!on);
   if(!on){ _an.draft=null; _an.sel=null; _anFlush(); _anAskCancel(true); }
   _ivTbPad(); if(on) _sideHistOn(); else _sideHistOff();
-  _an.tool='select'; _ivReset(!on&&_iv.s!==1); _ivFit(); _anRender(); _anUiSync();   // al salir del modo edición (lápiz/X) el zoom se minimiza con animación
+  _an.tool='select'; _ivReset(!on&&_iv.s!==1); _ivFit(); _anRender(); _anUiSync(); if(_anSync.last) _anSync(_anSync.last.msg,_anSync.last.bad);   // al salir del modo edición (lápiz/X) el zoom se minimiza con animación
 }
 
 (function initImgViewer(){
@@ -4146,7 +4274,7 @@ function _anSetEdit(on){
       if(a.moved) _anChanged();
       else if(a.type==='move'&&a.item){   // doble toque: editar el texto
         const now=Date.now(), lt=_an.lastTap;
-        if(lt&&lt.id===a.item.id&&now-lt.t<420&&(a.item.t==='text'||a.item.t==='lvl')){
+        if(lt&&lt.id===a.item.id&&now-lt.t<420&&a.item.t==='text'){
           _an.lastTap=null; const it=a.item;
           _anAsk(it.v,'Texto…',val=>{ _anPush(); it.v=val; _anChanged(); },{x:it.t==='lvl'?it.x+10:it.x,y:it.y,s:it.s||36,c:it.c,min:1});
         } else _an.lastTap={id:a.item.id,t:now};
@@ -4256,7 +4384,26 @@ function _anSetEdit(on){
   });
 })();
 function removePendingImg(i){ const p=jPending.splice(i,1)[0]; if(p) URL.revokeObjectURL(p.url); renderImgGrid(); }
-function removeSavedImg(id){ jImgs=jImgs.filter(i=>i.id!==id); jRemoved.push(id); renderImgGrid(); }
+// Confirmación al estilo de la página (reemplaza a confirm() del navegador)
+function tlConfirm(title, text, okLabel, onOk){
+  const ov=document.getElementById('tlConfirm'); if(!ov){ if(confirm(text)) onOk(); return; }
+  document.getElementById('tlcTitle').textContent=title;
+  document.getElementById('tlcText').textContent=text;
+  const yes=document.getElementById('tlcYes'), no=document.getElementById('tlcNo');
+  yes.textContent=okLabel||'Eliminar';
+  const close=()=>ov.classList.remove('open');
+  yes.onclick=()=>{ close(); onOk(); };
+  no.onclick=close;
+  ov.onclick=e=>{ if(e.target===ov) close(); };
+  ov.classList.add('open'); no.focus();
+}
+document.addEventListener('keydown', e=>{   // ESC cierra solo la confirmación (no el journal que está detrás)
+  const ov=document.getElementById('tlConfirm');
+  if(e.key==='Escape'&&ov&&ov.classList.contains('open')){ ov.classList.remove('open'); e.stopImmediatePropagation(); e.preventDefault(); }
+}, true);
+function removeSavedImg(id){
+  tlConfirm('Eliminar imagen','¿Eliminar esta imagen? Se borrará de todos tus dispositivos al guardar el journal, junto con sus dibujos.','🗑 Eliminar',()=>{ jImgs=jImgs.filter(i=>i.id!==id); jRemoved.push(id); renderImgGrid(); });
+}
 
 // Reduce y re-codifica en el navegador (quita EXIF, baja el peso); si falla, usa el original si cumple límites.
 function prepareImage(file) {
