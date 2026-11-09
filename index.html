@@ -3752,6 +3752,7 @@ function openImgViewer(src,id){
   _iv.id=id||null; _iv.edit=false; v.classList.remove('edit'); document.getElementById('jimgEditBtn').classList.remove('on');
   _an.items=[]; _an.sel=null; _an.draft=null; _an.hist=[]; _an.tool='select'; _an.dirty=false; _an.saveId=_iv.id; clearTimeout(_an.saveT);
   document.getElementById('jimgEditBtn').style.display=(_iv.id&&serverURL&&serverToken)?'flex':'none';
+  _anSync('',false);
   _ivReset(false); v.classList.add('open');
   im.src=src; if(im.complete&&im.naturalWidth) _ivFit();
   _anRender();
@@ -3761,21 +3762,33 @@ function openImgViewer(src,id){
 function closeImgViewer(){
   const {v}=_ivEls(); if(!v) return;
   if(_iv.edit) _anSetEdit(false); else _anFlush();
+  _anSync('',false);
   v.classList.remove('open'); _iv.drag=null; _iv.pinch=null; _iv.id=null;
   document.documentElement.style.overflow=''; document.body.style.overflow='';   // la rueda/scroll de la web vuelve a la normalidad
 }
 
 // ── Anotaciones: guardado (servidor + copia local) ───────────────────────────
-function _anPut(id,payload){   // devuelve true solo si el servidor confirmó el guardado
-  if(!serverURL||!serverToken) return Promise.resolve(false);
+function _anSync(msg,bad){   // indicador visible del estado de sincronización (arriba a la izquierda del visor)
+  const v=document.getElementById('jimgViewer'); if(!v) return;
+  let el=document.getElementById('jimgSync');
+  if(!el){ el=document.createElement('div'); el.id='jimgSync'; el.style.cssText='position:fixed;left:calc(10px + env(safe-area-inset-left,0px));top:calc(10px + env(safe-area-inset-top,0px));max-width:calc(100% - 140px);z-index:3;font:11px var(--font-mono);line-height:1.3;background:rgba(0,0,0,.6);border-radius:8px;padding:4px 8px;pointer-events:none;'; v.appendChild(el); }
+  el.textContent=msg; el.style.color=bad?'#ff8a8a':'#7cf5a0'; el.style.display=msg?'block':'none';
+}
+function _anPut(id,payload){   // devuelve {ok,msg}: ok solo si el servidor confirmó el guardado
+  if(!serverURL||!serverToken) return Promise.resolve({ok:false,msg:'no hay sesión con el servidor'});
   return fetch(`${serverURL}/annotations/${id}?token=${encodeURIComponent(serverToken)}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)})
-    .then(r=>{ if(r.status===401){ sessionExpired(); return false; } return r.ok; }).catch(()=>false);
+    .then(r=>{ if(r.status===401){ sessionExpired(); return {ok:false,msg:'sesión expirada (401)'}; } return r.ok?{ok:true}:{ok:false,msg:'el servidor respondió '+r.status}; })
+    .catch(e=>({ok:false,msg:'sin conexión o bloqueado por el servidor ('+((e&&e.message)||e)+')'}));
 }
 // "Pendiente": cambio hecho en este aparato que el servidor aún no confirmó (p. ej. sin conexión). Solo en ese caso gana la copia local.
 const _anPendKey=id=>'tl_annp_'+id;
 function _anPutTracked(id,payload){
   try{ localStorage.setItem(_anPendKey(id),payload.saved); }catch(_){}
-  return _anPut(id,payload).then(ok=>{ if(ok){ try{ if(localStorage.getItem(_anPendKey(id))===payload.saved) localStorage.removeItem(_anPendKey(id)); }catch(_){} } return ok; });
+  return _anPut(id,payload).then(r=>{
+    if(r.ok){ try{ if(localStorage.getItem(_anPendKey(id))===payload.saved) localStorage.removeItem(_anPendKey(id)); }catch(_){} }
+    if(_iv.id===id) _anSync(r.ok?'☁ Guardado en el servidor ✓':'⚠ NO se guardó en el servidor: '+r.msg, !r.ok);
+    return r;
+  });
 }
 function _anSaveNow(){
   const id=_an.saveId; if(!id) return; _an.dirty=false;
@@ -3789,19 +3802,21 @@ function _anFlush(){ clearTimeout(_an.saveT); if(_an.dirty) _anSaveNow(); }
 async function _anLoad(id){
   let loc=null; try{ loc=JSON.parse(localStorage.getItem('tl_ann_'+id)||'null'); }catch(_){}
   if(loc&&Array.isArray(loc.items)){ _an.items=loc.items; _anRender(); }
-  if(!serverURL||!serverToken) return;
+  if(!serverURL||!serverToken){ _anSync('⚠ Sin sesión con el servidor: los dibujos solo se guardan en este aparato',true); return; }
   try{
-    const r=await fetch(`${serverURL}/annotations/${id}?token=${encodeURIComponent(serverToken)}`); if(!r.ok) return;
+    const r=await fetch(`${serverURL}/annotations/${id}?token=${encodeURIComponent(serverToken)}`);
+    if(!r.ok){ if(_iv.id===id) _anSync('⚠ No se pudieron leer los dibujos del servidor (respondió '+r.status+')',true); return; }
     const a=(await r.json()).annotation;
     if(_iv.id!==id||_an.dirty||_an.hist.length) return;   // ya estás editando: no pisar
     let pend=null; try{ pend=localStorage.getItem(_anPendKey(id)); }catch(_){}
-    if(pend&&loc&&Array.isArray(loc.items)){ _anPutTracked(id,loc); return; }   // cambio de este aparato que no llegó al servidor: se sube
+    if(pend&&loc&&Array.isArray(loc.items)){ _anSync('⏳ Subiendo cambios pendientes de este aparato…',false); _anPutTracked(id,loc); return; }   // cambio de este aparato que no llegó al servidor: se sube
     // Si no, manda el servidor (lo último que se guardó desde cualquier aparato), también si fue borrar todo
     const items=(a&&Array.isArray(a.items))?a.items:[];
     _an.items=items;
     try{ if(a&&Array.isArray(a.items)) localStorage.setItem('tl_ann_'+id,JSON.stringify(a)); else localStorage.removeItem('tl_ann_'+id); }catch(_){}
     _anCnt[id]=items.length; _anBadge(id); _anRender(); _anUiSync();
-  }catch(_){}
+    _anSync('☁ Sincronizado con el servidor ('+items.length+' dibujo'+(items.length===1?'':'s')+')',false);
+  }catch(e){ if(_iv.id===id) _anSync('⚠ Sin conexión con el servidor ('+((e&&e.message)||e)+')',true); }
 }
 function _anBadge(id){
   const el=document.querySelector(`.jimg-item[data-imgid="${id}"]`); if(!el) return;
@@ -4195,6 +4210,7 @@ function _anSetEdit(on){
   //  Atrás = Deshacer · Adelante: un clic pasa a la siguiente herramienta (sin Mover), dos clics seguidos = Mover
   const _SIDE_TOOLS=['pen','arrow','rect','text','path','entry','sl','tp','avg'];
   let _fwdT=0;
+  const _DBL_MS=170;   // tiempo máximo (milisegundos) entre los dos clics para que cuente como doble clic: menor = hay que ser más rápido
   const toast=t=>{   // aviso breve para ver qué hizo el botón lateral
     let el=document.getElementById('jimgSideToast');
     if(!el){ el=document.createElement('div'); el.id='jimgSideToast'; el.style.cssText='position:fixed;top:calc(14px + env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%);z-index:600;background:rgba(8,12,16,.92);color:#fff;border:1px solid var(--cyan);border-radius:10px;padding:6px 14px;font:13px var(--font-mono);pointer-events:none;transition:opacity .2s;opacity:0;'; v.appendChild(el); }
@@ -4208,7 +4224,7 @@ function _anSetEdit(on){
   const sideFwd=()=>{
     if(_an.askOpen) return;
     const now=Date.now(); let next;
-    if(now-_fwdT<400){ next='select'; _fwdT=0; }   // doble clic → Mover
+    if(now-_fwdT<_DBL_MS){ next='select'; _fwdT=0; }   // doble clic MUY rápido → Mover
     else { _fwdT=now; const i=_SIDE_TOOLS.indexOf(_an.tool); next=_SIDE_TOOLS[(i+1)%_SIDE_TOOLS.length]; }
     const b=document.querySelector(`#jimgTb [data-tool="${next}"]`); if(b&&!b.disabled){ b.click(); toast(next==='select'?'☝️ Mover':b.textContent.trim()); }
   };
