@@ -3827,7 +3827,7 @@ function _anHead(g,a,b,w,c){
 function _anItemEl(it){
   const g=_s('g',{}); if(it.id) g.setAttribute('data-aid',it.id);
   const w=it.w||9, c=it.c||'#fff';
-  const hit={fill:'none',stroke:'transparent','stroke-width':Math.max(30,w+16),'stroke-linecap':'round','stroke-linejoin':'round'};
+  const hit={'data-hit':'1',fill:'none',stroke:'transparent','stroke-width':Math.max(30,w+16),'stroke-linecap':'round','stroke-linejoin':'round'};
   if(it.t==='pen'||it.t==='path'){
     const pts=it.p.map(q=>q[0]+','+q[1]).join(' ');
     _s('polyline',{points:pts,fill:'none',stroke:c,'stroke-width':w,'stroke-linecap':'round','stroke-linejoin':'round'},g);
@@ -3844,7 +3844,7 @@ function _anItemEl(it){
   } else if(it.t==='rect'){
     const r={x:Math.min(it.a[0],it.b[0]),y:Math.min(it.a[1],it.b[1]),width:Math.abs(it.a[0]-it.b[0]),height:Math.abs(it.a[1]-it.b[1])};
     _s('rect',Object.assign({fill:'#9aa0a6','fill-opacity':0.14,stroke:c,'stroke-width':w,'stroke-linejoin':'round'},r),g);
-    _s('rect',Object.assign({fill:'transparent',stroke:'transparent','stroke-width':Math.max(30,w+16)},r),g);
+    _s('rect',Object.assign({'data-hit':'1',fill:'transparent',stroke:'transparent','stroke-width':Math.max(30,w+16)},r),g);
   } else if(it.t==='text'||it.t==='lvl'){
     const s=it.s||36, tx=it.t==='lvl'?it.x+10:it.x;
     if(it.t==='lvl'){
@@ -3855,7 +3855,7 @@ function _anItemEl(it){
     const t=_s('text',{x:tx,y:it.y,fill:c,'font-size':s,'font-weight':700,'font-family':'Arial,Helvetica,sans-serif','dominant-baseline':'middle'},g);
     t.textContent=it.v||'';
     const x1=it.t==='lvl'?it.x0-6:tx-4;
-    _s('rect',{x:x1,y:it.y-Math.max(s*0.7,18),width:(tx+(it.v||'').length*s*0.6+8)-x1,height:Math.max(s*1.4,36),fill:'transparent'},g);
+    _s('rect',{'data-hit':'1',x:x1,y:it.y-Math.max(s*0.7,18),width:(tx+(it.v||'').length*s*0.6+8)-x1,height:Math.max(s*1.4,36),fill:'transparent'},g);
   }
   return g;
 }
@@ -3873,7 +3873,15 @@ function _anRender(){
   if(_iv.edit&&_an.sel){
     const it=_anGet(_an.sel), g=svg.querySelector(`[data-aid="${_an.sel}"]`);
     if(it&&g){
-      try{ const bb=g.getBBox(); _s('rect',{x:bb.x-8,y:bb.y-8,width:bb.width+16,height:bb.height+16,fill:'none',stroke:'#fff','stroke-width':_WMIN,'stroke-dasharray':'9 7','pointer-events':'none',opacity:.9},svg); }catch(_){}
+      try{   // el recuadro rodea solo lo visible (sin las zonas de toque invisibles), así se ajusta al tamaño real del dibujo
+        let x1=1e9,y1=1e9,x2=-1e9,y2=-1e9;
+        g.childNodes.forEach(ch=>{
+          if(!ch.getBBox||ch.getAttribute('data-hit')) return;
+          const b=ch.getBBox(), st=ch.getAttribute('stroke'), sw=(st&&st!=='none'&&st!=='transparent')?(parseFloat(ch.getAttribute('stroke-width'))||0)/2:0;
+          x1=Math.min(x1,b.x-sw); y1=Math.min(y1,b.y-sw); x2=Math.max(x2,b.x+b.width+sw); y2=Math.max(y2,b.y+b.height+sw);
+        });
+        if(x2>x1){ const pd=5; _s('rect',{x:x1-pd,y:y1-pd,width:x2-x1+2*pd,height:y2-y1+2*pd,fill:'none',stroke:'#fff','stroke-width':_WMIN,'stroke-dasharray':'9 7','pointer-events':'none',opacity:.9},svg); }
+      }catch(_){}
       _anHandles(it).forEach(h=>{
         _s('circle',{cx:h[1],cy:h[2],r:15,fill:'transparent','data-handle':h[0]},svg);      // zona de toque (invisible, para agarrarlo fácil)
         _s('circle',{cx:h[1],cy:h[2],r:3.75,fill:'#00e5ff','pointer-events':'none'},svg);   // punto visible: 75 % más pequeño
@@ -3940,10 +3948,11 @@ function _anAddLevel(kind,p){
   let n=0, label=_LV[kind].l;
   if(kind==='entry'||kind==='sl'){ n=_anNext(kind); label=_LV[kind].l+' '+n; }
   if(kind==='avg'){ n=Math.max(0,..._an.items.filter(i=>i.t==='lvl'&&i.k==='avg').map(i=>i.n||0))+1; label='Promediada '+n; }
-  const s=_tl(_an.lt), est=label.length*s*0.6;
+  _an.lt=0;   // entrada, stop loss, take profit y promediada siempre se colocan con el tamaño mínimo
+  const s=_tl(0), est=label.length*s*0.6;
   const x=Math.max(60,Math.min(p.x,_AW-est-26)), x0=Math.max(0,x-_AW*0.25);
   _an.tool='select';
-  _anCommit({t:'lvl',k:kind,n,v:label,x,y:p.y,x0,s,lw:_tlw(_an.lt),c:_LV[kind].c},true);
+  _anCommit({t:'lvl',k:kind,n,v:label,x,y:p.y,x0,s,lw:_tlw(0),c:_LV[kind].c},true);
 }
 function _anMoveItem(it,dx,dy){
   if(it.p) it.p=it.p.map(q=>[q[0]+dx,q[1]+dy]);
@@ -3962,11 +3971,17 @@ function _anAskClose(ok){
   setTimeout(()=>{ _an.askOpen=false; },0);
   if(ok&&val&&cb) cb(val);
 }
+const _sh={on:false,ign:0};   // truco de historial: tres entradas (atrás · centro · adelante) para detectar "atrás/adelante" del ratón sin salir de la página
+function _sideHistOn(){
+  if(_sh.on||!window.matchMedia||!matchMedia('(pointer:fine)').matches) return;   // solo en PC
+  try{ _sh.on=true; _sh.ign=0; history.pushState({tl:'b'},''); history.pushState({tl:'m'},''); history.pushState({tl:'f'},''); _sh.ign++; history.go(-1); }catch(_){ _sh.on=false; }
+}
+function _sideHistOff(){ if(!_sh.on) return; _sh.on=false; _sh.ign++; try{ history.go(-2); }catch(_){ _sh.ign=0; } }
 function _anSetEdit(on){
   const {v}=_ivEls(); if(on&&!_iv.id) return;
   _iv.edit=!!on; v.classList.toggle('edit',!!on); document.getElementById('jimgEditBtn').classList.toggle('on',!!on);
   if(!on){ _an.draft=null; _an.sel=null; _anFlush(); const box=document.getElementById('jimgTextBox'); box.style.display='none'; _an.askOpen=false; }
-  _ivTbPad();
+  _ivTbPad(); if(on) _sideHistOn(); else _sideHistOff();
   _an.tool='select'; _ivReset(!on&&_iv.s!==1); _ivFit(); _anRender(); _anUiSync();   // al salir del modo edición (lápiz/X) el zoom se minimiza con animación
 }
 
@@ -4094,7 +4109,7 @@ function _anSetEdit(on){
     } else if(a.type==='tap'&&!a.moved){
       const tool=_an.tool, q=a.p0;
       if(tool==='text'){
-        _anAsk('','Escribe el texto…',val=>{ _anCommit({t:'text',c:_an.color,s:_tt(_an.t),x:Math.min(q.x,_AW-60),y:q.y,v:val},true); });
+        _anAsk('','Escribe el texto…',val=>{ _an.tool='select'; _anCommit({t:'text',c:_an.color,s:_tt(_an.t),x:Math.min(q.x,_AW-60),y:q.y,v:val},true); });
       } else if(tool==='path'){
         const now=Date.now();
         if(!_an.draft){ _an.draft={t:'path',c:_an.color,w:_tw(_an.t,'path'),p:[[q.x,q.y]]}; _an.lastTap={t:now,x:q.x,y:q.y}; }
@@ -4141,6 +4156,45 @@ function _anSetEdit(on){
       if(_iv.edit){ if(_an.draft) _anUndo(); else _anSetEdit(false); } else closeImgViewer();
     } else if(_iv.edit&&(e.key==='Delete'||e.key==='Backspace')){ e.preventDefault(); _anDeleteSel(); }
     else if(_iv.edit&&(e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='z'){ e.preventDefault(); _anUndo(); }
+  });
+
+  // ── Ratón gaming: botones laterales (solo en modo edición) ──
+  //  Atrás = Deshacer · Adelante: un clic pasa a la siguiente herramienta (sin Mover), dos clics seguidos = Mover
+  const _SIDE_TOOLS=['pen','arrow','rect','text','path','entry','sl','tp','avg'];
+  let _fwdT=0;
+  const sideBack=()=>{ if(!_an.askOpen) _anUndo(); };
+  const sideFwd=()=>{
+    if(_an.askOpen) return;
+    const now=Date.now(); let next;
+    if(now-_fwdT<400){ next='select'; _fwdT=0; }   // doble clic → Mover
+    else { _fwdT=now; const i=_SIDE_TOOLS.indexOf(_an.tool); next=_SIDE_TOOLS[(i+1)%_SIDE_TOOLS.length]; }
+    const b=document.querySelector(`#jimgTb [data-tool="${next}"]`); if(b&&!b.disabled) b.click();
+  };
+  window._sideBack=sideBack; window._sideFwd=sideFwd;
+  const editOpen=()=>v.classList.contains('open')&&_iv.edit;
+  // 1) Eventos normales del ratón (botones 3 y 4)
+  const sideOk=e=>(e.button===3||e.button===4)&&editOpen();
+  ['pointerdown','pointerup','mouseup','auxclick'].forEach(ev=>document.addEventListener(ev,e=>{
+    if(!sideOk(e)) return; e.preventDefault(); e.stopPropagation();
+  },true));
+  document.addEventListener('mousedown',e=>{
+    if(!sideOk(e)) return; e.preventDefault(); e.stopPropagation();
+    e.button===3?sideBack():sideFwd();
+  },true);
+  // 2) Si el driver del ratón los envía como atajos de teclado (Alt+←/→ o teclas "Atrás/Adelante del navegador")
+  document.addEventListener('keydown',e=>{
+    if(!editOpen()) return;
+    const back=e.key==='BrowserBack'||(e.altKey&&e.key==='ArrowLeft'), fwd=e.key==='BrowserForward'||(e.altKey&&e.key==='ArrowRight');
+    if(!back&&!fwd) return; e.preventDefault(); e.stopImmediatePropagation();
+    back?sideBack():sideFwd();
+  },true);
+  // 3) Si el sistema los manda como "atrás/adelante" del navegador (navegación): se captura sin salir de la página
+  window.addEventListener('popstate',e=>{
+    if(_sh.ign>0){ _sh.ign--; return; }
+    if(!_sh.on) return;
+    const t=e.state&&e.state.tl;
+    if(t==='b'){ _sh.ign++; history.go(1); sideBack(); }
+    else if(t==='f'){ _sh.ign++; history.go(-1); sideFwd(); }
   });
 })();
 function removePendingImg(i){ const p=jPending.splice(i,1)[0]; if(p) URL.revokeObjectURL(p.url); renderImgGrid(); }
