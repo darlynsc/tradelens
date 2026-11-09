@@ -414,6 +414,9 @@ canvas{max-height:200px;}
 .jsw-tbl{width:100%;border-collapse:collapse;font-size:11px;margin-top:6px;}
 .jsw-tbl th{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;text-align:left;padding:3px 6px;font-weight:600;}
 .jsw-tbl td{padding:4px 6px;border-top:1px solid var(--b1);white-space:nowrap;}
+.jsw-f{display:inline-block;white-space:nowrap;vertical-align:baseline;}   /* campos del resumen de cada Trade: mismo ancho en los títulos y en las líneas, así quedan alineados */
+.jsw-f1{width:80px;}.jsw-fx{width:125px;}.jsw-fx .jsw-trtag{margin-left:0;}.jsw-f2{width:80px;}.jsw-f3{width:75px;}.jsw-f4{width:105px;}.jsw-f5{width:120px;}
+.jsw-tbl tr.jsw-colh td{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;font-weight:600;padding:3px 6px;border-top:none;}   /* títulos de columnas: solo aparecen con el Trade desplegado */
 .jsw-tag{font-size:9px;font-weight:800;letter-spacing:.8px;padding:1px 6px;border-radius:8px;}
 .jsw-tag.OPEN,.jsw-tag.ADD,.jsw-tag.PARTIAL,.jsw-tag.CLOSE{color:var(--text);}   /* letra neutra: el color lo da el fondo */
 .jsw-tag.OPEN,.jsw-tag.ADD{background:hsla(170,85%,50%,.30);}      /* apertura / adición: turquesa (como el ticket ...2454) */
@@ -648,6 +651,15 @@ textarea.jnote:focus{border-color:var(--cyan);}
 .jsw-trh{cursor:pointer;user-select:none;-webkit-user-select:none;}
 .jsw-trh .jsw-chev{display:inline-block;margin-right:5px;transition:transform .15s;color:var(--cyan);}
 .jsw-trh.col .jsw-chev{transform:rotate(-90deg);}
+/* Etiqueta de ejecución por Trade (misma píldora y colores que "¿Cómo ejecutaste hoy?") */
+.jsw-trtag{display:inline-block;padding:1.54px 7.7px;margin-left:6.6px;border-radius:15.4px;border:1px solid var(--b2);background:var(--s2);font-size:8.47px;line-height:1.5;cursor:pointer;color:var(--muted);white-space:nowrap;}
+.jsw-trtag.t-ok{border-color:var(--green);background:rgba(0,255,136,0.1);color:var(--green);}
+.jsw-trtag.t-warn{border-color:var(--warn);background:rgba(255,204,0,0.1);color:var(--warn);}
+.jsw-trtag.t-bad{border-color:var(--red);background:rgba(255,51,85,0.1);color:var(--red);}
+.jsw-trtag.t-lesson{border-color:var(--purple);background:rgba(181,123,255,0.1);color:var(--purple);}
+.jsw-trpick{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0 2px 16px;white-space:normal;}
+.jsw-trpick .jsw-trtag{margin-left:0;padding:4px 12px;font-size:11px;border-radius:20px;}   /* las opciones del selector mantienen su tamaño normal */
+.jsw-trpick .jsw-trtag.on{box-shadow:0 0 0 2px rgba(255,255,255,.35);}
 .jimglink-label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin:14px 0 6px;}
 input.jimglink{width:100%;background:var(--s2);border:1px solid var(--b2);color:var(--text);padding:9px 12px;border-radius:8px;font-family:var(--font-mono);font-size:11px;outline:none;transition:.2s;}
 input.jimglink:focus{border-color:var(--cyan);}
@@ -976,6 +988,7 @@ input.jimglink:focus{border-color:var(--cyan);}
       <span>Dom</span><span>Lun</span><span>Mar</span><span>Mié</span><span>Jue</span><span>Vie</span><span>Sáb</span>
     </div>
     <div class="cal-grid" id="calGrid"></div>
+    <div style="display:flex;justify-content:flex-end;margin-top:14px;"><button class="jbtn-summary" onclick="openAiSummary('month')">📊 Resumen del Mes con IA</button></div>
   </div>
 
   <!-- KPI ROW 2 -->
@@ -1161,8 +1174,9 @@ input.jimglink:focus{border-color:var(--cyan);}
   </div>
 
   <!-- EXPORT CSV -->
-  <div style="display:flex;justify-content:flex-end;margin-bottom:20px;">
+  <div style="display:flex;flex-direction:column;align-items:flex-end;gap:10px;margin-bottom:20px;">
     <button class="btn-csv" onclick="exportCSV()">⬇️ Export CSV — Todas las posiciones</button>
+    <button class="jbtn-summary" onclick="openAiSummary('all')">📚 Resumen histórico con IA</button>
   </div>
 
   <!-- JOURNAL MODAL -->
@@ -1196,7 +1210,6 @@ input.jimglink:focus{border-color:var(--cyan);}
       <div id="jimgLegacy" style="margin-top:8px;font-size:10px;color:var(--muted);"></div>
       <div class="jbtn-row">
         <button class="jbtn-del" id="jbtnDel" onclick="deleteJournal()">🗑️ Eliminar journal</button>
-        <button class="jbtn-summary" onclick="openMonthlySummary()">📊 Resumen del Mes con AI</button>
         <button class="jbtn-save" onclick="saveJournal()">💾 Guardar</button>
       </div>
     </div>
@@ -1206,7 +1219,7 @@ input.jimglink:focus{border-color:var(--cyan);}
   <div class="jmodal-overlay" id="sumOverlay">
     <div class="sum-modal">
       <button class="jmodal-close" onclick="document.getElementById('sumOverlay').classList.remove('open')">✕</button>
-      <div style="font-family:var(--font-head);font-size:18px;font-weight:700;margin-bottom:16px;">📊 Resumen Mensual — Coach AI</div>
+      <div id="sumTitle" style="font-family:var(--font-head);font-size:18px;font-weight:700;margin-bottom:16px;">📊 Resumen Mensual — Coach AI</div>
       <div id="sumContent"></div>
     </div>
   </div>
@@ -1283,11 +1296,22 @@ let _brokerOffsetMs=null;
 // Los deals traen la hora del servidor del bróker codificada como epoch; se resta el offset del bróker (_nyBrokerOff, en s) para
 // obtener UTC, se pasa a Nueva York y se suman 7 h: la fecha resultante es la sesión. Misma regla que swing-engine.js.
 let _nyBrokerOff=0;
+// Tabla de regímenes de offset publicada por el servidor (misma regla que swing-engine.offsetAt): heredado congelado para lo anterior
+// al primer régimen validado; cada régimen rige desde su instante de vigencia. null = servidor antiguo → offset único (_nyBrokerOff).
+let _nyOffTbl=null;
+function _offAt(t){
+  const T=_nyOffTbl; if(!T) return _nyBrokerOff;
+  const r=T.regimes||[];
+  for(let i=r.length-1;i>=0;i--) if(r[i].from<=t) return r[i].off;
+  return (T.legacy&&typeof T.legacy.off==='number')?T.legacy.off:_nyBrokerOff;
+}
+// Desfase reloj servidor − reloj del PC (s). La sesión "de hoy" se calcula con el reloj del servidor, no con el del PC.
+let _srvSkew=0;
 function _nthSun(y,m,n){ const f=1+((7-new Date(Date.UTC(y,m,1)).getUTCDay())%7); return f+7*(n-1); }
 function nyOffsetSec(u){ const y=new Date(u*1000).getUTCFullYear(), a=Date.UTC(y,2,_nthSun(y,2,2),7)/1000, b=Date.UTC(y,10,_nthSun(y,10,1),6)/1000; return (u>=a&&u<b)?-14400:-18000; }
 function nySessionUtc(u){ return new Date((u+nyOffsetSec(u)+25200)*1000).toISOString().slice(0,10); }
-function nySession(tBroker){ return nySessionUtc(tBroker-_nyBrokerOff); }
-function todayStr(){ return nySessionUtc(Math.floor(Date.now()/1000)); }   // sesión NY actual
+function nySession(tBroker){ return nySessionUtc(tBroker-_offAt(tBroker)); }
+function todayStr(){ return nySessionUtc(Math.floor(Date.now()/1000)+_srvSkew); }   // sesión NY actual (reloj del servidor)
 const ymd=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
 const fx=(v,d=2)=>(v==null||!isFinite(v))?'n/d':v.toFixed(d);
 const fxPF=v=>v==null?'n/d':(v===Infinity?'∞':v.toFixed(2));
@@ -1601,7 +1625,7 @@ async function fetchAndRender(force) {
     const newCount = deals.length;
     // Un ciclo SWING puede cambiar sin deals nuevos (snapshot de inicio de sesión: la posición sigue abierta y el bloque se extiende un día).
     // La firma ignora el flotante para no redibujar todo el panel en cada envío periódico.
-    const swSig = data.swing ? JSON.stringify((data.swing.cycles||[]).map(c=>[c.id,c.state,c.lastDay,c.counts&&c.counts.total,c.counts&&c.counts.closed,c.realized&&c.realized.net])) : '';
+    const swSig = data.swing ? JSON.stringify((data.swing.cycles||[]).map(c=>[c.id,c.state,c.lastDay,c.counts&&c.counts.total,c.counts&&c.counts.closed,c.realized&&c.realized.net,c.lastKnownOpen,c.crossing&&c.crossing.basis])) + JSON.stringify([data.swing.time&&data.swing.time.nowDay,data.swing.time&&data.swing.time.stale,(data.swing.pending||[]).length]) : '';
     if(force || newCount !== lastDealCount || swSig !== _swingSig) {
       lastDealCount = newCount; _swingSig = swSig;
       showMsg('','');
@@ -2029,7 +2053,7 @@ function _swDayLbl(k,long){
   const d=new Date(k+'T12:00:00Z'), dn=['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'], mn=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
   return `${dn[d.getUTCDay()]} ${d.getUTCDate()} ${mn[d.getUTCMonth()]}`+(long?` ${d.getUTCFullYear()}`:'');
 }
-const _swHM=t=>{ const u=t-_nyBrokerOff; return new Date((u+nyOffsetSec(u))*1000).toISOString().slice(11,16); };   // hora de Nueva York
+const _swHM=t=>{ const u=t-_offAt(t); return new Date((u+nyOffsetSec(u))*1000).toISOString().slice(11,16); };   // hora de Nueva York
 const _swSign=v=>v>0?'var(--green)':v<0?'var(--red)':'var(--muted)';   // detalle: sin umbral (1 centavo = verde/rojo)
 const _swCol=v=>dayClass(v)==='win'?'var(--green)':dayClass(v)==='loss'?'var(--red)':'#ffcc00';
 const _swFlagTxt={sin_deal_apertura:'Sin deal de apertura en el historial recibido: no se pudo verificar su relación con otras posiciones.',
@@ -2080,9 +2104,9 @@ function swPidColors(pids){
 }
 
 // Actividad de la sesión (Journal INTRADÍA): mismo desglose que el SWING, pero de UNA sola sesión → se despliega directo, sin días anidados.
-function renderIntraActivity(day){
-  const box=document.getElementById('jswingAct'); if(!box) return;
-  const hide=()=>{ box.style.display='none'; box.innerHTML=''; window._intraTrades=0; if(typeof noteHL==='function') noteHL(); };
+function renderIntraActivity(day,calcOnly){   // calcOnly=true: devuelve la lista de Trades del día sin tocar la pantalla (la usa el resumen con IA)
+  const box=document.getElementById('jswingAct'); if(!box&&!calcOnly) return;
+  const hide=()=>{ if(calcOnly) return []; box.style.display='none'; box.innerHTML=''; window._intraTrades=0; if(typeof noteHL==='function') noteHL(); };
   const tos=(day&&day.tradeObjs)||[];
   if(!tos.length) return hide();
   const ids=new Set(tos.map(t=>String(t.id)));
@@ -2126,9 +2150,8 @@ function renderIntraActivity(day){
   const stat=(l,v,col)=>`<div class="jstat"><div class="jstat-l">${l}</div><div class="jstat-v" style="font-size:12px;${col?'color:'+col:''}">${v}</div></div>`;
   const rowOf=e=>{
     const lbl={OPEN:'Apertura',ADD:'Adición',PARTIAL:'Parcial',CLOSE:'Cierre'}[e.kind]||e.kind;
-    const op=_swDayLbl(nySession(openT[e.pid]));
     const c=fmt$(e.comm), n=c.charAt(0)==='-';
-    return `<tr><td>${_swHM(e.t)}</td><td><span class="jsw-tag ${e.kind}">${lbl}</span></td><td>${tk(e.pid)}</td><td style="color:var(--muted);font-size:10px;">${op}</td>`+
+    return `<tr><td>${_swHM(e.t)}</td><td><span class="jsw-tag ${e.kind}">${lbl}</span></td><td>${tk(e.pid)}</td>`+
       `<td>${e.vol.toFixed(2)}</td><td>${fx(e.price,2)}</td><td style="color:${e.entry==='IN'?'var(--muted)':_swSign(e.profit+e.swap)}">${e.entry==='IN'?'—':fmt$(e.profit+e.swap)}</td>`+
       `<td style="color:var(--muted)"><span style="display:inline-block;width:1ch;">${n?'-':''}</span>${n?c.slice(1):c}</td><td>${e.rest.toFixed(2)}</td></tr>`;
   };
@@ -2163,12 +2186,15 @@ function renderIntraActivity(day){
   });
   solo.forEach(x=>{ const c={sym:x.sym,side:x.side,pids:[x.pid],open:new Set(),done:true,o:{t:openT[x.pid],m:null,k:0}}; chains.push(c); chOf[x.pid]=c; });
   chains.sort((a,b)=>cmpD(a.o,b.o));
+  const info=[];
   const rows=chains.map((c,i)=>{
     const es=ev.filter(e=>chOf[e.pid]===c);
     const cnet=r2(es.reduce((a,e)=>a+e.profit+e.comm+e.swap,0));
     const fin=c.done&&es.length?_swHM(es[es.length-1].t):'en curso';
-    return `<tr class="jsw-trh" data-trade="${i+1}"><td colspan="9"><span class="jsw-chev">▾</span><b style="color:var(--cyan)">Trade ${i+1}</b> · ${_swEsc(c.sym)} · ${c.side==='BUY'?'Compra':c.side==='SELL'?'Venta':'—'} · ${c.pids.length} posici${c.pids.length===1?'ón':'ones'} · ${es.length?_swHM(es[0].t):'—'} → ${fin} · <b style="color:${_swSign(cnet)}">${fmt$(cnet)}</b></td></tr>`+es.map(e=>rowOf(e).replace('<tr>','<tr data-tr="'+(i+1)+'">')).join('');
+    info.push({n:i+1,sym:c.sym,side:c.side,pos:c.pids.length,t0:es.length?_swHM(es[0].t):'—',fin,net:cnet});
+    return `<tr class="jsw-trh" data-trade="${i+1}"><td colspan="8"><span class="jsw-f jsw-f1"><span class="jsw-chev">▾</span><b style="color:var(--cyan)">Trade ${i+1}</b></span><span class="jsw-f jsw-fx"></span><span class="jsw-f jsw-f2">${_swEsc(c.sym)}</span><span class="jsw-f jsw-f3">${c.side==='BUY'?'Compra':c.side==='SELL'?'Venta':'—'}</span><span class="jsw-f jsw-f4">${c.pids.length} posici${c.pids.length===1?'ón':'ones'}</span><span class="jsw-f jsw-f5">${es.length?_swHM(es[0].t):'—'} → ${fin}</span><b style="color:${_swSign(cnet)}">${fmt$(cnet)}</b></td></tr>`+`<tr class="jsw-colh" data-tr="${i+1}"><td>Hora</td><td>Evento</td><td>Posición</td><td>Lotes</td><td>Precio</td><td>Resultado</td><td>Comis.</td><td>Resta pos.</td></tr>`+es.map(e=>rowOf(e).replace('<tr>','<tr data-tr="'+(i+1)+'">')).join('');
   }).join('');
+  if(calcOnly) return info;
   box.style.display='';
   box.innerHTML=`<details class="jsw-act"><summary>Actividad de la sesión · ${pids.length>1?pids.length+' posiciones':'1 posición'} · ${chains.length} trade${chains.length===1?'':'s'}</summary>`+
     `<div class="jsw-grid">`+
@@ -2180,14 +2206,14 @@ function renderIntraActivity(day){
         `<div class="jstat-v" style="font-size:12px">${nOpened}</div><div class="jstat-v" style="font-size:12px">/</div><div class="jstat-v" style="font-size:12px">${nClosed}</div>`+
         (nPart?`<div class="jstat-l" style="grid-column:1/4;margin-top:2px;">${nPart} parcial(es)</div>`:'')+
       `</div></div>`+
-    `</div><div style="overflow-x:auto"><table class="jsw-tbl"><thead><tr><th>Hora</th><th>Evento</th><th>Posición</th><th>Fecha de apertura</th><th>Lotes</th><th>Precio</th><th>Resultado</th><th>Comis.</th><th>Resta pos.</th></tr></thead><tbody>${rows}</tbody></table></div></details>`;
+    `</div><div style="overflow-x:auto"><table class="jsw-tbl"><thead><tr><th colspan="8"><span class="jsw-f jsw-f1">Trade</span><span class="jsw-f jsw-fx">¿Cómo ejecutaste?</span><span class="jsw-f jsw-f2">Símbolo</span><span class="jsw-f jsw-f3">Dirección</span><span class="jsw-f jsw-f4">Posiciones</span><span class="jsw-f jsw-f5">Apertura → Cierre</span>Resultado</th></tr></thead><tbody>${rows}</tbody></table></div></details>`;
   const det=box.querySelector('details');
   if(det) det.addEventListener('toggle',()=>{
     const st=document.getElementById('jmodalStats'); if(st) st.style.display=det.open?'none':'';
     if(det.open){ if(det._jump) det._jump=false; else _trAll(box,true); }   // abierta a mano: todos los Trades desplegados (si viene de una nota, solo el tocado)
   });
-  if(det) det.addEventListener('click',e=>{ const h=e.target.closest&&e.target.closest('tr.jsw-trh'); if(h) _trSet(box,+h.dataset.trade,h.classList.contains('col')); });
-  window._intraTrades=chains.length; if(typeof noteHL==='function') noteHL();   // las notas pintan solo los Trades que existen en esta sesión
+  if(det) det.addEventListener('click',e=>{ if(typeof _trTagClick==='function'&&_trTagClick(e)) return; const h=e.target.closest&&e.target.closest('tr.jsw-trh'); if(h) _trSet(box,+h.dataset.trade,h.classList.contains('col')); });
+  window._intraTrades=chains.length; window._trPick=0; if(typeof noteHL==='function') noteHL();   // las notas pintan solo los Trades que existen en esta sesión
 }
 
 // Encabezado + actividad por sesión del Journal SWING (mismo modal que el Journal normal)
@@ -2237,6 +2263,24 @@ function renderSwingJournalHead(c){
     `<div style="font-size:10px;color:var(--muted);margin:6px 0 2px;line-height:1.5;">Desglose informativo del mismo ciclo (no es un resultado aparte). Las fechas sin apertura, cierre ni cierre parcial no aparecen, aunque sí forman parte del periodo.</div>${rows}</details>`;
 }
 
+// ── ESTADO TEMPORAL (últimos datos conocidos vs. confirmado por MT5) ──────────────────────────────────────────
+function _renderTimeBanner(sw){
+  let el=document.getElementById('tlTimeBanner');
+  const t=sw&&sw.time;
+  const lastKnown=t&&(t.stale||t.serverReevaluated||t.confidence==='LOW'||t.clockSuspect);
+  if(!lastKnown){ if(el) el.style.display='none'; return; }
+  if(!el){ el=document.createElement('div'); el.id='tlTimeBanner';
+    el.style.cssText='margin:6px 12px;padding:6px 10px;border:1px solid var(--yellow,#fc0);border-radius:6px;font-size:11px;line-height:1.5;color:var(--muted,#9aa);background:rgba(255,204,0,.07)';
+    const d=document.getElementById('dashboard'); d.insertBefore(el,d.firstChild); }
+  const age=t.snapshotAge!=null?(t.snapshotAge>=3600?Math.round(t.snapshotAge/3600)+' h':t.snapshotAge>=120?Math.round(t.snapshotAge/60)+' min':t.snapshotAge+' s'):'—';
+  const parts=[];
+  if(t.stale||t.serverReevaluated) parts.push('Posiciones: <b>último estado conocido</b> (último envío de MT5 hace '+age+'); la sesión se actualiza con el reloj del servidor y <b>no está confirmada por un snapshot reciente</b>. Si MT5 estuvo desconectado, una posición pudo cerrarse sin que se vea aquí.');
+  if(t.confidence==='LOW') parts.push('Confianza temporal baja: no se asignan ids SWING nuevos hasta confirmar la hora.');
+  if(t.clockSuspect) parts.push('El reloj de MT5/PC difiere del servidor; se usa el del servidor.');
+  el.innerHTML='⏱ '+parts.join(' ');
+  el.style.display='block';
+}
+
 // ── RENDER ALL ─────────────────────────────────────────────────────────────────
 function renderAll(data) {
   document.getElementById('btnDisconnect').style.display='block';
@@ -2253,7 +2297,11 @@ function renderAll(data) {
   _nyBrokerOff = (data.session&&typeof data.session.broker_offset==='number') ? data.session.broker_offset
     : (data.swing&&typeof data.swing.brokerOffset==='number') ? data.swing.brokerOffset
     : (_brokerOffsetMs!=null ? _brokerOffsetMs/1000 : 0);
+  // Misma conversión que el motor Swing: tabla de regímenes del servidor; reloj del servidor para "hoy"
+  _nyOffTbl = (data.swing && data.swing.offsets && !_isDemo) ? data.swing.offsets : null;
+  _srvSkew = (data.swing && data.swing.time && typeof data.swing.time.serverUtc==='number' && !_isDemo) ? Math.round(data.swing.time.serverUtc - Date.now()/1000) : 0;
   _brokerToday = todayStr();
+  _renderTimeBanner(data.swing);
   _dataAgeSec = data.server_time ? Math.max(0,Math.round((Date.now()-Date.parse(data.server_time))/1000)) : null;
   const openIds=new Set((data.positions||[]).flatMap(p=>[String(p.ticket),...(p.position_id!=null?[String(p.position_id)]:[])]));
   const trades=buildSessions(deals,openIds,data.excursions,data.price_exc);   // nivel posición: cada posición CERRADA
@@ -3771,6 +3819,52 @@ function noteHL(){
   let h='', i=0;
   _noteTokens(v).forEach(k=>{ h+=esc(v.slice(i,k.s))+'<span class="tl-tr" data-n="'+k.n+'">'+esc(v.slice(k.s,k.e))+'</span>'; i=k.e; });
   bd.innerHTML=h+esc(v.slice(i))+'\n';
+  if(typeof _trTagsApply==='function') _trTagsApply();
+}
+// ── Etiqueta de ejecución por Trade ──────────────────────────────────────────────
+// Se guarda EN LA NOTA como emoji a la izquierda de "Trade N" (❌ Trade 1): así viaja con la nota y se sincroniza sin cambios en el servidor.
+const _TR_TAGS={ok:{e:'✅',l:'Ejecuté bien'},warn:{e:'⚠️',l:'Dudé en algo'},bad:{e:'❌',l:'Cometí error'},lesson:{e:'📚',l:'Lección clave'}};
+const _TR_EMO_RE=/(\u2705|\u26A0\uFE0F?|\u274C|\uD83D\uDCDA)[ \u00a0]?$/;
+function _trTagOf(v,k){
+  const m=_TR_EMO_RE.exec(v.slice(Math.max(0,k.s-6),k.s)); if(!m) return '';
+  const c=m[1]; return c==='\u2705'?'ok':c==='\u274C'?'bad':c==='\uD83D\uDCDA'?'lesson':'warn';
+}
+function _trTags(v){ const out={}; _noteTokens(v).forEach(k=>{ if(out[k.n]) return; const t=_trTagOf(v,k); if(t) out[k.n]=t; }); return out; }
+function _trSetTag(n,tag){   // tag='' la quita; el emoji queda en la primera mención de "Trade N" y se limpia de las demás
+  const t=document.getElementById('jnoteText'); if(!t) return;
+  let v=t.value; const ks=_noteTokens(v).filter(k=>k.n===n); if(!ks.length) return;
+  for(let i=ks.length-1;i>=0;i--){
+    const k=ks[i]; let s=k.s;
+    const m=_TR_EMO_RE.exec(v.slice(Math.max(0,s-6),s));
+    if(m){ s-=m[0].length; v=v.slice(0,s)+v.slice(k.s); }
+    if(i===0&&tag) v=v.slice(0,s)+_TR_TAGS[tag].e+' '+v.slice(s);
+  }
+  t.value=v; autoGrowNote();
+}
+function _trTagsApply(){   // píldora al lado de "Trade N" en el desglose (+ selector abierto si toca)
+  const box=document.getElementById('jswingAct'), t=document.getElementById('jnoteText'); if(!box||!t) return;
+  const tags=_trTags(t.value);
+  box.querySelectorAll('tr.jsw-trh').forEach(h=>{
+    const n=+h.dataset.trade, tg=tags[n]||'', td=h.firstElementChild, b=td&&td.querySelector('b'); if(!b) return;
+    td.querySelectorAll('.jsw-trtag,.jsw-trpick').forEach(x=>x.remove());
+    if(tg){ const sp=document.createElement('span'); sp.className='jsw-trtag t-'+tg; sp.textContent=_TR_TAGS[tg].e+' '+_TR_TAGS[tg].l; const fx=td.querySelector('.jsw-fx'); if(fx) fx.appendChild(sp); else b.after(sp); }
+    if(window._trPick===n){
+      const pk=document.createElement('div'); pk.className='jsw-trpick';
+      pk.innerHTML=Object.keys(_TR_TAGS).map(k=>'<span class="jsw-trtag t-'+k+(k===tg?' on':'')+'" data-pick="'+k+'">'+_TR_TAGS[k].e+' '+_TR_TAGS[k].l+'</span>').join('');
+      td.appendChild(pk);
+    }
+  });
+}
+function _trTagClick(e){   // toques sobre la píldora o el selector del encabezado (devuelve true si lo atendió)
+  const p=e.target.closest&&e.target.closest('.jsw-trtag'); if(!p) return false;
+  const h=p.closest('tr.jsw-trh'); if(!h) return false;
+  const n=+h.dataset.trade, t=document.getElementById('jnoteText'), cur=(t&&_trTags(t.value)[n])||'';
+  if(p.dataset.pick){
+    const tg=p.dataset.pick; window._trPick=0;
+    if(cur===tg) _trSetTag(n,''); else _trSetTag(n,tg);   // la etiqueta de un Trade NO toca "¿Cómo ejecutaste hoy?" (esa es del journal completo)
+    _trTagsApply();
+  } else { window._trPick=(window._trPick===n?0:n); _trTagsApply(); }   // tocar la píldora asignada abre el selector para cambiarla
+  return true;
 }
 function _trSet(box,n,open){   // despliega (open=true) o pliega el Trade n de Actividad de la sesión
   const h=box&&box.querySelector('tr.jsw-trh[data-trade="'+n+'"]'); if(!h) return;
@@ -3806,6 +3900,7 @@ function _noteHit(e){
     const n=_noteHit(e); if(!n) return;
     if(e.pointerType==='touch') t.blur();
     jumpToTrade(n);
+    if(!_trTags(t.value)[n]){ window._trPick=n; _trTagsApply(); }   // sin etiqueta: el selector se abre en su encabezado
   });
 })();
 
@@ -3997,6 +4092,7 @@ function _anItemEl(it){
     }
     const t=_s('text',{x:tx,y:it.y,fill:c,'font-size':s,'font-weight':700,'font-family':'Arial,Helvetica,sans-serif','dominant-baseline':'middle'},g);
     t.textContent=it.v||'';
+    if(_an.editId&&it.id===_an.editId){ t.setAttribute('visibility','hidden'); g.style.pointerEvents='none'; }   // texto viejo oculto y sin zona de arrastre mientras se edita
     const x1=it.t==='lvl'?it.x0-6:tx-4;
     _s('rect',{'data-hit':'1',x:x1,y:it.y-Math.max(s*0.7,18),width:(tx+(it.v||'').length*s*0.6+8)-x1,height:Math.max(s*1.4,36),fill:'transparent'},g);
   }
@@ -4012,7 +4108,7 @@ function _anRender(){
   while(svg.firstChild) svg.removeChild(svg.firstChild);
   _an.items.forEach(it=>svg.appendChild(_anItemEl(it)));
   if(_an.draft){ const g=_anItemEl(_an.draft); g.setAttribute('opacity','0.9'); g.style.pointerEvents='none'; svg.appendChild(g); }
-  if(_iv.edit&&_an.sel){
+  if(_iv.edit&&_an.sel&&!_an.editId){   // mientras se edita el texto no se dibuja el recuadro blanco (no se puede arrastrar y dejar el texto atrás)
     const it=_anGet(_an.sel), g=svg.querySelector(`[data-aid="${_an.sel}"]`);
     if(it&&g){
       try{   // el recuadro rodea solo lo visible (sin las zonas de toque invisibles), así se ajusta al tamaño real del dibujo
@@ -4120,7 +4216,8 @@ function _anAsk(init,ph,cb,o){
   const sp=document.createElement('span'); sp.style.cssText=`position:fixed;left:-9999px;top:0;visibility:hidden;white-space:pre;font:${font};`; 
   const fit=()=>{ sp.textContent=el.value||' '; el.style.width=Math.max(fs*2,sp.offsetWidth+4)+'px'; };
   v.appendChild(sp); v.appendChild(el);
-  _inl={el,sp,cb,min:o.min||1,t0:Date.now(),done:false}; _an.askOpen=true;
+  _inl={el,sp,cb,min:o.min||1,t0:Date.now(),done:false,hideId:o.hideId||null}; _an.askOpen=true;
+  if(o.hideId){ _an.editId=o.hideId; _anRender(); }   // mientras se edita, el texto viejo no se dibuja (aunque la capa se repinte)
   el.addEventListener('input',fit);
   el.addEventListener('keydown',e=>{
     e.stopPropagation();
@@ -4135,7 +4232,7 @@ function _anAsk(init,ph,cb,o){
   fit(); el.focus(); if(el.value) el.select();
 }
 function _anAskCancel(now){
-  if(_inl){ _inl.done=true; try{ _inl.el.remove(); _inl.sp.remove(); }catch(_){} _inl=null; }
+  if(_inl){ _inl.done=true; try{ _inl.el.remove(); _inl.sp.remove(); }catch(_){} if(_inl.hideId){ _an.editId=null; _anRender(); } _inl=null; }
   if(now) _an.askOpen=false; else setTimeout(()=>{ _an.askOpen=false; },0);
 }
 function _anAskClose(ok){
@@ -4276,7 +4373,7 @@ function _anSetEdit(on){
         const now=Date.now(), lt=_an.lastTap;
         if(lt&&lt.id===a.item.id&&now-lt.t<420&&a.item.t==='text'){
           _an.lastTap=null; const it=a.item;
-          _anAsk(it.v,'Texto…',val=>{ _anPush(); it.v=val; _anChanged(); },{x:it.t==='lvl'?it.x+10:it.x,y:it.y,s:it.s||36,c:it.c,min:1});
+          _anAsk(it.v,'Texto…',val=>{ _anPush(); it.v=val; _anChanged(); },{x:it.t==='lvl'?it.x+10:it.x,y:it.y,s:it.s||36,c:it.c,min:1,hideId:it.id});
         } else _an.lastTap={id:a.item.id,t:now};
       }
     } else if(a.type==='tap'&&!a.moved){
@@ -4608,28 +4705,10 @@ async function saveJournal() {
 }
 
 // ── MONTHLY SUMMARY ────────────────────────────────────────────────────────────
-async function openMonthlySummary() {
-  document.getElementById('sumOverlay').classList.add('open');
-  const el = document.getElementById('sumContent');
-  el.innerHTML = `<div class="sum-loading"><div class="sum-dot"></div><div class="sum-dot"></div><div class="sum-dot"></div><span>Analizando tu journal con AI...</span></div>`;
-
-  // Build journal digest
-  const entries = Object.entries(journalData).filter(([d])=>journalHas(d)).sort((a,b)=>a[0].localeCompare(b[0]));
-  if(!entries.length) {
-    el.innerHTML = '<div style="color:var(--muted);font-size:12px;padding:12px 0;">No tienes entradas de journal todavía. Haz click en un día del calendario para añadir notas.</div>';
-    return;
-  }
-
-  // Build sessions map for P&L context
-  const sessByDate = {};
-  _journalSessions.forEach(s=>{
-    if(!sessByDate[s.date]) sessByDate[s.date]=[];
-    sessByDate[s.date].push(s);
-  });
-
-  const tagLabels = { ok:'Ejecuté bien', warn:'Dudé en algo', bad:'Cometí error', lesson:'Lección clave' };
-  // Reglas de interpretación: van DENTRO del digest (llegan al modelo aunque el servidor de IA solo reenvíe `digest`) y también en `instructions`.
-  const COACH_RULES = 'REGLAS DE INTERPRETACIÓN (obligatorias): '+
+// ── MOTOR DE RESUMEN CON IA: un solo motor para "Resumen del Mes" (calendario) y "Resumen histórico" (bajo el CSV) ──────────
+// Arma UN paquete: instrucciones + reglas + glosario ES/EN + datos (día, Trades con su resultado y etiqueta, nota). Se analiza aquí
+// (servidor de IA) o se descarga para pegarlo en cualquier otra IA: el paquete se explica solo.
+const _AI_RULES = 'REGLAS DE INTERPRETACIÓN (obligatorias): '+
     '1) La unidad principal es el DÍA OPERATIVO: su resultado es el neto realizado del día (P/L + comisión + swap) y se clasifica ganador/perdedor/neutral solo por ese neto. '+
     '2) El trader entra de forma progresiva (scaling in): varias posiciones negativas pueden ser compensadas por una ganadora mayor. No juzgues un día por la cantidad de posiciones rojas/verdes ni recomiendes reducir entradas, evitar el scaling in o cambiar el estilo de entrada por ese conteo. '+
     '3) No diagnostiques sobreoperación por el número de posiciones; plantéala solo como pregunta o hipótesis si hay evidencia contextual (costes desproporcionados, deterioro de resultados, regla conocida). '+
@@ -4637,29 +4716,100 @@ async function openMonthlySummary() {
     '5) Si faltan riesgo inicial, stop, MAE/MFE o exposición, dilo; no inventes motivos, reglas ni intenciones. '+
     '6) El conteo de posiciones es un dato secundario por posición, no un resultado diario. '+
     '7) El MAE/MFE en PUNTOS es distancia de precio (por símbolo) y NO es dinero: no lo compares ni lo mezcles con importes de P/L. Solo cuenta como medición fiable la marcada completa; las parciales son cotas inferiores y las aproximadas son estimaciones. No recomiendes stops por un promedio de MAE ni asumas que el pasado fija extremos futuros.';
-  const money=v=>`${v>=0?'+':'-'}$${mny(Math.abs(v))}`;
-  const digest = COACH_RULES+'\n\nDATOS POR DÍA OPERATIVO:\n'+entries.map(([date, e]) => {
-    if(/^SWING-\d{4}-\d{6}$/.test(date)){
-      const c=_swingCycles.find(x=>x.id===date);
-      if(c) return `${date} | CICLO SWING ${c.sym} ${c.side} (${c.startDay} → ${c.state==='active'?'en curso':c.endDay}) | Resultado realizado (beneficio + comisión + swap): ${money(c.realized.net)} | Posiciones: ${c.counts.total} (${c.counts.closed} cerradas, ${c.counts.open} abiertas) | Un ciclo cuenta como una sola unidad; el desglose por sesión no es un resultado aparte | Etiqueta: ${(journalData[date]||{}).tag||'—'} | Nota: ${((journalData[date]||{}).note||'').slice(0,600)}`;
-    }
-    const ds = sessByDate[date]||[];
-    const pnl = ds.reduce((a,s)=>a+s.netPnl,0);
-    const cnt = ds.reduce((a,s)=>a+s.trades,0);
-    const pxd = pxDigest(ds);
-    const known = ds.length>0 && ds.every(s=>s.costsKnown);
-    const comm = known?money(ds.reduce((a,s)=>a+s.comm,0)):'N/D', swp = known?money(ds.reduce((a,s)=>a+(s.swap||0),0)):'N/D';
-    return `${date} | Neto del día (neto de comisión y swap): ${money(pnl)} (${dayClass(pnl)==='win'?'día ganador':dayClass(pnl)==='loss'?'día perdedor':'Break Even'}) | Comisiones del día: ${comm} | Swap del día: ${swp} | Posiciones cerradas ese día (dato secundario por posición): ${cnt} | MAE/MFE en puntos de precio (solo completas, por símbolo, no es dinero): ${pxd} | Etiqueta: ${tagLabels[e.tag]||'Sin etiqueta'} | Nota: ${e.note||'(sin nota)'}`;
-  }).join('\n');
+const _AI_TAGS = { ok:'Ejecuté bien', warn:'Dudé en algo', bad:'Cometí error', lesson:'Lección clave' };
+const _AI_TASKS = 'ROL: eres un coach de trading que analiza el journal (diario) de un trader. Sé concreto y honesto, apóyate SOLO en la evidencia de los datos y, si hay pocos datos, dilo. Responde en español.\n\n'+
+  'QUÉ ENTREGAR: '+
+  '1) RESUMEN DEL PERIODO: 3 a 5 líneas (resultado neto, días ganadores/perdedores, consistencia). '+
+  '2) PATRONES EN LO QUE ESCRIBE: errores o gatillos que se repiten (p. ej. FOMO, revancha, entrar tarde, mover o quitar el stop, dudas, no respetar el plan), reglas que repite sin cumplirlas y lo que hace bien de forma repetida; de cada patrón di cuántas veces aparece y cita fechas o Trades como evidencia. '+
+  '3) EJECUCIÓN VS RESULTADO: cruza las etiquetas (del día y de cada Trade) con el resultado: días o Trades con ❌ frente a ✅, ganar con mala ejecución, perder con buena ejecución. '+
+  '4) QUÉ HACER: 3 acciones concretas que salgan solo de la evidencia del journal. '+
+  'No inventes motivos ni hechos que no estén en los datos.\n\n'+
+  'CÓMO LEER LOS DATOS: cada día es una línea con su neto, comisiones, MAE/MFE, la ETIQUETA DEL DÍA (juicio general del trader sobre todo el día; no se deduce de las etiquetas de los Trades) y su NOTA. Debajo van los TRADES del día (Trade 1, Trade 2…: cadena de posiciones del mismo símbolo y dirección) con su resultado y su etiqueta propia. En la nota, el emoji a la izquierda de "Trade N" es la etiqueta de ese Trade: ✅ = Ejecuté bien, ⚠️ = Dudé en algo, ❌ = Cometí error, 📚 = Lección clave. Un día puede tener Trades con etiquetas distintas entre sí y distintas de la etiqueta del día.\n\n';
+const _AI_GLOSSARY = 'GLOSARIO (español ↔ inglés). Interpreta sinónimos, abreviaturas, faltas de ortografía y mezcla de idiomas; si un término es ambiguo, dilo en vez de asumir:\n'+
+  '- Riesgo y órdenes: SL = stop loss = stop = parada ("me sacó stop" = stopped out); TP = take profit = objetivo; BE = break even = punto de equilibrio; R = riesgo inicial; lote = lot = tamaño = size; apalancamiento = leverage; drawdown = DD = caída de cuenta; spread; deslizamiento = slippage.\n'+
+  '- Gestión de la posición: scaling in = escalar = promediar a favor = añadir/adición; promediar en contra = averaging down = martingala (señal de riesgo); cierre parcial = partial close = parcial; stop dinámico = trailing stop; "estar montado" = tener posición abierta a favor del movimiento (riding); "montarse" = entrar en un movimiento ya en marcha; entrar tarde = chasing = late entry; cerrar a tiempo = cortar la pérdida (cut the loss).\n'+
+  '- Dirección: compra = largo = long = buy = alcista = bullish; venta = corto = short = sell = bajista = bearish.\n'+
+  '- Estructura de mercado: gap = hueco = brecha (diferencia entre el cierre previo y la apertura); "cerrar el gap" = gap fill; ruptura = breakout; falsa ruptura = fakeout = false break; retroceso = pullback = retracement; test = retest = reprueba (volver a tocar una zona); rebote = bounce; continuación = continuation; reversión = reversal; tendencia = trend; rango = range = consolidación; acumulación = accumulation; distribución = distribution; soporte = support; resistencia = resistance; zona = nivel = level; barrida de liquidez = liquidity sweep = liquidity grab = stop hunt; impulso = impulse; volatilidad = volatility; vela = candle; mecha = wick/shadow; apertura/cierre = open/close; sesión (Asia, Londres, Nueva York) = session.\n'+
+  '- Psicología y ejecución: FOMO = miedo a perderse el movimiento = entrar por ansiedad; revancha = revenge trading; sobreoperar = overtrading; impulsividad; miedo = fear; codicia = avaricia = greed; duda = hesitation; disciplina = discipline; plan de trading = trading plan; "regalar dinero al mercado" = pérdida evitable por mala ejecución; "aceptar el error a tiempo" = cortar la pérdida sin esperar.\n'+
+  '- Instrumentos: USTEC = US Tech 100 = Nasdaq 100 = NAS100 = NQ; US30 = Dow Jones; US500 = SPX = S&P 500; XAUUSD = oro = gold; EURUSD, GBPUSD, USDJPY = pares de divisas (forex).\n\n';
 
+function _aiBuild(scope){
+  const money=v=>`${v>=0?'+':'-'}$${mny(Math.abs(v))}`;
+  const now=new Date(), vy=(_calViewYear!==null?_calViewYear:now.getFullYear()), vm=(_calViewMonth!==null?_calViewMonth:now.getMonth());
+  const ym=vy+'-'+String(vm+1).padStart(2,'0');
+  const inScope=d=>scope==='all'||String(d).startsWith(ym);
+  const sessByDate={};
+  _journalSessions.forEach(s=>{ (sessByDate[s.date]=sessByDate[s.date]||[]).push(s); });
+  const dates=[...new Set([...Object.keys(sessByDate),...Object.keys(journalData).filter(d=>!/^SWING-/.test(d)&&journalHas(d))])].filter(inScope).sort();
+  const recentCut=new Date(Date.now()-90*864e5).toISOString().slice(0,10);   // en el histórico, las notas de hace más de 90 días se acortan (el paquete no crece sin límite)
+  const keepN=window._intraTrades;
+  const one=date=>{
+    const e=journalData[date]||{}, ds=sessByDate[date]||[];
+    const pnl=ds.reduce((a,s)=>a+s.netPnl,0), cnt=ds.reduce((a,s)=>a+s.trades,0), pxd=pxDigest(ds);
+    const known=ds.length>0&&ds.every(s=>s.costsKnown);
+    const comm=known?money(ds.reduce((a,s)=>a+s.comm,0)):'N/D', swp=known?money(ds.reduce((a,s)=>a+(s.swap||0),0)):'N/D';
+    let note=String(e.note||'').trim();
+    if(scope==='all'&&date<recentCut&&note.length>350) note=note.slice(0,350)+'…';
+    note=note.replace(/\s*\n\s*/g,' ⏎ ');
+    let out=`${date} | Neto del día (neto de comisión y swap): ${money(pnl)} (${dayClass(pnl)==='win'?'día ganador':dayClass(pnl)==='loss'?'día perdedor':'Break Even'}) | Comisiones del día: ${comm} | Swap del día: ${swp} | Posiciones cerradas ese día (dato secundario por posición): ${cnt} | MAE/MFE en puntos de precio (solo completas, por símbolo, no es dinero): ${pxd} | Etiqueta del día: ${_AI_TAGS[e.tag]||'Sin etiqueta'} | Nota: ${note||'(sin nota)'}`;
+    try{
+      const dobj=_intraDays.find(x=>x.date===date);
+      if(dobj){
+        const info=renderIntraActivity(dobj,true)||[];
+        window._intraTrades=info.length; const tg=_trTags(e.note||'');
+        if(info.length) out+='\n   TRADES: '+info.map(t=>`Trade ${t.n}: ${t.sym} ${t.side==='BUY'?'Compra':t.side==='SELL'?'Venta':'—'}, ${t.pos} posición(es), ${t.t0}→${t.fin}, ${money(t.net)}, etiqueta: ${tg[t.n]?_TR_TAGS[tg[t.n]].e+' '+_TR_TAGS[tg[t.n]].l:'sin etiqueta'}`).join(' || ');
+      }
+    }catch(_){}
+    window._intraTrades=keepN;
+    return {d:date,out,pnl,tag:e.tag||'',wrote:!!(e.note||e.tag)};
+  };
+  const recs=dates.map(one);
+  const byM={};
+  recs.forEach(r=>{ const m=r.d.slice(0,7), o=byM[m]||(byM[m]={n:0,net:0,w:0,l:0,j:0,t:{ok:0,warn:0,bad:0,lesson:0}});
+    o.n++; o.net+=r.pnl; const c=dayClass(r.pnl); if(c==='win')o.w++; else if(c==='loss')o.l++; if(r.wrote)o.j++; if(o.t[r.tag]!=null)o.t[r.tag]++; });
+  const monthLines=Object.keys(byM).sort().map(m=>{ const o=byM[m];
+    return `MES ${m} | Días con datos: ${o.n} (${o.w} ganadores, ${o.l} perdedores) | Neto del mes: ${money(o.net)} | Días con journal escrito: ${o.j} | Etiquetas del día: ${o.t.ok} ejecuté bien, ${o.t.warn} dudé, ${o.t.bad} cometí error, ${o.t.lesson} lección clave`; });
+  const sw=Object.keys(journalData).filter(d=>/^SWING-\d{4}-\d{6}$/.test(d)&&journalHas(d)).sort().map(d=>{
+    const c=_swingCycles.find(x=>x.id===d); if(!c) return null;
+    if(scope!=='all'&&!(String(c.startDay||'').startsWith(ym)||String(c.endDay||'').startsWith(ym))) return null;
+    const e=journalData[d]||{};
+    return `${d} | CICLO SWING ${c.sym} ${c.side} (${c.startDay} → ${c.state==='active'?'en curso':c.endDay}) | Resultado realizado (beneficio + comisión + swap): ${money(c.realized.net)} | Posiciones: ${c.counts.total} (${c.counts.closed} cerradas, ${c.counts.open} abiertas) | Un ciclo cuenta como una sola unidad; el desglose por sesión no es un resultado aparte | Etiqueta: ${e.tag?_AI_TAGS[e.tag]:'—'} | Nota: ${String(e.note||'').slice(0,600).replace(/\s*\n\s*/g,' ⏎ ')}`;
+  }).filter(Boolean);
+  const preface=_AI_TASKS+_AI_RULES+'\n\n'+_AI_GLOSSARY;
+  const text=preface+'PERIODO: '+(scope==='all'?'HISTÓRICO COMPLETO (todos los días con datos)':'Mes '+ym)+'\n'+
+    (monthLines.length?'\nRESUMEN POR MES:\n'+monthLines.join('\n')+'\n':'')+
+    '\nDATOS POR DÍA OPERATIVO:\n'+(recs.length?recs.map(r=>r.out).join('\n'):'(sin días intradía en este periodo)')+
+    (sw.length?'\n\nCICLOS SWING:\n'+sw.join('\n'):'');
+  return {preface,text,ym,nDays:recs.length+sw.length};
+}
+function _aiDownload(){
+  const p=window._aiPkg; if(!p) return;
+  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([p.text],{type:'text/plain;charset=utf-8'})); a.download=p.name;
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),2000);
+}
+async function openAiSummary(scope) {
+  scope=scope==='all'?'all':'month';
+  const MES=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  const el=document.getElementById('sumContent'), ttl=document.getElementById('sumTitle');
+  document.getElementById('sumOverlay').classList.add('open');
+  const now=new Date(), vy=(_calViewYear!==null?_calViewYear:now.getFullYear()), vm=(_calViewMonth!==null?_calViewMonth:now.getMonth());
+  if(ttl) ttl.textContent=scope==='all'?'📚 Resumen histórico — Coach AI':`📊 Resumen de ${MES[vm]} ${vy} — Coach AI`;
+  const note=(msg,col)=>{ const d=document.createElement('div'); d.style.cssText=`color:${col||'var(--muted)'};font-size:12px;padding:12px 0;`; d.textContent=msg; return d; };
+  let pkg;
+  try{ pkg=_aiBuild(scope); }catch(err){ el.replaceChildren(note('No se pudo preparar el resumen: '+err.message,'var(--red)')); return; }
+  if(!pkg.nDays){ el.replaceChildren(note(scope==='all'?'Todavía no hay días con datos ni journal.':'No hay días con datos ni journal en este mes.')); return; }
+  window._aiPkg={text:pkg.text,name:`TradeLens_IA_${scope==='all'?'historico':pkg.ym}_${new Date().toISOString().slice(0,10)}.txt`};
+  const dl=()=>{ const b=document.createElement('button'); b.className='btn-csv'; b.style.marginTop='16px'; b.textContent='⬇️ Descargar paquete para otra IA'; b.onclick=_aiDownload; return b; };
+  if(!serverURL||!serverToken){ el.replaceChildren(note('El análisis dentro de la app requiere conexión al servidor en la nube. Puedes descargar el paquete y pegarlo en cualquier IA: trae sus propias instrucciones.'),dl()); return; }
+  el.innerHTML = `<div class="sum-loading"><div class="sum-dot"></div><div class="sum-dot"></div><div class="sum-dot"></div><span>Analizando tu journal con AI...</span></div>`;
   try {
-    if(!serverURL||!serverToken){ el.innerHTML='<div style="color:var(--muted);font-size:12px;">El resumen con IA requiere conexión al servidor en la nube.</div>'; return; }
-    const resp = await fetch(`${serverURL}/ai/summary`, { method:'POST', headers:{'Content-Type':'application/json','x-token':serverToken}, body: JSON.stringify({digest, instructions: COACH_RULES}) });
+    const resp = await fetch(`${serverURL}/ai/summary`, { method:'POST', headers:{'Content-Type':'application/json','x-token':serverToken}, body: JSON.stringify({digest: pkg.text, instructions: pkg.preface}) });
     const data = await resp.json().catch(()=>({}));
-    const text = resp.ok ? (data.text||'No se pudo generar el análisis.') : (data.error||'Error del servidor de IA');
-    const box = document.createElement('div'); box.className='sum-content'; box.style.whiteSpace='pre-wrap'; box.textContent=text; el.replaceChildren(box);
+    if(!resp.ok){ el.replaceChildren(note((data.error||'Error del servidor de IA')+'. Si el paquete es muy grande, descárgalo y pégalo en otra IA.','var(--red)'),dl()); return; }
+    const box = document.createElement('div'); box.className='sum-content'; box.style.whiteSpace='pre-wrap'; box.textContent=data.text||'No se pudo generar el análisis.';
+    el.replaceChildren(box,dl());
   } catch(err) {
-    el.innerHTML = `<div style="color:var(--red);font-size:12px;">Error al conectar con AI: ${err.message}</div>`;
+    el.replaceChildren(note('Error al conectar con AI: '+err.message+'. Puedes descargar el paquete y pegarlo en otra IA.','var(--red)'),dl());
   }
 }
 
