@@ -3715,7 +3715,7 @@ const _WMIN=0.37*3, _WMAX={pen:10.4,arrow:9.6,rect:7.68,path:9.6};   // grosor m
 const _tw=(t,k)=>_WMIN+t*((_WMAX[k]||9.6)-_WMIN), _TMIN=9.6, _tt=t=>Math.round(_TMIN+t*(60-_TMIN));   // texto libre: mínimo = mínimo del texto de los niveles
 const _tl=t=>9.6+t*9.6, _tlw=t=>0.37*(3+t*6.6);   // línea de nivel: siempre proporcional al texto (30 % más fina que antes)                           // niveles: texto (máx. ≈ 70 % menos que antes) y grosor de línea
 const _LV = { entry:{c:'#00b4ff',l:'Punto de entrada'}, sl:{c:'#ff3355',l:'Stop loss'}, tp:{c:'#00e676',l:'Take profit'}, avg:{c:'#ffb300',l:'Promediada'} };
-const _an = { items:[], tool:'select', color:'#ff3355', t:0.5, lt:1, sel:null, draft:null, hist:[], saveT:null, dirty:false, saveId:null, askOpen:false, lastTap:null };
+const _an = { items:[], tool:'select', color:'#ff3355', t:0, lt:0, sel:null, draft:null, hist:[], saveT:null, dirty:false, saveId:null, askOpen:false, lastTap:null };
 const _anCnt = {};   // id de imagen → cantidad de anotaciones (para el distintivo en la miniatura)
 
 function _s(tag, at, par){ const e=document.createElementNS(_NS,tag); for(const k in at) e.setAttribute(k,at[k]); if(par) par.appendChild(e); return e; }
@@ -3862,7 +3862,6 @@ function _anItemEl(it){
 function _anGet(id){ return _an.items.find(i=>i.id===id); }
 function _anHandles(it){
   if(it.t==='arrow'||it.t==='rect') return [['a',it.a[0],it.a[1]],['b',it.b[0],it.b[1]]];
-  if(it.t==='lvl') return [['x0',it.x0,it.y]];
   return [];
 }
 function _anRender(){
@@ -3880,7 +3879,12 @@ function _anRender(){
           const b=ch.getBBox(), st=ch.getAttribute('stroke'), sw=(st&&st!=='none'&&st!=='transparent')?(parseFloat(ch.getAttribute('stroke-width'))||0)/2:0;
           x1=Math.min(x1,b.x-sw); y1=Math.min(y1,b.y-sw); x2=Math.max(x2,b.x+b.width+sw); y2=Math.max(y2,b.y+b.height+sw);
         });
-        if(x2>x1){ const pd=5; _s('rect',{x:x1-pd,y:y1-pd,width:x2-x1+2*pd,height:y2-y1+2*pd,fill:'none',stroke:'#fff','stroke-width':_WMIN,'stroke-dasharray':'9 7','pointer-events':'none',opacity:.9},svg); }
+        if(x2>x1){
+          const pd=5; _s('rect',{x:x1-pd,y:y1-pd,width:x2-x1+2*pd,height:y2-y1+2*pd,fill:'none',stroke:'#fff','stroke-width':_WMIN,'stroke-dasharray':'9 7','pointer-events':'none',opacity:.9},svg);
+          if(it.t==='lvl'){   // el borde derecho del recuadro se desliza para alargar o acortar la línea (sin puntos extra)
+            const hz=_s('rect',{x:x2+pd-16,y:y1-pd,width:32,height:y2-y1+2*pd,fill:'transparent','data-handle':'xr','data-dx':(x2+pd-it.x)},svg); hz.style.cursor='ew-resize';
+          }
+        }
       }catch(_){}
       _anHandles(it).forEach(h=>{
         _s('circle',{cx:h[1],cy:h[2],r:15,fill:'transparent','data-handle':h[0]},svg);      // zona de toque (invisible, para agarrarlo fácil)
@@ -3950,7 +3954,8 @@ function _anAddLevel(kind,p){
   if(kind==='avg'){ n=Math.max(0,..._an.items.filter(i=>i.t==='lvl'&&i.k==='avg').map(i=>i.n||0))+1; label='Promediada '+n; }
   _an.lt=0;   // entrada, stop loss, take profit y promediada siempre se colocan con el tamaño mínimo
   const s=_tl(0), est=label.length*s*0.6;
-  const x=Math.max(60,Math.min(p.x,_AW-est-26)), x0=Math.max(0,x-_AW*0.25);
+  // El clic marca el INICIO (borde izquierdo) de la línea; se extiende hacia la derecha (35 % más corta que antes) y el texto va al final
+  const x0=Math.max(0,Math.min(p.x,_AW-60)), x=Math.min(x0+_AW*0.25*0.65, Math.max(x0+20,_AW-est-26));
   _an.tool='select';
   _anCommit({t:'lvl',k:kind,n,v:label,x,y:p.y,x0,s,lw:_tlw(0),c:_LV[kind].c},true);
 }
@@ -3960,16 +3965,41 @@ function _anMoveItem(it,dx,dy){
   if(it.t==='text'){ it.x+=dx; it.y+=dy; }
   if(it.t==='lvl'){ it.x+=dx; it.x0+=dx; it.y+=dy; }
 }
-function _anAsk(init,ph,cb){
-  const box=document.getElementById('jimgTextBox'), inp=box.querySelector('input');
-  inp.value=init||''; inp.placeholder=ph||'Texto…'; box.style.display='flex'; _an.askOpen=true; box._cb=cb;
-  setTimeout(()=>{ inp.focus(); inp.select(); },30);
+// Texto directo sobre la imagen: un recuadro punteado azul justo donde se hizo el toque; se escribe ahí mismo y con Enter se aplica
+let _inl=null;
+function _anAsk(init,ph,cb,o){
+  o=o||{}; _anAskCancel(true);
+  const {v,st}=_ivEls(), r=st.getBoundingClientRect(), k=r.width/_AW, fs=Math.max(8,(o.s||36)*k);
+  const h=Math.round(fs*1.4), left=r.left+(o.x||0)*k, top=r.top+(o.y||0)*k-h/2;
+  const font=`700 ${fs}px Arial,Helvetica,sans-serif`;
+  const el=document.createElement('input'); el.type='text'; el.className='jimg-inl'; el.maxLength=80; el.autocomplete='off'; el.spellcheck=false; el.value=init||'';
+  el.style.cssText=`position:fixed;z-index:5;left:${left-7}px;top:${top}px;height:${h}px;font:${font};color:${o.c||'#fff'};background:rgba(0,0,0,.35);border:1.5px dashed #00b4ff;border-radius:4px;padding:0 5px;outline:none;box-sizing:content-box;user-select:text;-webkit-user-select:text;caret-color:#00e5ff;`;
+  const sp=document.createElement('span'); sp.style.cssText=`position:fixed;left:-9999px;top:0;visibility:hidden;white-space:pre;font:${font};`; 
+  const fit=()=>{ sp.textContent=el.value||' '; el.style.width=Math.max(fs*2,sp.offsetWidth+4)+'px'; };
+  v.appendChild(sp); v.appendChild(el);
+  _inl={el,sp,cb,min:o.min||1,t0:Date.now(),done:false}; _an.askOpen=true;
+  el.addEventListener('input',fit);
+  el.addEventListener('keydown',e=>{
+    e.stopPropagation();
+    if(e.key==='Enter'){ e.preventDefault(); _anAskClose(true); }
+    else if(e.key==='Escape'){ e.preventDefault(); _anAskClose(false); }
+  });
+  el.addEventListener('blur',()=>{
+    if(!_inl||_inl.el!==el||_inl.done) return;
+    if(Date.now()-_inl.t0<450){ setTimeout(()=>{ if(_inl&&_inl.el===el) el.focus(); },0); return; }   // el toque que lo creó puede quitarle el foco un instante
+    _anAskClose(true);
+  });
+  fit(); el.focus(); if(el.value) el.select();
+}
+function _anAskCancel(now){
+  if(_inl){ _inl.done=true; try{ _inl.el.remove(); _inl.sp.remove(); }catch(_){} _inl=null; }
+  if(now) _an.askOpen=false; else setTimeout(()=>{ _an.askOpen=false; },0);
 }
 function _anAskClose(ok){
-  const box=document.getElementById('jimgTextBox'), inp=box.querySelector('input'), cb=box._cb, val=inp.value.trim();
-  box.style.display='none'; box._cb=null; inp.blur();
-  setTimeout(()=>{ _an.askOpen=false; },0);
-  if(ok&&val&&cb) cb(val);
+  if(!_inl){ return; }
+  const q=_inl, val=q.el.value.trim();
+  _anAskCancel(false);
+  if(ok&&val.length>=q.min&&q.cb) q.cb(val);   // texto nuevo: mínimo 2 letras; una sola letra o vacío no se aplica
 }
 const _sh={on:false,ign:0};   // truco de historial: tres entradas (atrás · centro · adelante) para detectar "atrás/adelante" del ratón sin salir de la página
 function _sideHistOn(){
@@ -3980,7 +4010,7 @@ function _sideHistOff(){ if(!_sh.on) return; _sh.on=false; _sh.ign++; try{ histo
 function _anSetEdit(on){
   const {v}=_ivEls(); if(on&&!_iv.id) return;
   _iv.edit=!!on; v.classList.toggle('edit',!!on); document.getElementById('jimgEditBtn').classList.toggle('on',!!on);
-  if(!on){ _an.draft=null; _an.sel=null; _anFlush(); const box=document.getElementById('jimgTextBox'); box.style.display='none'; _an.askOpen=false; }
+  if(!on){ _an.draft=null; _an.sel=null; _anFlush(); _anAskCancel(true); }
   _ivTbPad(); if(on) _sideHistOn(); else _sideHistOff();
   _an.tool='select'; _ivReset(!on&&_iv.s!==1); _ivFit(); _anRender(); _anUiSync();   // al salir del modo edición (lápiz/X) el zoom se minimiza con animación
 }
@@ -4017,7 +4047,7 @@ function _anSetEdit(on){
     }
   },{passive:false});
   v.addEventListener('touchmove',e=>{
-    if(e.target.closest&&e.target.closest('.jimg-tb')) return;   // la barra de herramientas se desliza normal
+    if(e.target.closest&&e.target.closest('.jimg-tb,.jimg-inl')) return;   // la barra de herramientas y el cuadro de texto funcionan normal
     e.preventDefault();   // nunca se desplaza ni se hace zoom a la página
     if(e.touches.length>=2&&_iv.pinch){
       const c=cen(), m=mid(e.touches), p=_iv.pinch;
@@ -4044,7 +4074,7 @@ function _anSetEdit(on){
   const P=new Set(); let act=null;
   const ptOf=e=>{ const r=st.getBoundingClientRect(); return { x:Math.max(0,Math.min(_AW,(e.clientX-r.left)/r.width*_AW)), y:Math.max(0,Math.min(_AH,(e.clientY-r.top)/r.height*_AH)) }; };
   const cancelAct=()=>{ if(act&&(act.type==='pen'||act.type==='shape')) _an.draft=null; act=null; _anRender(); _anUiSync(); };
-  const ignore=e=>e.target.closest&&e.target.closest('.jimg-tb,.jimg-viewer-x,.jimg-edit-btn,.jimg-tbox');
+  const ignore=e=>e.target.closest&&e.target.closest('.jimg-tb,.jimg-viewer-x,.jimg-edit-btn,.jimg-tbox,.jimg-inl');
   v.addEventListener('pointerdown',e=>{
     if(!_iv.edit||ignore(e)) return;
     P.add(e.pointerId);
@@ -4055,7 +4085,7 @@ function _anSetEdit(on){
     try{ v.setPointerCapture(e.pointerId); }catch(_){}
     if(tool==='select'){
       const h=e.target.closest('[data-handle]'), g=e.target.closest('[data-aid]');
-      if(h){ act.type='handle'; act.h=h.dataset.handle; act.item=_anGet(_an.sel); }
+      if(h){ act.type='handle'; act.h=h.dataset.handle; act.dx=parseFloat(h.dataset.dx)||0; act.item=_anGet(_an.sel); }
       else if(g){ act.type='move'; act.item=_anGet(g.dataset.aid); if(_an.sel!==g.dataset.aid){ _an.sel=g.dataset.aid; _anRender(); _anUiSync(); } }
       else { if(_an.sel){ _an.sel=null; _anRender(); _anUiSync(); } if(e.pointerType==='mouse'&&_iv.s>1){ act.type='pan'; act.tx=_iv.tx; act.ty=_iv.ty; } else act=null; }
     } else if(tool==='pen'){ act.type='pen'; _an.draft={t:'pen',c:_an.color,w:_tw(_an.t,'pen'),p:[[p.x,p.y]]}; }
@@ -4081,7 +4111,7 @@ function _anSetEdit(on){
       if(!act.moved) return;
       if(!act.pushed){ _anPush(); act.pushed=true; }
       const it=act.item;
-      if(act.h==='x0') it.x0=Math.min(p.x,it.x-30); else it[act.h]=[p.x,p.y];
+      if(act.h==='xr') it.x=Math.max(it.x0+20,Math.min(_AW-30,p.x-act.dx)); else if(act.h==='x0') it.x0=Math.min(p.x,it.x-30); else it[act.h]=[p.x,p.y];
       _anRender();
     }
   });
@@ -4103,13 +4133,14 @@ function _anSetEdit(on){
         const now=Date.now(), lt=_an.lastTap;
         if(lt&&lt.id===a.item.id&&now-lt.t<420&&(a.item.t==='text'||a.item.t==='lvl')){
           _an.lastTap=null; const it=a.item;
-          _anAsk(it.v,'Texto…',val=>{ _anPush(); it.v=val; _anChanged(); });
+          _anAsk(it.v,'Texto…',val=>{ _anPush(); it.v=val; _anChanged(); },{x:it.t==='lvl'?it.x+10:it.x,y:it.y,s:it.s||36,c:it.c,min:1});
         } else _an.lastTap={id:a.item.id,t:now};
       }
     } else if(a.type==='tap'&&!a.moved){
       const tool=_an.tool, q=a.p0;
       if(tool==='text'){
-        _anAsk('','Escribe el texto…',val=>{ _an.tool='select'; _anCommit({t:'text',c:_an.color,s:_tt(_an.t),x:Math.min(q.x,_AW-60),y:q.y,v:val},true); });
+        const tx0=Math.min(q.x,_AW-60), ts0=_tt(_an.t);
+        _anAsk('','',val=>{ _an.tool='select'; _anCommit({t:'text',c:_an.color,s:ts0,x:tx0,y:q.y,v:val},true); },{x:tx0,y:q.y,s:ts0,c:_an.color,min:2});
       } else if(tool==='path'){
         const now=Date.now();
         if(!_an.draft){ _an.draft={t:'path',c:_an.color,w:_tw(_an.t,'path'),p:[[q.x,q.y]]}; _an.lastTap={t:now,x:q.x,y:q.y}; }
@@ -4128,7 +4159,9 @@ function _anSetEdit(on){
   // ── Barra de herramientas ──
   document.getElementById('jimgTb').addEventListener('click',e=>{
     const b=e.target.closest('button'); if(!b||b.disabled) return;
-    if(b.dataset.tool){ _anFinishPath(); _an.draft=null; _an.tool=b.dataset.tool; if(_an.tool!=='select') _an.sel=null; _anRender(); }
+    if(b.dataset.tool){ _anFinishPath(); _an.draft=null; _an.tool=b.dataset.tool; if(_an.tool!=='select') _an.sel=null;
+      if(['pen','arrow','rect','text','path'].includes(_an.tool)) _an.t=0; else if(_LV[_an.tool]) _an.lt=0;   // cada herramienta se abre con el tamaño mínimo
+      _anRender(); }
     else if(b.dataset.color){ _an.color=b.dataset.color; const it=_an.sel&&_anGet(_an.sel); if(it&&it.t!=='lvl'){ _anPush(); it.c=_an.color; _anChanged(); } }
     else if(b.id==='jimgScaleMinus'){ _anSetScale(_anScaleNow()-0.1,true); return; }
     else if(b.id==='jimgScalePlus'){ _anSetScale(_anScaleNow()+0.1,true); return; }
@@ -4162,25 +4195,34 @@ function _anSetEdit(on){
   //  Atrás = Deshacer · Adelante: un clic pasa a la siguiente herramienta (sin Mover), dos clics seguidos = Mover
   const _SIDE_TOOLS=['pen','arrow','rect','text','path','entry','sl','tp','avg'];
   let _fwdT=0;
-  const sideBack=()=>{ if(!_an.askOpen) _anUndo(); };
+  const toast=t=>{   // aviso breve para ver qué hizo el botón lateral
+    let el=document.getElementById('jimgSideToast');
+    if(!el){ el=document.createElement('div'); el.id='jimgSideToast'; el.style.cssText='position:fixed;top:calc(14px + env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%);z-index:600;background:rgba(8,12,16,.92);color:#fff;border:1px solid var(--cyan);border-radius:10px;padding:6px 14px;font:13px var(--font-mono);pointer-events:none;transition:opacity .2s;opacity:0;'; v.appendChild(el); }
+    el.textContent=t; el.style.opacity='1'; clearTimeout(el._t); el._t=setTimeout(()=>{ el.style.opacity='0'; },1100);
+  };
+  const sideBack=()=>{
+    if(_an.askOpen) return;
+    if(_an.sel&&_anGet(_an.sel)){ _anDeleteSel(); toast('🗑 Borrado'); return; }   // con un dibujo seleccionado, el botón lateral de atrás lo borra
+    const can=_an.draft||_an.hist.length; _anUndo(); toast(can?'↶ Deshacer':'Nada que deshacer');
+  };
   const sideFwd=()=>{
     if(_an.askOpen) return;
     const now=Date.now(); let next;
     if(now-_fwdT<400){ next='select'; _fwdT=0; }   // doble clic → Mover
     else { _fwdT=now; const i=_SIDE_TOOLS.indexOf(_an.tool); next=_SIDE_TOOLS[(i+1)%_SIDE_TOOLS.length]; }
-    const b=document.querySelector(`#jimgTb [data-tool="${next}"]`); if(b&&!b.disabled) b.click();
+    const b=document.querySelector(`#jimgTb [data-tool="${next}"]`); if(b&&!b.disabled){ b.click(); toast(next==='select'?'☝️ Mover':b.textContent.trim()); }
   };
   window._sideBack=sideBack; window._sideFwd=sideFwd;
   const editOpen=()=>v.classList.contains('open')&&_iv.edit;
-  // 1) Eventos normales del ratón (botones 3 y 4)
+  // 1) Eventos normales del ratón (botones 3 y 4). La acción se hace con el primer evento de cada pulsación (al pulsar, o al soltar si el navegador no avisó al pulsar)
   const sideOk=e=>(e.button===3||e.button===4)&&editOpen();
-  ['pointerdown','pointerup','mouseup','auxclick'].forEach(ev=>document.addEventListener(ev,e=>{
-    if(!sideOk(e)) return; e.preventDefault(); e.stopPropagation();
-  },true));
-  document.addEventListener('mousedown',e=>{
-    if(!sideOk(e)) return; e.preventDefault(); e.stopPropagation();
-    e.button===3?sideBack():sideFwd();
-  },true);
+  const pr={3:false,4:false}, sideAct=b=>b===3?sideBack():sideFwd();
+  const sdown=e=>{ if(!sideOk(e)) return; e.preventDefault(); e.stopPropagation(); if(!pr[e.button]){ pr[e.button]=true; sideAct(e.button); } };
+  const sup=e=>{ if(!sideOk(e)) return; e.preventDefault(); e.stopPropagation(); if(!pr[e.button]) sideAct(e.button); pr[e.button]=false; };
+  const sblock=e=>{ if(!sideOk(e)) return; e.preventDefault(); e.stopPropagation(); };   // evita que el navegador navegue atrás/adelante
+  ['pointerdown','mousedown'].forEach(ev=>document.addEventListener(ev,sdown,true));
+  ['pointerup','mouseup'].forEach(ev=>document.addEventListener(ev,sup,true));
+  ['auxclick','click','contextmenu'].forEach(ev=>document.addEventListener(ev,sblock,true));
   // 2) Si el driver del ratón los envía como atajos de teclado (Alt+←/→ o teclas "Atrás/Adelante del navegador")
   document.addEventListener('keydown',e=>{
     if(!editOpen()) return;
