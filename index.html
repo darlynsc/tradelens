@@ -4137,6 +4137,7 @@ function _anSetEdit(on){
   document.addEventListener('keydown',e=>{
     if(!v.classList.contains('open')||_an.askOpen) return;
     if(e.key==='Escape'){
+      e.stopImmediatePropagation();   // con el visor abierto, ESC solo actúa sobre el visor (no cierra también el journal)
       if(_iv.edit){ if(_an.draft) _anUndo(); else _anSetEdit(false); } else closeImgViewer();
     } else if(_iv.edit&&(e.key==='Delete'||e.key==='Backspace')){ e.preventDefault(); _anDeleteSel(); }
     else if(_iv.edit&&(e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='z'){ e.preventDefault(); _anUndo(); }
@@ -4561,7 +4562,12 @@ function menuAction(what) {
   else if(what === 'logout') clearSession();
 }
 document.addEventListener('click', e => { if(!e.target.closest('#menuWrap')) closeMenu(); });
-document.addEventListener('keydown', e => { if(e.key === 'Escape') { closeMenu(); closeImgViewer(); } });
+document.addEventListener('keydown', e => {
+  if(e.key !== 'Escape') return;
+  closeMenu(); closeImgViewer();
+  const jo=document.getElementById('jmodalOverlay');   // ESC cierra el journal (igual que la ✕)
+  if(jo && jo.classList.contains('open')) closeJournal();
+});
 
 // ── DAILY DRAWDOWN ALERT ───────────────────────────────────────────────────────
 // Mide (a) pérdida REALIZADA hoy y (b) caída de equity vs balance de inicio de día (incl. flotante).
