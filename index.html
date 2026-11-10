@@ -2267,14 +2267,13 @@ function renderSwingJournalHead(c){
 function _renderTimeBanner(sw){
   let el=document.getElementById('tlTimeBanner');
   const t=sw&&sw.time;
-  const lastKnown=t&&(t.stale||t.serverReevaluated||t.confidence==='LOW'||t.clockSuspect);
+  const lastKnown=t&&(t.confidence==='LOW'||t.clockSuspect);
   if(!lastKnown){ if(el) el.style.display='none'; return; }
   if(!el){ el=document.createElement('div'); el.id='tlTimeBanner';
     el.style.cssText='margin:6px 12px;padding:6px 10px;border:1px solid var(--yellow,#fc0);border-radius:6px;font-size:11px;line-height:1.5;color:var(--muted,#9aa);background:rgba(255,204,0,.07)';
     const d=document.getElementById('dashboard'); d.insertBefore(el,d.firstChild); }
   const age=t.snapshotAge!=null?(t.snapshotAge>=3600?Math.round(t.snapshotAge/3600)+' h':t.snapshotAge>=120?Math.round(t.snapshotAge/60)+' min':t.snapshotAge+' s'):'—';
   const parts=[];
-  if(t.stale||t.serverReevaluated) parts.push('Posiciones: <b>último estado conocido</b> (último envío de MT5 hace '+age+'); la sesión se actualiza con el reloj del servidor y <b>no está confirmada por un snapshot reciente</b>. Si MT5 estuvo desconectado, una posición pudo cerrarse sin que se vea aquí.');
   if(t.confidence==='LOW') parts.push('Confianza temporal baja: no se asignan ids SWING nuevos hasta confirmar la hora.');
   if(t.clockSuspect) parts.push('El reloj de MT5/PC difiere del servidor; se usa el del servidor.');
   el.innerHTML='⏱ '+parts.join(' ');
