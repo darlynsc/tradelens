@@ -645,7 +645,7 @@ canvas{max-height:200px;}
 .jtag.sel-bad{border-color:var(--red);background:rgba(255,51,85,0.1);color:var(--red);}
 .jtag.sel-lesson{border-color:var(--purple);background:rgba(181,123,255,0.1);color:var(--purple);}
 .jnote-label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:6px;}
-textarea.jnote{width:100%;background:var(--s2);border:1px solid var(--b2);color:var(--text);padding:12px;border-radius:8px;font-family:var(--font-mono);font-size:12px;line-height:1.65;resize:none;overflow:hidden;min-height:110px;outline:none;transition:border-color .2s;}
+textarea.jnote{-webkit-touch-callout:none;width:100%;background:var(--s2);border:1px solid var(--b2);color:var(--text);padding:12px;border-radius:8px;font-family:var(--font-mono);font-size:12px;line-height:1.65;resize:none;overflow:hidden;min-height:110px;outline:none;transition:border-color .2s;}
 textarea.jnote:focus{border-color:var(--cyan);}
 /* Notas: "Trade 1/2/3…" se pinta (capa detrás del texto, mismas métricas que el textarea) y al tocarlo abre ese Trade en Actividad de la sesión */
 .jnote-wrap{position:relative;background:var(--s2);border-radius:8px;}
@@ -688,7 +688,7 @@ input.jimglink:focus{border-color:var(--cyan);}
 #tlConfirm .jbtn-del{margin-right:0;}
 .jbtn-cancel{background:var(--s2);color:var(--muted);border:1px solid var(--b2);padding:9px 20px;border-radius:8px;font-family:var(--font-head);font-weight:600;font-size:12px;cursor:pointer;transition:.2s;}
 .jbtn-cancel:hover{color:var(--text);background:var(--b2);}
-@media(max-width:700px),(hover:none){ .jtip-pc{display:none;} }   /* consejo de Ctrl+V: solo en PC */
+@media(max-width:700px),(hover:none){ .jtip-pc{display:none;} .jtip-mob{display:block !important;} }   /* consejo de Ctrl+V: solo en PC */
 @media(max-width:700px){ #tlConfirm .jbtn-row button{width:100%;text-align:center;padding:11px;} }
 .cal-day.has-note{position:relative;}
 .cal-day.has-note::after{content:'📝';position:absolute;top:3px;right:3px;font-size:8px;opacity:0.8;}
@@ -1211,6 +1211,7 @@ input.jimglink:focus{border-color:var(--cyan);}
         <select class="jimg-trade" id="jimgTrade" title="Operación relacionada (opcional)" hidden></select>
       </div>
       <div class="jtip-pc" style="font-size:10px;color:var(--muted);margin-top:6px;">💡Pega captura con Ctrl+V</div>
+      <div class="jtip-mob" style="font-size:10px;color:var(--muted);margin-top:6px;display:none;">💡Para asignar un Trade a una captura: mantén pulsado “Trade N” en la nota y arrástralo hasta la imagen</div>
       <input type="file" id="jimgFile" accept="image/jpeg,image/png,image/webp,image/gif" multiple style="display:none" onchange="onImgPicked(this)"/>
       <input type="file" id="jimgCam" accept="image/*" capture="environment" style="display:none" onchange="onImgPicked(this)"/>
       <div class="jimg-msg" id="jimgMsg"></div>
@@ -3714,8 +3715,17 @@ async function syncJournal() {
     // 1) Traer lo más nuevo del servidor
     for(const [day, e] of Object.entries(remote)) {
       const l = journalData[day];
+      if(l && (e.saved||'') === (l.saved||'') && !(editing && day === currentJournalDate)) {   // misma versión: solo pueden diferir las asignaciones captura → Trade (el servidor las guarda aparte)
+        const lr = l.imgRefs || {}, er = e.imgRefs || {};
+        if(Object.keys(lr).some(k => lr[k] && er[k] !== lr[k])) journalDirty.add(day);   // este aparato tiene asignaciones que el servidor aún no tiene: se suben
+        else if(Object.keys(er).some(k => er[k] && lr[k] !== er[k])) { l.imgRefs = {...er}; changed = true; }   // el servidor tiene más: se adoptan
+      }
       if(!l || (e.saved||'') > (l.saved||'')) {
         if(editing && day === currentJournalDate) continue; // no pisar lo que estás editando
+        if(l && l.imgRefs && e.imgRefs===undefined && Array.isArray(e.imgs)){   // el servidor no devolvió las asignaciones de capturas: se conservan las de este aparato
+          const keep = {}; e.imgs.forEach(id => { if(l.imgRefs[id]) keep[id] = l.imgRefs[id]; });
+          if(Object.keys(keep).length) e.imgRefs = keep;
+        }
         journalData[day] = e; journalDirty.delete(day); changed = true;
       }
     }
@@ -3797,6 +3807,7 @@ function openJournal(dateStr, day) {
   legacy.innerHTML = entry.img ? `Enlace antiguo conservado: <a href="${encodeURI(entry.img)}" target="_blank" rel="noopener" style="color:var(--cyan)">abrir</a>` : '';
   jimgMsg('');
   renderImgGrid();
+  if(jImgs.length && !jImgs.some(i=>i.ref) && String(entry.note||'').includes(_ICO)) jimgMsg('⚠ Las asignaciones Trade → captura de este día no llegaron del servidor (el servidor no las guarda). Hay que actualizar server.js.', true);
   checkImageSupport();
   document.getElementById('jbtnDel').style.display = journalHas(dateStr) ? '' : 'none';
   document.getElementById('jmodalOverlay').classList.add('open');
@@ -3954,29 +3965,55 @@ function _imgLbl(ref,kind,key){
   const txt=/^\d+$/.test(ref)?'IMG Trade '+ref:'#'+ref;
   return `<div class="jimg-lbl" onclick="this.classList.toggle('show')">${txt}<button class="lx" type="button" title="Quitar asignación" onclick="event.stopPropagation();unassignImg('${kind}','${key}')">✕</button></div>`;
 }
-function _noteDragStart(e,tk){
-  const st={x:e.clientX,y:e.clientY,on:false,g:null}, t=document.getElementById('jnoteText');
-  const under=ev=>{ const el=document.elementFromPoint(ev.clientX,ev.clientY); return el&&el.closest?el.closest('.jimg-item,.jtag'):null; };   // captura (asigna imagen) o "¿Cómo ejecutaste hoy?" (asigna esa etiqueta al Trade)
+function _noteDragStart(e,tk,touch){
+  const P=ev=>(ev.touches&&ev.touches[0])||(ev.changedTouches&&ev.changedTouches[0])||ev;
+  const st={x:P(e).clientX,y:P(e).clientY,on:false,g:null,lx:P(e).clientX,ly:P(e).clientY,sc:null}, t=document.getElementById('jnoteText');
+  const under=ev=>{ const p=P(ev); const el=document.elementFromPoint(p.clientX,p.clientY); return el&&el.closest?el.closest('.jimg-item,.jtag'):null; };   // captura (asigna imagen) o "¿Cómo ejecutaste hoy?" (asigna esa etiqueta al Trade)
   const mv=ev=>{
-    if(!st.on){ if(Math.hypot(ev.clientX-st.x,ev.clientY-st.y)<6) return;
+    const p=P(ev);
+    if(touch&&ev.cancelable) ev.preventDefault();   // táctil: el dedo arrastra la etiqueta, no desplaza la pantalla
+    if(!st.on){ if(!touch&&Math.hypot(p.clientX-st.x,p.clientY-st.y)<6) return;
       st.on=true; st.g=document.createElement('div'); st.g.className='tl-ghost'; st.g.textContent='Trade '+tk.n; document.body.appendChild(st.g);
+      if(touch) st.g.style.transform='translate(-50%,-170%)';   // con el dedo la etiqueta flota arriba para no taparla
       document.body.style.userSelect='none'; document.body.style.cursor='grabbing'; if(t) t.blur(); }
-    st.g.style.left=ev.clientX+'px'; st.g.style.top=ev.clientY+'px';
+    st.lx=p.clientX; st.ly=p.clientY;
+    st.g.style.left=p.clientX+'px'; st.g.style.top=p.clientY+'px';
     document.querySelectorAll('.dropt').forEach(x=>x.classList.remove('dropt'));
     const it=under(ev); if(it) it.classList.add('dropt');
   };
   const up=ev=>{
     document.removeEventListener('mousemove',mv); document.removeEventListener('mouseup',up);
+    document.removeEventListener('touchmove',mv); document.removeEventListener('touchend',up); document.removeEventListener('touchcancel',up);
+    if(st.sc){ clearInterval(st.sc); st.sc=null; }
     if(!st.on) return;
-    const it=under(ev);
+    const it=ev.type==='touchcancel'?null:under(ev);
     st.g.remove(); document.body.style.userSelect=''; document.body.style.cursor='';
     document.querySelectorAll('.dropt').forEach(x=>x.classList.remove('dropt'));
     window._noteDragEnd=Date.now();
     if(it&&it.classList.contains('jtag')){ _trSetTag(tk.n,it.dataset.tag); if(typeof _trTagsApply==='function') _trTagsApply(); }
     else if(it){ const item=it.dataset.imgid?jImgs.find(i=>i.id===it.dataset.imgid):jPending[+it.dataset.pidx]; assignImgToTrade(item,tk.n,tk.s); }
   };
-  document.addEventListener('mousemove',mv); document.addEventListener('mouseup',up);
+  if(touch){
+    document.addEventListener('touchmove',mv,{passive:false}); document.addEventListener('touchend',up); document.addEventListener('touchcancel',up);
+    mv({clientX:st.x,clientY:st.y});   // el arrastre arranca ya (se llega aquí tras la pulsación larga)
+    const box=document.querySelector('.jmodal');   // cerca del borde de la pantalla el modal se desplaza solo, para alcanzar las capturas
+    st.sc=setInterval(()=>{ if(!box) return; const h=window.innerHeight; if(st.ly<90) box.scrollTop-=12; else if(st.ly>h-90) box.scrollTop+=12; else return;
+      document.querySelectorAll('.dropt').forEach(x=>x.classList.remove('dropt')); const it=under({clientX:st.lx,clientY:st.ly}); if(it) it.classList.add('dropt'); },16);
+  } else { document.addEventListener('mousemove',mv); document.addEventListener('mouseup',up); }
 }
+(function(){   // TELÉFONO: mantener pulsado "Trade N" (~0,4 s) y arrastrar hasta una captura; un toque corto sigue abriendo el desglose
+  const t=document.getElementById('jnoteText'); if(!t) return;
+  t.addEventListener('touchstart',e=>{
+    if(e.touches.length!==1) return;
+    const p=e.touches[0], tk=_noteHitTok({clientX:p.clientX,clientY:p.clientY}); if(!tk) return;
+    const sx=p.clientX, sy=p.clientY; let lx=sx, ly=sy;
+    const stop=()=>{ clearTimeout(tm); t.removeEventListener('touchmove',chk); t.removeEventListener('touchend',stop); t.removeEventListener('touchcancel',stop); };
+    const chk=ev=>{ const q=ev.touches[0]; if(!q) return; lx=q.clientX; ly=q.clientY; if(Math.hypot(lx-sx,ly-sy)>10) stop(); };   // se movió antes de tiempo: es un desplazamiento, no un arrastre
+    const tm=setTimeout(()=>{ stop(); try{ navigator.vibrate&&navigator.vibrate(15); }catch(_){} _noteDragStart({clientX:lx,clientY:ly},tk,true); },380);
+    t.addEventListener('touchmove',chk,{passive:true}); t.addEventListener('touchend',stop); t.addEventListener('touchcancel',stop);
+  },{passive:true});
+  t.addEventListener('contextmenu',e=>{ if(_noteHitTok(e)) e.preventDefault(); });   // la pulsación larga sobre "Trade N" no abre el menú de copiar/pegar
+})();
 (function(){   // el ícono es atómico: ninguna edición del teclado/cortar/pegar/deshacer puede quitarlo (solo la X de la etiqueta)
   const t=document.getElementById('jnoteText'); if(!t) return;
   let pv=t.value, ps=[0,0]; const cnt=v=>v.split(_ICO).length-1;
