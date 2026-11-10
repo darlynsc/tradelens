@@ -361,6 +361,8 @@ canvas{max-height:200px;}
 .cal-day.loss{background:rgba(255,51,85,0.18);color:var(--red);border:1px solid rgba(255,51,85,0.25);}
 .cal-day.be{background:rgba(30,45,61,0.5);color:var(--muted);border:1px solid transparent;}
 .cal-day.neu{background:rgba(255,204,0,0.18);color:#ffcc00;border:1px solid rgba(255,204,0,0.3);}
+/* Número del día: mismo color que los días sin actividad, en todo el calendario */
+.cal-grid .cal-num{color:var(--muted) !important;}
 .cal-day.today-marker{box-shadow:0 0 0 1px var(--cyan) inset;}   /* marco de HOY: azul neón (trazo fino) */
 .cal-day.empty{background:transparent;min-height:54px;border:none;}
 /* SWING: las fechas del ciclo forman un bloque continuo (se cubre el hueco de la rejilla entre días contiguos) */
