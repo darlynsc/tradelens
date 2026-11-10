@@ -1296,11 +1296,22 @@ let _brokerOffsetMs=null;
 // Los deals traen la hora del servidor del bróker codificada como epoch; se resta el offset del bróker (_nyBrokerOff, en s) para
 // obtener UTC, se pasa a Nueva York y se suman 7 h: la fecha resultante es la sesión. Misma regla que swing-engine.js.
 let _nyBrokerOff=0;
+// Tabla de regímenes de offset publicada por el servidor (misma regla que swing-engine.offsetAt): heredado congelado para lo anterior
+// al primer régimen validado; cada régimen rige desde su instante de vigencia. null = servidor antiguo → offset único (_nyBrokerOff).
+let _nyOffTbl=null;
+function _offAt(t){
+  const T=_nyOffTbl; if(!T) return _nyBrokerOff;
+  const r=T.regimes||[];
+  for(let i=r.length-1;i>=0;i--) if(r[i].from<=t) return r[i].off;
+  return (T.legacy&&typeof T.legacy.off==='number')?T.legacy.off:_nyBrokerOff;
+}
+// Desfase reloj servidor − reloj del PC (s). La sesión "de hoy" se calcula con el reloj del servidor, no con el del PC.
+let _srvSkew=0;
 function _nthSun(y,m,n){ const f=1+((7-new Date(Date.UTC(y,m,1)).getUTCDay())%7); return f+7*(n-1); }
 function nyOffsetSec(u){ const y=new Date(u*1000).getUTCFullYear(), a=Date.UTC(y,2,_nthSun(y,2,2),7)/1000, b=Date.UTC(y,10,_nthSun(y,10,1),6)/1000; return (u>=a&&u<b)?-14400:-18000; }
 function nySessionUtc(u){ return new Date((u+nyOffsetSec(u)+25200)*1000).toISOString().slice(0,10); }
-function nySession(tBroker){ return nySessionUtc(tBroker-_nyBrokerOff); }
-function todayStr(){ return nySessionUtc(Math.floor(Date.now()/1000)); }   // sesión NY actual
+function nySession(tBroker){ return nySessionUtc(tBroker-_offAt(tBroker)); }
+function todayStr(){ return nySessionUtc(Math.floor(Date.now()/1000)+_srvSkew); }   // sesión NY actual (reloj del servidor)
 const ymd=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
 const fx=(v,d=2)=>(v==null||!isFinite(v))?'n/d':v.toFixed(d);
 const fxPF=v=>v==null?'n/d':(v===Infinity?'∞':v.toFixed(2));
@@ -1614,7 +1625,7 @@ async function fetchAndRender(force) {
     const newCount = deals.length;
     // Un ciclo SWING puede cambiar sin deals nuevos (snapshot de inicio de sesión: la posición sigue abierta y el bloque se extiende un día).
     // La firma ignora el flotante para no redibujar todo el panel en cada envío periódico.
-    const swSig = data.swing ? JSON.stringify((data.swing.cycles||[]).map(c=>[c.id,c.state,c.lastDay,c.counts&&c.counts.total,c.counts&&c.counts.closed,c.realized&&c.realized.net])) : '';
+    const swSig = data.swing ? JSON.stringify((data.swing.cycles||[]).map(c=>[c.id,c.state,c.lastDay,c.counts&&c.counts.total,c.counts&&c.counts.closed,c.realized&&c.realized.net,c.lastKnownOpen,c.crossing&&c.crossing.basis])) + JSON.stringify([data.swing.time&&data.swing.time.nowDay,data.swing.time&&data.swing.time.stale,(data.swing.pending||[]).length]) : '';
     if(force || newCount !== lastDealCount || swSig !== _swingSig) {
       lastDealCount = newCount; _swingSig = swSig;
       showMsg('','');
@@ -2042,7 +2053,7 @@ function _swDayLbl(k,long){
   const d=new Date(k+'T12:00:00Z'), dn=['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'], mn=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
   return `${dn[d.getUTCDay()]} ${d.getUTCDate()} ${mn[d.getUTCMonth()]}`+(long?` ${d.getUTCFullYear()}`:'');
 }
-const _swHM=t=>{ const u=t-_nyBrokerOff; return new Date((u+nyOffsetSec(u))*1000).toISOString().slice(11,16); };   // hora de Nueva York
+const _swHM=t=>{ const u=t-_offAt(t); return new Date((u+nyOffsetSec(u))*1000).toISOString().slice(11,16); };   // hora de Nueva York
 const _swSign=v=>v>0?'var(--green)':v<0?'var(--red)':'var(--muted)';   // detalle: sin umbral (1 centavo = verde/rojo)
 const _swCol=v=>dayClass(v)==='win'?'var(--green)':dayClass(v)==='loss'?'var(--red)':'#ffcc00';
 const _swFlagTxt={sin_deal_apertura:'Sin deal de apertura en el historial recibido: no se pudo verificar su relación con otras posiciones.',
@@ -2252,6 +2263,23 @@ function renderSwingJournalHead(c){
     `<div style="font-size:10px;color:var(--muted);margin:6px 0 2px;line-height:1.5;">Desglose informativo del mismo ciclo (no es un resultado aparte). Las fechas sin apertura, cierre ni cierre parcial no aparecen, aunque sí forman parte del periodo.</div>${rows}</details>`;
 }
 
+// ── ESTADO TEMPORAL (últimos datos conocidos vs. confirmado por MT5) ──────────────────────────────────────────
+function _renderTimeBanner(sw){
+  let el=document.getElementById('tlTimeBanner');
+  const t=sw&&sw.time;
+  const lastKnown=t&&(t.confidence==='LOW'||t.clockSuspect);
+  if(!lastKnown){ if(el) el.style.display='none'; return; }
+  if(!el){ el=document.createElement('div'); el.id='tlTimeBanner';
+    el.style.cssText='margin:6px 12px;padding:6px 10px;border:1px solid var(--yellow,#fc0);border-radius:6px;font-size:11px;line-height:1.5;color:var(--muted,#9aa);background:rgba(255,204,0,.07)';
+    const d=document.getElementById('dashboard'); d.insertBefore(el,d.firstChild); }
+  const age=t.snapshotAge!=null?(t.snapshotAge>=3600?Math.round(t.snapshotAge/3600)+' h':t.snapshotAge>=120?Math.round(t.snapshotAge/60)+' min':t.snapshotAge+' s'):'—';
+  const parts=[];
+  if(t.confidence==='LOW') parts.push('Confianza temporal baja: no se asignan ids SWING nuevos hasta confirmar la hora.');
+  if(t.clockSuspect) parts.push('El reloj de MT5/PC difiere del servidor; se usa el del servidor.');
+  el.innerHTML='⏱ '+parts.join(' ');
+  el.style.display='block';
+}
+
 // ── RENDER ALL ─────────────────────────────────────────────────────────────────
 function renderAll(data) {
   document.getElementById('btnDisconnect').style.display='block';
@@ -2268,7 +2296,11 @@ function renderAll(data) {
   _nyBrokerOff = (data.session&&typeof data.session.broker_offset==='number') ? data.session.broker_offset
     : (data.swing&&typeof data.swing.brokerOffset==='number') ? data.swing.brokerOffset
     : (_brokerOffsetMs!=null ? _brokerOffsetMs/1000 : 0);
+  // Misma conversión que el motor Swing: tabla de regímenes del servidor; reloj del servidor para "hoy"
+  _nyOffTbl = (data.swing && data.swing.offsets && !_isDemo) ? data.swing.offsets : null;
+  _srvSkew = (data.swing && data.swing.time && typeof data.swing.time.serverUtc==='number' && !_isDemo) ? Math.round(data.swing.time.serverUtc - Date.now()/1000) : 0;
   _brokerToday = todayStr();
+  _renderTimeBanner(data.swing);
   _dataAgeSec = data.server_time ? Math.max(0,Math.round((Date.now()-Date.parse(data.server_time))/1000)) : null;
   const openIds=new Set((data.positions||[]).flatMap(p=>[String(p.ticket),...(p.position_id!=null?[String(p.position_id)]:[])]));
   const trades=buildSessions(deals,openIds,data.excursions,data.price_exc);   // nivel posición: cada posición CERRADA
