@@ -116,9 +116,16 @@ header{
 .jimg-add:hover{background:rgba(0,229,255,0.18);}
 .jimg-add[disabled]{opacity:.5;cursor:default;}
 .jimg-trade{background:var(--s2);border:1px solid var(--b2);color:var(--text);padding:8px 10px;border-radius:8px;font-family:var(--font-mono);font-size:11px;max-width:100%;}
-.jimg-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;margin-top:10px;}
-.jimg-item{position:relative;border:1px solid var(--b2);border-radius:8px;overflow:hidden;background:var(--s2);aspect-ratio:4/3;}
-.jimg-item img{width:100%;height:100%;object-fit:cover;display:block;cursor:zoom-in;}
+.jimg-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:28px 10px;margin-top:28px;}
+.jimg-item{position:relative;border:1px solid var(--b2);border-radius:8px;background:var(--s2);aspect-ratio:4/3;}
+.jimg-item img{width:100%;height:100%;object-fit:cover;display:block;cursor:zoom-in;border-radius:7px;}
+.jimg-item.dropt,.jtag.dropt{outline:2px dashed var(--cyan);outline-offset:2px;}
+/* Etiqueta de asignación sobre la miniatura: la X roja solo aparece con el mouse encima (en táctil, al tocar la etiqueta) */
+.jimg-lbl{position:absolute;left:50%;transform:translateX(-50%);top:-19px;height:19px;display:flex;align-items:center;gap:5px;padding:0 8px;font-family:var(--font-mono);font-weight:700;font-size:10px;color:var(--cyan);background:var(--s2);border:1px solid rgba(0,229,255,.35);border-bottom:none;border-radius:6px 6px 0 0;white-space:nowrap;cursor:default;user-select:none;}
+.jimg-lbl .lx{display:none;width:14px;height:14px;padding:0;border:none;background:transparent;color:var(--text);font-size:11px;line-height:14px;text-align:center;cursor:pointer;transition:color .15s,text-shadow .15s;}
+.jimg-lbl .lx:hover{color:#ff1744;text-shadow:0 0 4px #ff1744,0 0 9px #ff1744;}
+.jimg-lbl:hover .lx,.jimg-lbl.show .lx{display:inline-block;}
+.tl-ghost{position:fixed;z-index:1000;pointer-events:none;padding:3px 10px;border-radius:12px;font-family:var(--font-mono);font-size:12px;font-weight:700;color:var(--cyan);background:rgba(0,40,50,.95);border:1px solid var(--cyan);transform:translate(10px,10px);}
 .jimg-item .jimg-x{position:absolute;top:4px;right:4px;width:24px;height:24px;border-radius:50%;border:none;background:rgba(0,0,0,0.7);color:#fff;cursor:pointer;font-size:13px;line-height:1;}
 .jimg-item .jimg-badge{position:absolute;left:4px;bottom:4px;font-size:9px;padding:2px 6px;border-radius:10px;background:rgba(0,0,0,0.7);color:#fff;}
 .jimg-msg{font-size:11px;margin-top:8px;min-height:14px;}
@@ -646,6 +653,7 @@ textarea.jnote:focus{border-color:var(--cyan);}
 .jnote-wrap textarea.jnote::placeholder{color:var(--muted);opacity:.7;}
 .jnote-bd{position:absolute;inset:0;z-index:0;overflow:hidden;pointer-events:none;white-space:pre-wrap;overflow-wrap:break-word;word-wrap:break-word;border:1px solid transparent;padding:12px;border-radius:8px;font-family:var(--font-mono);font-size:12px;line-height:1.65;color:var(--text);}
 .jnote-bd .tl-tr{color:var(--cyan);background:rgba(0,229,255,.14);border-radius:3px;}
+.jnote-bd .tl-ico{background:rgba(0,229,255,.14);border-radius:3px;}
 @keyframes jswflash{0%{background:rgba(0,229,255,.5);}100%{background:rgba(0,229,255,.08);}}
 .jsw-trh.flash td{animation:jswflash 1.4s ease-out;}
 .jsw-trh{cursor:pointer;user-select:none;-webkit-user-select:none;}
@@ -3816,7 +3824,8 @@ function noteHL(){
   const t=document.getElementById('jnoteText'), bd=document.getElementById('jnoteBd'); if(!t||!bd) return;
   const v=t.value, esc=x=>x.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   let h='', i=0;
-  _noteTokens(v).forEach(k=>{ h+=esc(v.slice(i,k.s))+'<span class="tl-tr" data-n="'+k.n+'">'+esc(v.slice(k.s,k.e))+'</span>'; i=k.e; });
+  _noteTokens(v).forEach(k=>{ h+=esc(v.slice(i,k.s))+'<span class="tl-tr" data-n="'+k.n+'" data-s="'+k.s+'">'+esc(v.slice(k.s,k.e))+'</span>'; i=k.e;
+    if(v.substr(k.e,2)===_ICO){ h+='<span class="tl-ico">'+_ICO+'</span>'; i=k.e+2; } });   // ícono de imagen asignada: mismo carácter que el textarea (transparente) para no desalinear
   bd.innerHTML=h+esc(v.slice(i))+'\n';
   if(typeof _trTagsApply==='function') _trTagsApply();
 }
@@ -3879,27 +3888,102 @@ function jumpToTrade(n){
   setTimeout(()=>{ row.scrollIntoView({behavior:'smooth',block:'center'}); row.classList.remove('flash'); void row.offsetWidth; row.classList.add('flash'); setTimeout(()=>row.classList.remove('flash'),1500); },60);
 }
 // ¿El puntero está ENCIMA de un "Trade N" pintado? (se mide con la posición real de la palabra; los ~4 px de cada borde, izquierdo y derecho, cuentan como texto editable)
-function _noteHit(e){
-  const bd=document.getElementById('jnoteBd'); if(!bd) return 0;
+function _noteHitTok(e){
+  const bd=document.getElementById('jnoteBd'); if(!bd) return null;
   const m=4;
   for(const el of bd.querySelectorAll('.tl-tr')){
     for(const r of el.getClientRects()){
-      if(e.clientX>r.left+m&&e.clientX<r.right-m&&e.clientY>=r.top&&e.clientY<=r.bottom) return +el.dataset.n;
+      if(e.clientX>r.left+m&&e.clientX<r.right-m&&e.clientY>=r.top&&e.clientY<=r.bottom) return {n:+el.dataset.n,s:+el.dataset.s};
     }
   }
-  return 0;
+  return null;
 }
+function _noteHit(e){ const k=_noteHitTok(e); return k?k.n:0; }
 (function(){
   const t=document.getElementById('jnoteText'); if(!t) return;
   t.addEventListener('mousemove',e=>{ t.style.cursor=_noteHit(e)?'pointer':''; });   // encima de "Trade N": cursor de clic normal; en los bordes y fuera: cursor de texto
   t.addEventListener('mouseleave',()=>{ t.style.cursor=''; });
-  t.addEventListener('mousedown',e=>{ if(e.button===0&&_noteHit(e)) e.preventDefault(); });   // encima de la palabra no se coloca el cursor de edición
+  t.addEventListener('mousedown',e=>{   // encima de la palabra no se coloca el cursor de edición; si se arrastra hasta una captura, se le asigna
+    if(e.button!==0) return; const tk=_noteHitTok(e); if(!tk) return;
+    e.preventDefault(); _noteDragStart(e,tk);
+  });
   t.addEventListener('click',e=>{   // clic/toque encima de "Trade N" → abre ese desglose
+    if(Date.now()-(window._noteDragEnd||0)<400) return;   // fue un arrastre, no un clic
     if(t.selectionStart!==t.selectionEnd) return;
     const n=_noteHit(e); if(!n) return;
     if(e.pointerType==='touch') t.blur();
     jumpToTrade(n);
     if(!_trTags(t.value)[n]){ window._trPick=n; _trTagsApply(); }   // sin etiqueta: el selector se abre en su encabezado
+  });
+})();
+
+// ── Asignar capturas a un Trade ─────────────────────────────────────────────────
+// Se arrastra la palabra "Trade N" de la nota sobre una captura: la captura recibe la etiqueta "IMG Trade N" (con X al pasar el mouse)
+// y en la nota aparece un ícono de imagen pegado a "Trade N" (no editable: solo se quita con la X de la etiqueta).
+const _ICO='\uD83D\uDCF7', _ICO_OLD='\uD83D\uDDBC';   // 📷 (antes 🖼: las notas guardadas con el anterior se convierten solas)
+function _imgItems(){ return [...jImgs,...jPending]; }
+function _noteVal(v){ const t=document.getElementById('jnoteText'); if(!t) return; t.value=v; autoGrowNote(); }
+function _noteRmIco(n){   // quita el ícono de "Trade n" en la nota
+  const t=document.getElementById('jnoteText'); if(!t) return; let v=t.value;
+  _noteTokens(v).filter(k=>k.n===n).reverse().forEach(k=>{ if(v.substr(k.e,2)===_ICO) v=v.slice(0,k.e)+v.slice(k.e+2); });
+  if(v!==t.value) _noteVal(v);
+}
+function _noteSyncIco(){   // sin capturas asignadas a un Trade (o sin su palabra) no queda ícono suelto
+  const t=document.getElementById('jnoteText'); if(!t||!(window._intraTrades>0)) return;
+  if(t.value.includes(_ICO_OLD)) t.value=t.value.split(_ICO_OLD).join(_ICO);
+  const used=new Set(_imgItems().map(i=>+i.ref).filter(Boolean)), keep=new Set();
+  const toks=_noteTokens(t.value), seen={};
+  toks.forEach(k=>{ if(t.value.substr(k.e,2)===_ICO && used.has(k.n) && !seen[k.n]){ keep.add(k.e); seen[k.n]=1; } });
+  let v=t.value, out='';
+  for(let i=0;i<v.length;i++){ if(v.substr(i,2)===_ICO){ if(keep.has(i)){ out+=_ICO; } i++; continue; } out+=v[i]; }
+  if(out!==v){ const ss=t.selectionStart; _noteVal(out); try{ t.setSelectionRange(Math.min(ss,out.length),Math.min(ss,out.length)); }catch(_){} }
+}
+function assignImgToTrade(item,n,tokStart){
+  const t=document.getElementById('jnoteText'); if(!item||!t) return;
+  item.ref=String(n);
+  let v=t.value; const ks=_noteTokens(v).filter(k=>k.n===n);
+  if(ks.length && !ks.some(k=>v.substr(k.e,2)===_ICO)){ const k=ks.find(k=>k.s===tokStart)||ks[0]; v=v.slice(0,k.e)+_ICO+v.slice(k.e); _noteVal(v); }
+  renderImgGrid();
+}
+function unassignImg(kind,key){
+  const it=kind==='s'?jImgs.find(i=>i.id===key):jPending[+key]; if(!it||!it.ref) return;
+  it.ref=''; renderImgGrid();   // renderImgGrid limpia el ícono de la nota si ya no queda ninguna captura de ese Trade
+}
+function _imgLbl(ref,kind,key){
+  if(!ref) return '';
+  const txt=/^\d+$/.test(ref)?'IMG Trade '+ref:'#'+ref;
+  return `<div class="jimg-lbl" onclick="this.classList.toggle('show')">${txt}<button class="lx" type="button" title="Quitar asignación" onclick="event.stopPropagation();unassignImg('${kind}','${key}')">✕</button></div>`;
+}
+function _noteDragStart(e,tk){
+  const st={x:e.clientX,y:e.clientY,on:false,g:null}, t=document.getElementById('jnoteText');
+  const under=ev=>{ const el=document.elementFromPoint(ev.clientX,ev.clientY); return el&&el.closest?el.closest('.jimg-item,.jtag'):null; };   // captura (asigna imagen) o "¿Cómo ejecutaste hoy?" (asigna esa etiqueta al Trade)
+  const mv=ev=>{
+    if(!st.on){ if(Math.hypot(ev.clientX-st.x,ev.clientY-st.y)<6) return;
+      st.on=true; st.g=document.createElement('div'); st.g.className='tl-ghost'; st.g.textContent='Trade '+tk.n; document.body.appendChild(st.g);
+      document.body.style.userSelect='none'; document.body.style.cursor='grabbing'; if(t) t.blur(); }
+    st.g.style.left=ev.clientX+'px'; st.g.style.top=ev.clientY+'px';
+    document.querySelectorAll('.dropt').forEach(x=>x.classList.remove('dropt'));
+    const it=under(ev); if(it) it.classList.add('dropt');
+  };
+  const up=ev=>{
+    document.removeEventListener('mousemove',mv); document.removeEventListener('mouseup',up);
+    if(!st.on) return;
+    const it=under(ev);
+    st.g.remove(); document.body.style.userSelect=''; document.body.style.cursor='';
+    document.querySelectorAll('.dropt').forEach(x=>x.classList.remove('dropt'));
+    window._noteDragEnd=Date.now();
+    if(it&&it.classList.contains('jtag')){ _trSetTag(tk.n,it.dataset.tag); if(typeof _trTagsApply==='function') _trTagsApply(); }
+    else if(it){ const item=it.dataset.imgid?jImgs.find(i=>i.id===it.dataset.imgid):jPending[+it.dataset.pidx]; assignImgToTrade(item,tk.n,tk.s); }
+  };
+  document.addEventListener('mousemove',mv); document.addEventListener('mouseup',up);
+}
+(function(){   // el ícono es atómico: ninguna edición del teclado/cortar/pegar/deshacer puede quitarlo (solo la X de la etiqueta)
+  const t=document.getElementById('jnoteText'); if(!t) return;
+  let pv=t.value, ps=[0,0]; const cnt=v=>v.split(_ICO).length-1;
+  t.addEventListener('beforeinput',()=>{ pv=t.value; ps=[t.selectionStart,t.selectionEnd]; });
+  t.addEventListener('input',()=>{
+    if(cnt(t.value)<cnt(pv)){ _noteVal(pv); try{ t.setSelectionRange(ps[0],ps[1]); }catch(_){} }
+    _noteSyncIco();
   });
 })();
 
@@ -3919,9 +4003,10 @@ function selectTag(el) {
 function renderImgGrid() {
   const g = document.getElementById('jimgGrid');
   const cloud = !!(serverURL && serverToken);
-  const parts = jImgs.map(i=>`<div class="jimg-item" data-imgid="${i.id}"><img src="${cloud?imgSrc(i.id):''}" alt="captura" onclick="openImgViewer(this.src,'${i.id}')" onerror="this.alt='No se pudo cargar'"/><button class="jimg-x" type="button" title="Quitar" onclick="removeSavedImg('${i.id}')">✕</button>${i.ref?`<span class="jimg-badge">#${i.ref}</span>`:''}</div>`);
-  jPending.forEach((p,idx)=>parts.push(`<div class="jimg-item"><img src="${p.url}" alt="vista previa" onclick="openImgViewer(this.src)"/><button class="jimg-x" type="button" title="Quitar" onclick="removePendingImg(${idx})">✕</button><span class="jimg-badge">sin guardar</span></div>`));
+  const parts = jImgs.map(i=>`<div class="jimg-item" data-imgid="${i.id}"><img src="${cloud?imgSrc(i.id):''}" alt="captura" onclick="openImgViewer(this.src,'${i.id}')" onerror="this.alt='No se pudo cargar'"/><button class="jimg-x" type="button" title="Quitar" onclick="removeSavedImg('${i.id}')">✕</button>${_imgLbl(i.ref,'s',i.id)}</div>`);
+  jPending.forEach((p,idx)=>parts.push(`<div class="jimg-item" data-pidx="${idx}"><img src="${p.url}" alt="vista previa" onclick="openImgViewer(this.src)"/><button class="jimg-x" type="button" title="Quitar" onclick="removePendingImg(${idx})">✕</button><span class="jimg-badge">sin guardar</span>${_imgLbl(p.ref,'p',idx)}</div>`));
   g.innerHTML = parts.join('');
+  _noteSyncIco();
   if(cloud && jImgs.length){ jImgs.forEach(i=>_anBadge(i.id)); _anBadges(); }
   const btn = document.getElementById('jimgAddBtn');
   btn.disabled = !cloud;
@@ -4675,7 +4760,7 @@ async function saveJournal() {
   const saveBtn = document.querySelector('.jbtn-save');
   // 1) subir las imágenes nuevas; si alguna falla, no se pierde nada y se avisa
   let hadFailures = false;
-  const uploaded = [], refs = {...(old.imgRefs||{})};
+  const uploaded = [], refs = {}; jImgs.forEach(i=>{ if(i.ref) refs[i.id]=i.ref; });   // las asignaciones salen de las capturas actuales (quitar la etiqueta también se guarda)
   if(jPending.length) {
     saveBtn.disabled = true; saveBtn.textContent = 'Subiendo...';
     const failed = [];
