@@ -310,11 +310,17 @@ body.light .kpi-tip{background:rgba(255,255,255,0.98);color:#0a1a2a;border-color
 .rw-info{font-size:10px;color:var(--muted);flex:1;min-width:150px;line-height:1.4;}
 .rw-last{background:transparent;border:1px solid var(--b2);border-radius:8px;color:var(--cyan);font:600 10px var(--font-mono);padding:0 12px;min-height:30px;cursor:pointer;}
 .rw-last[hidden]{display:none;}
-.rw-nav{display:none;position:relative;height:34px;margin-top:10px;border:1px solid var(--b1);border-radius:6px;background:var(--s2);overflow:hidden;cursor:pointer;touch-action:none;}
-.rw-nav svg{position:absolute;inset:0;width:100%;height:100%;}
-.rw-nav-win{position:absolute;top:0;bottom:0;background:rgba(0,229,255,.14);border-left:2px solid var(--cyan);border-right:2px solid var(--cyan);cursor:grab;}
-.rw-nav.off{visibility:hidden;}
-@media (hover:hover) and (pointer:fine){.rw-nav{display:block;}}
+/* Barra de desplazamiento estilo NinjaTrader bajo las fechas (Curva acumulada + Drawdown, sincronizadas) */
+.rw-sb{display:flex;align-items:stretch;height:17px;margin:6px 0 0;border:1px solid var(--b2);border-radius:6px;background:var(--s2);overflow:hidden;user-select:none;-webkit-user-select:none;touch-action:none;}
+.rw-sb-arrow{flex:none;width:22px;border:0;background:var(--s2);color:var(--muted);font-size:8px;line-height:1;cursor:pointer;padding:0;display:flex;align-items:center;justify-content:center;}
+.rw-sb-arrow:first-child{border-right:1px solid var(--b2);}
+.rw-sb-arrow:last-child{border-left:1px solid var(--b2);}
+.rw-sb-arrow:active{background:var(--b2);color:var(--cyan);}
+.rw-sb-track{flex:1;position:relative;cursor:pointer;touch-action:none;}
+.rw-sb-thumb{position:absolute;top:1px;bottom:1px;left:0;min-width:28px;border-radius:4px;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.28);cursor:grab;touch-action:none;box-sizing:border-box;}
+.rw-sb-thumb:hover,.rw-sb-thumb.drag{background:rgba(0,229,255,.22);border-color:var(--cyan);}
+.rw-sb.off{opacity:.45;pointer-events:none;}
+@media (pointer:coarse){.rw-sb{height:22px;}.rw-sb-arrow{width:30px;font-size:9px;}}
 @media (pointer:coarse){.rw-seg button,.rw-last{min-height:44px;padding:0 16px;font-size:11px;}}
 canvas{max-height:200px;}
 
@@ -523,6 +529,7 @@ canvas{max-height:200px;}
 
 /* CSV BUTTON */
 .btn-csv{background:rgba(0,255,136,0.1);color:var(--green);border:1px solid rgba(0,255,136,0.3);padding:8px 16px;border-radius:8px;font-family:var(--font-head);font-weight:600;font-size:12px;cursor:pointer;transition:.2s;white-space:nowrap;}
+.export-row{display:flex;flex-direction:column;align-items:flex-end;gap:10px;margin-bottom:20px;}
 .btn-csv:hover{background:rgba(0,255,136,0.2);transform:translateY(-1px);box-shadow:0 4px 16px rgba(0,255,136,0.15);}
 
 
@@ -854,6 +861,14 @@ input.jimglink:focus{border-color:var(--cyan);}
   .jbtn-row{flex-direction:column-reverse;gap:8px;}
   .jbtn-save,.jbtn-summary,.jbtn-del{width:100%;text-align:center;padding:11px;margin-right:0;}
 
+  /* Export CSV + Resumen histórico: mismo ancho y texto centrado */
+  .export-row{align-items:stretch;}
+  .export-row .btn-csv,.export-row .jbtn-summary{
+    display:flex;align-items:center;justify-content:center;
+    width:100%;box-sizing:border-box;margin:0;padding:11px 16px;
+    text-align:center;white-space:normal;font-size:12px;line-height:1.2;
+  }
+
   /* Monthly summary modal */
   .sum-modal{padding:20px 16px;}
   .sum-content{font-size:11px;}
@@ -1090,7 +1105,6 @@ input.jimglink:focus{border-color:var(--cyan);}
     <div class="chart-box">
       <div class="chart-title">Drawdown — Resultados Realizados (cierre de cada día operado)</div>
       <canvas id="ddChart"></canvas>
-      <div style="font-size:10px;color:var(--muted);line-height:1.5;margin-top:8px;">Pasa el cursor (o toca) la curva para ver fecha, drawdown en $ y en %. Serie: P/L realizado neto de costes; no incluye flotante ni depósitos/retiros. Un punto por día operado, no tick a tick; no es una curva de equity.</div>
     </div>
     <div class="chart-box">
       <div class="chart-title">Métricas Clave — Progreso</div>
@@ -1261,7 +1275,7 @@ input.jimglink:focus{border-color:var(--cyan);}
   </div>
 
   <!-- EXPORT CSV -->
-  <div style="display:flex;flex-direction:column;align-items:flex-end;gap:10px;margin-bottom:20px;">
+  <div class="export-row">
     <button class="btn-csv" onclick="exportCSV()">⬇️ Export CSV — Todas las posiciones</button>
     <button class="jbtn-summary" onclick="openAiSummary('all')">📚 Resumen histórico con IA</button>
   </div>
@@ -1548,6 +1562,7 @@ function setPwVisible(inp, vis) {   // ojito del login: mostrar / ocultar contra
 }
 function togglePw(btn) { const i = btn.parentNode.querySelector('input'); setPwVisible(i, i.type === 'password'); }
 async function loginCloud() {
+  RW.fresh=true;
   const username = document.getElementById('loginUser').value.trim();
   const password = document.getElementById('loginPass').value;
   if(!username || !password) { showMsg('Escribe usuario y contraseña.', 'error'); return; }
@@ -1619,6 +1634,7 @@ function openAccount() {
 function closeAccount() { document.getElementById('acctOverlay').classList.remove('open'); }
 function acMsg(t, bad) { const e=document.getElementById('acMsg'); if(e){ e.textContent=t; e.style.color=bad?'var(--red)':'var(--green)'; } }
 async function acctLogin() {
+  RW.fresh=true;
   try {
     const j = await authPost('/auth/login', { username: document.getElementById('acLUser').value.trim(), password: document.getElementById('acLPass').value });
     serverURL = serverURL || DEFAULT_SERVER; serverToken = j.token; saveSession(); syncJournal();
@@ -1691,6 +1707,7 @@ function clearSession() {
 
 // ── CONNECT ────────────────────────────────────────────────────────────────────
 function connectServer() {
+  RW.fresh=true;
   serverURL   = document.getElementById('serverURL').value.trim().replace(/\/$/,'');
   serverToken = document.getElementById('serverToken').value.trim();
   if(!serverURL||!serverToken){ showMsg('Completa URL y Token.','error'); return; }
@@ -1764,6 +1781,7 @@ function showMsg(txt, type) {
 
 // ── DEMO ───────────────────────────────────────────────────────────────────────
 function loadDemo() {
+  RW.fresh=true;
   const data = generateDemo(); data._demo = true;
   lastDealCount = (data.deals||[]).filter(d=>d.entry!=='BALANCE').length;
   document.getElementById('connectPanel').style.display='none';
@@ -2749,6 +2767,7 @@ const cOpts=(cb)=>{
       y:{ticks:{color:tickColor,font:{size:9,family:'ZeroPlain, Inter, IBM Plex Mono'},callback:cb||undefined},grid:{color:gridColor}}
     }};
 };
+const cOptsEdge=(cb)=>{ const o=cOpts(cb); o.scales.x.offset=true; o.scales.x.grid={...o.scales.x.grid,offset:false}; return o; };   // margen de medio paso a cada lado: el primer y el último punto quedan COMPLETOS dentro del recuadro
 // Tooltips de Drawdown y Curva acumulada: globo con triangulito apuntando al día. El texto SIEMPRE va arriba del punto (triángulo hacia abajo),
 // así nunca tapa las fechas del eje inferior.
 // Chart.js recorta su tooltip de canvas al borde del canvas (y desde 0): en puntos altos lo empujaba hacia abajo y ya no salía desde el punto.
@@ -2792,13 +2811,11 @@ function dc(id){ if(charts[id]){ if(charts[id].$tipEl) charts[id].$tipEl.remove(
 // PC: botones + arrastrar con el mouse + Shift/rueda horizontal para mover + Ctrl+rueda para zoom + flechas/Inicio/Fin
 //     + doble clic para restablecer + minimapa de navegación bajo la curva.
 const RW = {mode:'30', size:0, end:0, n:0, dates:[], eq:[], pinned:true};
-try{ const sv=localStorage.getItem('tl_rw_mode'); if(sv==='30'||sv==='90'||sv==='all') RW.mode=sv; }catch(e){}
+RW.fresh=true;   // al abrir la página o iniciar sesión: siempre 30D (el modo elegido después NO se guarda entre sesiones)
 const RW_MIN = 5;
 function rwSizeFor(mode){
   const n=RW.n; if(mode==='all'||!n) return n;
-  const lim=new Date(RW.dates[n-1]+'T12:00:00').getTime()-((+mode)-1)*864e5;
-  let c=0; for(let i=n-1;i>=0;i--){ if(new Date(RW.dates[i]+'T12:00:00').getTime()>=lim) c++; else break; }
-  return Math.max(Math.min(c,n),Math.min(RW_MIN,n));
+  return Math.max(Math.min(+mode,n),Math.min(RW_MIN,n));   // últimas N sesiones operadas (o todas si hay menos)
 }
 function rwClamp(){
   RW.size=Math.max(Math.min(RW_MIN,RW.n),Math.min(RW.size,RW.n));
@@ -2815,63 +2832,47 @@ function rwApply(){
 }
 function rwSetMode(mode){
   RW.mode=mode; RW.size=rwSizeFor(mode); RW.end=RW.n-1;
-  try{ localStorage.setItem('tl_rw_mode',mode); }catch(e){}
   rwApply();
 }
 function rwUpdateUI(s,e){
   const full=RW.size>=RW.n;
   let txt;
-  if(full) txt='Todo el historial · '+RW.n+' sesiones';
-  else if(RW.pinned&&(RW.mode==='30'||RW.mode==='90')) txt='Últimos '+RW.mode+' días · '+RW.size+' de '+RW.n+' sesiones';
+  if(RW.mode==='all') txt='Todo el historial · '+RW.n+' sesiones';
+  else if(RW.pinned&&(RW.mode==='30'||RW.mode==='90')) txt=(RW.size<(+RW.mode)?'Todas las sesiones disponibles · '+RW.n:'Últimas '+RW.mode+' sesiones · '+RW.size+' de '+RW.n);
   else txt=tipDate(RW.dates[s])+' – '+tipDate(RW.dates[e])+' · '+RW.size+' de '+RW.n+' sesiones';
   document.querySelectorAll('.rw-bar').forEach(b=>{
     b.querySelectorAll('.rw-seg button').forEach(x=>x.classList.toggle('on',x.dataset.m===RW.mode));
     b.querySelector('.rw-info').textContent=txt;
     b.querySelector('.rw-last').hidden=RW.pinned;
   });
-  const nav=document.getElementById('rwNav'); if(!nav) return;
-  nav.classList.toggle('off',full);
-  const w=nav.querySelector('.rw-nav-win'), d=Math.max(1,RW.n-1);
-  w.style.left=(s/d*100)+'%'; w.style.width=Math.max(1.5,(e-s)/d*100)+'%';
+  rwUpdateSB(full,s);
 }
-function rwDrawNav(){
-  const nav=document.getElementById('rwNav'); if(!nav||RW.n<2) return;
-  const v=RW.eq, mn=Math.min(...v,0), mx=Math.max(...v,0), r=(mx-mn)||1;
-  const pts=v.map((y,i)=>(i/(RW.n-1)*100).toFixed(2)+','+(30-((y-mn)/r*28+1)).toFixed(2)).join(' ');
-  const zero=(30-((0-mn)/r*28+1)).toFixed(2);
-  nav.querySelector('svg').innerHTML='<line x1="0" x2="100" y1="'+zero+'" y2="'+zero+'" stroke="currentColor" stroke-opacity=".25" stroke-width="1" vector-effect="non-scaling-stroke" stroke-dasharray="3 3"/>'
-    +'<polyline points="'+pts+'" fill="none" stroke="currentColor" stroke-opacity=".8" stroke-width="1.5" vector-effect="non-scaling-stroke"/>';
+function rwSBGeom(sb){
+  const tr=sb.querySelector('.rw-sb-track'), tw=tr.clientWidth, n=RW.n, size=RW.size;
+  const thumbW=Math.min(tw,Math.max(28,tw*size/Math.max(1,n)));
+  const span=Math.max(0,tw-thumbW), range=Math.max(0,n-size);
+  return {tr,tw,thumbW,span,range};
+}
+function rwUpdateSB(full,s){
+  document.querySelectorAll('.rw-sb').forEach(sb=>{
+    sb.classList.toggle('off',full);
+    const g=rwSBGeom(sb), th=sb.querySelector('.rw-sb-thumb');
+    th.style.width=g.thumbW+'px';
+    th.style.left=(g.range>0?s/g.range*g.span:0)+'px';
+  });
 }
 function rwEnsureUI(){
   [['equityChart','eq'],['ddChart','dd']].forEach(([id,k])=>{
     const cv=document.getElementById(id); if(!cv||cv.dataset.rw) return; cv.dataset.rw='1';
     const bar=document.createElement('div'); bar.className='rw-bar';
-    bar.innerHTML='<div class="rw-seg" role="group" aria-label="Rango visible"><button type="button" data-m="30">30D</button><button type="button" data-m="90">90D</button><button type="button" data-m="all">Todo</button></div><span class="rw-info"></span><button type="button" class="rw-last" hidden>Ir al último día ⏭</button>';
+    bar.innerHTML='<div class="rw-seg" role="group" aria-label="Rango visible"><button type="button" data-m="30" title="Últimas 30 sesiones operadas">30S</button><button type="button" data-m="90" title="Últimas 90 sesiones operadas">90S</button><button type="button" data-m="all">Todo</button></div><span class="rw-info"></span><button type="button" class="rw-last" hidden>Ir al último día ⏭</button>';
     cv.parentElement.insertBefore(bar,cv);
     bar.addEventListener('click',ev=>{
       const b=ev.target.closest('button'); if(!b) return;
       if(b.dataset.m) rwSetMode(b.dataset.m); else if(b.classList.contains('rw-last')){ RW.end=RW.n-1; rwApply(); }
     });
     // Gestos: el navegador conserva el scroll vertical (pan-y); el desplazamiento horizontal lo maneja el gráfico.
-    cv.style.touchAction='pan-y'; cv.style.cursor='grab'; cv.tabIndex=0; cv.style.outline='none';
-    let drag=null, justMoved=false;
-    cv.addEventListener('pointerdown',e=>{
-      if(e.pointerType==='mouse'&&e.button!==0) return;
-      if(RW.size>=RW.n) return;
-      drag={x:e.clientX,end:RW.end,id:e.pointerId,moved:false};
-    });
-    cv.addEventListener('pointermove',e=>{
-      if(!drag||e.pointerId!==drag.id) return;
-      const c=charts[k]; if(!c) return;
-      const dx=e.clientX-drag.x;
-      if(!drag.moved){ if(Math.abs(dx)<6) return; drag.moved=true; try{cv.setPointerCapture(e.pointerId);}catch(_){} cv.style.cursor='grabbing'; }
-      const step=c.chartArea.width/Math.max(1,RW.size-1), ne=drag.end-Math.round(dx/step);
-      if(ne!==RW.end){ RW.end=ne; rwApply(); }
-    });
-    const endDrag=e=>{ if(!drag||(e&&e.pointerId!==drag.id)) return; if(drag.moved){ justMoved=true; setTimeout(()=>{justMoved=false;},0); } drag=null; cv.style.cursor='grab'; };
-    cv.addEventListener('pointerup',endDrag); cv.addEventListener('pointercancel',endDrag);
-    // Mientras se arrastra (o justo después) no se muestra el globo de detalle.
-    ['mousemove','click'].forEach(t=>cv.addEventListener(t,ev=>{ if((drag&&drag.moved)||justMoved) ev.stopImmediatePropagation(); },true));
+    cv.style.touchAction='pan-y'; cv.style.cursor='crosshair'; cv.tabIndex=0; cv.style.outline='none';
     cv.addEventListener('wheel',e=>{
       const c=charts[k]; if(!c||RW.n<2) return;
       if(e.ctrlKey||e.metaKey){            // zoom anclado al cursor
@@ -2895,40 +2896,59 @@ function rwEnsureUI(){
       e.preventDefault(); rwApply();
     });
     cv.addEventListener('dblclick',()=>rwSetMode('30'));
-    // Minimapa de navegación (solo PC / puntero fino) bajo la curva acumulada.
-    if(k==='eq'){
-      const nav=document.createElement('div'); nav.className='rw-nav'; nav.id='rwNav'; nav.style.color='var(--muted)';
-      nav.innerHTML='<svg viewBox="0 0 100 30" preserveAspectRatio="none"></svg><div class="rw-nav-win"></div>';
-      cv.insertAdjacentElement('afterend',nav);
-      let nd=null;
-      const idxAt=x=>{ const r=nav.getBoundingClientRect(); return Math.round(Math.max(0,Math.min(1,(x-r.left)/r.width))*(RW.n-1)); };
-      nav.addEventListener('pointerdown',e=>{
-        if(RW.size>=RW.n) return;
-        const win=nav.querySelector('.rw-nav-win').getBoundingClientRect();
-        const inside=e.clientX>=win.left&&e.clientX<=win.right;
-        nd={id:e.pointerId,off:inside?idxAt(e.clientX)-RW.end:-Math.round((RW.size-1)/2)};
-        try{nav.setPointerCapture(e.pointerId);}catch(_){}
-        RW.end=idxAt(e.clientX)-nd.off; rwApply();
+    // Barra de desplazamiento (justo debajo de las fechas). Ambas barras mueven la misma ventana → gráficas sincronizadas.
+    const sb=document.createElement('div'); sb.className='rw-sb'; sb.setAttribute('role','scrollbar'); sb.setAttribute('aria-label','Desplazar rango visible');
+    sb.innerHTML='<button type="button" class="rw-sb-arrow" data-d="-1" aria-label="Atrás">◀</button><div class="rw-sb-track"><div class="rw-sb-thumb"></div></div><button type="button" class="rw-sb-arrow" data-d="1" aria-label="Adelante">▶</button>';
+    cv.insertAdjacentElement('afterend',sb);
+    const th=sb.querySelector('.rw-sb-thumb'), tr=sb.querySelector('.rw-sb-track');
+    let sd=null;
+    th.addEventListener('pointerdown',e=>{
+      if(RW.size>=RW.n) return; e.stopPropagation();
+      sd={id:e.pointerId,x:e.clientX,start:RW.end-RW.size+1}; th.classList.add('drag');
+      try{th.setPointerCapture(e.pointerId);}catch(_){}
+    });
+    th.addEventListener('pointermove',e=>{
+      if(!sd||e.pointerId!==sd.id) return;
+      const g=rwSBGeom(sb); if(g.span<=0) return;
+      const ns=sd.start+Math.round((e.clientX-sd.x)/g.span*g.range);
+      const ne=ns+RW.size-1; if(ne!==RW.end){ RW.end=ne; rwApply(); }
+    });
+    ['pointerup','pointercancel'].forEach(t=>th.addEventListener(t,()=>{sd=null;th.classList.remove('drag');}));
+    // Tocar el carril (fuera del tirador) = avanzar/retroceder una página.
+    tr.addEventListener('pointerdown',e=>{
+      if(e.target!==tr||RW.size>=RW.n) return;
+      const r=th.getBoundingClientRect(); RW.end+=(e.clientX<r.left?-1:1)*Math.max(1,RW.size-1); rwApply();
+    });
+    // Flechas: un día por toque; mantener presionado = desplazamiento continuo.
+    let rep=null;
+    const stopRep=()=>{ if(rep){clearTimeout(rep.t);clearInterval(rep.i);rep=null;} };
+    sb.querySelectorAll('.rw-sb-arrow').forEach(b=>{
+      b.addEventListener('pointerdown',e=>{
+        e.preventDefault(); if(RW.size>=RW.n) return; stopRep();
+        const d=+b.dataset.d; RW.end+=d; rwApply();
+        rep={t:setTimeout(()=>{ rep.i=setInterval(()=>{RW.end+=d;rwApply();},45); },350)};
       });
-      nav.addEventListener('pointermove',e=>{ if(!nd||e.pointerId!==nd.id) return; RW.end=idxAt(e.clientX)-nd.off; rwApply(); });
-      ['pointerup','pointercancel'].forEach(t=>nav.addEventListener(t,()=>{nd=null;}));
-    }
+      ['pointerup','pointerleave','pointercancel'].forEach(t=>b.addEventListener(t,stopRep));
+    });
   });
 }
+window.addEventListener('resize',()=>{ if(RW.n) rwApply(); });
 function rwInit(m,sessions){
   const n=Math.min(m.equity.length,(m.ddPoints||[]).length); if(n<1) return;
-  const wasPinned=!RW.n||RW.pinned;
+  const wasPinned=!RW.n||RW.pinned||RW.fresh;
   RW.n=n; RW.dates=sessions.map(s=>s.date); RW.eq=m.equity;
+  if(RW.fresh){ RW.mode='30'; RW.size=0; RW.fresh=false; }   // apertura / inicio de sesión: ventana de 30 días pegada al último día
   if(RW.mode!=='custom') RW.size=rwSizeFor(RW.mode); else if(!RW.size) RW.size=n;
   RW.end=wasPinned?n-1:RW.end;
-  rwEnsureUI(); rwDrawNav(); rwApply();
+  rwEnsureUI(); rwApply();
+  // Reaplicar tras el primer layout para que la gráfica coincida SIEMPRE con la selección (ambas gráficas).
+  requestAnimationFrame(()=>{ if(RW.n) rwApply(); }); setTimeout(()=>{ if(RW.n) rwApply(); },300);
 }
 
 // Cursor punteado de Curva acumulada y Drawdown: gris OPACO, el mismo de los números de los ejes (antes era semitransparente y
 // se teñía de verde/rojo al mezclarse con el relleno de la gráfica).
 const tlCursorColor = () => document.body.classList.contains('light') ? '#3a5a7a' : '#c0d4e0';
 function tlDrawCursor(chart){
-  if(chart.$mirror) return;   // en la gráfica espejo solo se muestra el globo, sin línea punteada
   const t=chart.tooltip; if(!t||!t.getActiveElements||!t.getActiveElements().length) return;
   const el=t.getActiveElements()[0].element, x=el.x, a=chart.chartArea, ctx=chart.ctx;
   // La línea va solo desde el borde del punto hacia abajo (hasta el eje): no sube por encima del punto ni lo atraviesa.
@@ -2988,6 +3008,8 @@ function renderCharts(m, sessions) {
     // Punto parpadeante del día que se señala desde Drawdown.
     const b=chart.$blink; if(b==null) return;
     const el=chart.getDatasetMeta(0).data[b], a=chart.chartArea; if(!el||el.x<a.left-0.5||el.x>a.right+0.5) return;
+    { const a2=chart.chartArea, y0=Math.max(a2.top,Math.min(a2.bottom,el.y+6));
+      if(y0<a2.bottom){ const c2=chart.ctx; c2.save(); c2.beginPath(); c2.moveTo(el.x,y0); c2.lineTo(el.x,a2.bottom); c2.lineWidth=1; c2.setLineDash([4,3]); c2.strokeStyle=tlCursorColor(); c2.stroke(); c2.restore(); } }
     const ctx=chart.ctx; ctx.save();
     ctx.globalAlpha=0.25+0.75*(0.5+0.5*Math.sin(Date.now()/170));
     ctx.beginPath(); ctx.arc(el.x,el.y,6,0,Math.PI*2); ctx.fillStyle=eqLine; ctx.fill(); ctx.restore();
@@ -3002,11 +3024,11 @@ function renderCharts(m, sessions) {
       ]
     },
     options:{
-      ...cOpts(v=>'$'+mny(v,0)),
-      events:['mousemove','mouseout','click'],
+      ...cOptsEdge(v=>'$'+mny(v,0)),
+      animation:false,events:['mousemove','mouseout','click','touchstart','touchmove'],
       interaction:{mode:'index',axis:'x',intersect:false},
       plugins:{
-        legend:{display:true, labels:{color:'#c0d4e0',font:{size:9,family:'ZeroPlain, Inter, IBM Plex Mono'},filter:(item)=>item.text!=='',generateLabels:(ch)=>Chart.defaults.plugins.legend.labels.generateLabels(ch).map(l=>l.datasetIndex===0?{...l,fillStyle:'transparent'}:l)}},
+        legend:{display:false},   // sin leyenda «Realizado acum.»: ese espacio lo gana el área de dibujo de la curva
         tooltip:{
           callbacks:{
             title: ctx => {
@@ -3038,8 +3060,7 @@ function renderCharts(m, sessions) {
           enabled:false, external:chartTip
         }
       },
-      responsive:true,
-      animation:{duration:600}
+      responsive:true
     },
     plugins:[eqCursor,tlSync('eq')]
   });
@@ -3055,8 +3076,8 @@ function renderCharts(m, sessions) {
     data:{labels:ddPts.map(q=>{const d=new Date(q.date+'T12:00:00');return (d.getMonth()+1)+'/'+d.getDate();}),
       datasets:[{label:'Drawdown',data:ddPts.map(q=>-q.dd),borderColor:'rgba(255,51,85,0.8)',backgroundColor:'rgba(255,51,85,0.14)',borderWidth:2,tension:0,fill:true,
         pointRadius:2.2,pointHoverRadius:6,pointHitRadius:14,pointBackgroundColor:'rgba(255,51,85,0.9)'}]},
-    options:{...cOpts(v=>'$'+mny(v,0)),responsive:true,
-      events:['mousemove','mouseout','click'],
+    options:{...cOptsEdge(v=>'$'+mny(v,0)),responsive:true,
+      animation:false,events:['mousemove','mouseout','click','touchstart','touchmove'],
       interaction:{mode:'nearest',axis:'x',intersect:false},
       plugins:{legend:{display:false},tooltip:{
         callbacks:{
@@ -3068,7 +3089,7 @@ function renderCharts(m, sessions) {
         },
         backgroundColor:ddLight?'rgba(240,244,248,0.97)':'rgba(8,13,18,0.95)',borderColor:ddLight?'rgba(0,119,170,0.4)':'rgba(0,229,255,0.4)',borderWidth:1,
         titleColor:ddLight?'#0a1a2a':'#c0d4e0',bodyColor:ddLight?'#0a1a2a':'#ddeeff',padding:10,displayColors:false,enabled:false,external:chartTip}},
-      animation:{duration:600}},
+      },
     plugins:[ddCursor,tlSync('dd')]
   });
   rwInit(m, sessions);   // ventana deslizable sincronizada (curva acumulada + drawdown)
