@@ -386,10 +386,11 @@ canvas{max-height:200px;}
 .cal-day .cal-num{font-size:13px;font-weight:700;line-height:1;}
 .cal-day .cal-pnl{font-size:10px;font-weight:600;line-height:1.3;margin-top:3px;text-align:center;}
 .cal-day .cal-trades{font-size:9px;opacity:0.7;margin-top:2px;text-align:center;}
-.cal-day.win{background:rgba(0,255,136,0.162);color:var(--green);border:1px solid rgba(0,255,136,0.225);}
-.cal-day.loss{background:rgba(255,51,85,0.162);color:var(--red);border:1px solid rgba(255,51,85,0.225);}
+.cal-day.win{background:rgba(0,255,136,0.116);color:var(--green);border:1px solid rgba(0,255,136,0.225);}
+.cal-day.loss{background:rgba(255,51,85,0.116);color:var(--red);border:1px solid rgba(255,51,85,0.225);}
 .cal-day.be{background:rgba(30,45,61,0.5);color:var(--muted);border:1px solid transparent;}
-.cal-day.neu{background:rgba(255,204,0,0.162);color:#ffcc00;border:1px solid rgba(255,204,0,0.27);}
+/* Break even: borde amarillo original (sin atenuar); solo el relleno va atenuado un 35% (el resultado conserva su color y brillo) */
+.cal-day.neu{background:rgba(255,204,0,0.116);color:#ffcc00;border:1px solid rgba(255,204,0,0.27);}
 /* Número del día: mismo color que los días sin actividad, en todo el calendario */
 .cal-grid .cal-num{color:var(--muted) !important;}
 /* Todas las filas con la altura de la más alta (la del swing) y el calendario un 30% más estrecho */
@@ -418,9 +419,9 @@ canvas{max-height:200px;}
 .cal-swc .cal-mini{position:relative;z-index:1;}
 .cal-swc.sw-hover .sw-bg,.cal-swc.sw-hover .sw-body{transform:scale(1.06);}
 /* Fondo OPACO (mismo tono que el translúcido sobre el fondo del calendario): al agrandarse, las celdas del ciclo se solapan sin sumar transparencias, así no aparece la franja más intensa entre días */
-.cal-day.swing.win{background:linear-gradient(rgba(0,255,136,0.162),rgba(0,255,136,0.162)),var(--s1);}
-.cal-day.swing.loss{background:linear-gradient(rgba(255,51,85,0.162),rgba(255,51,85,0.162)),var(--s1);}
-.cal-day.swing.neu{background:linear-gradient(rgba(255,204,0,0.162),rgba(255,204,0,0.162)),var(--s1);}
+.cal-day.swing.win{background:linear-gradient(rgba(0,255,136,0.116),rgba(0,255,136,0.116)),var(--s1);}
+.cal-day.swing.loss{background:linear-gradient(rgba(255,51,85,0.116),rgba(255,51,85,0.116)),var(--s1);}
+.cal-day.swing.neu{background:linear-gradient(rgba(255,204,0,0.116),rgba(255,204,0,0.116)),var(--s1);}
 /* El mini-marco intradía mantiene su tamaño cuando salta el bloque swing (contra-escala 1/1.06) */
    /* --mx/--my los calcula el JS: anulan el desplazamiento que provoca el escalado del bloque, así el intradía queda 100% quieto */
 .cal-day .cal-mini{transition:.15s;}
@@ -437,9 +438,9 @@ canvas{max-height:200px;}
 .cal-day .cal-mini .mi-r{font-size:13px;font-weight:800;}
 .cal-day .cal-mini .mi-n{font-size:9px;opacity:.75;}
 .cal-day .cal-mini .mi-note{position:absolute;top:1px;right:3px;font-size:8px;opacity:.9;}
-.cal-day .cal-mini.win{background:linear-gradient(rgba(0,255,136,0.162),rgba(0,255,136,0.162)),var(--s1);color:var(--green);border-color:rgba(0,255,136,0.405);}
-.cal-day .cal-mini.loss{background:linear-gradient(rgba(255,51,85,0.162),rgba(255,51,85,0.162)),var(--s1);color:var(--red);border-color:rgba(255,51,85,0.45);}
-.cal-day .cal-mini.neu{background:linear-gradient(rgba(255,204,0,0.162),rgba(255,204,0,0.162)),var(--s1);color:#ffcc00;border-color:rgba(255,204,0,0.45);}
+.cal-day .cal-mini.win{background:linear-gradient(rgba(0,255,136,0.116),rgba(0,255,136,0.116)),var(--s1);color:var(--green);border-color:rgba(0,255,136,0.405);}
+.cal-day .cal-mini.loss{background:linear-gradient(rgba(255,51,85,0.116),rgba(255,51,85,0.116)),var(--s1);color:var(--red);border-color:rgba(255,51,85,0.45);}
+.cal-day .cal-mini.neu{background:linear-gradient(rgba(255,204,0,0.116),rgba(255,204,0,0.116)),var(--s1);color:#ffcc00;border-color:rgba(255,204,0,0.45);}
 .cal-day .cal-mini.today-marker{box-shadow:0 0 0 1px var(--cyan);}
 /* Hoy dentro de un SWING sin actividad intradía: el marco azul envuelve todo el bloque desde su inicio hasta hoy */
 .cal-day.swing.sw-hl{box-shadow:inset 0 1px 0 var(--cyan),inset 0 -1px 0 var(--cyan);}
@@ -2044,6 +2045,28 @@ function calcMetrics(days, trades, balance, extra) {
     const dd=pkV-equity[i], capPk=capAt(pkK,pkK<0?D[0].date:D[pkK].date);
     return {date:d.date,dd:+dd.toFixed(2),pct:(capPk!=null&&capPk>0)?dd/capPk*100:null,cum:+equity[i].toFixed(2),day:d.netPnl,trades:d.trades};
   });
+  // % DE LA CUENTA por día (misma base que el Sharpe diario): base = capital al ABRIR el día = balance inicial reconstruido
+  // + P&L realizado de los días anteriores + depósitos/retiros hasta esa fecha. No usa el balance actual (cambia con el tiempo y
+  // distorsiona días viejos) ni la suma de depósitos (ignora ganancias/pérdidas previas). N/D si la base no es válida (≤0).
+  const dayBase={};
+  { let cumB=0; const byD={};
+    D.forEach(d=>{ const o=byD[d.date]||(byD[d.date]={pnl:0,base:null});
+      if(o.base==null&&initial!=null) o.base=initial+cumB+_sum(cash.filter(c=>c.d<=d.date).map(c=>c.a));
+      o.pnl+=d.netPnl; cumB+=d.netPnl; });
+    Object.keys(byD).forEach(k=>{ const o=byD[k]; dayBase[k]={base:o.base,pct:(o.base!=null&&o.base>0)?o.pnl/o.base*100:null}; }); }
+  // RENDIMIENTO MENSUAL en % (método Modified Dietz, estándar GIPS): P&L del mes ÷ (capital al iniciar el mes + depósitos/retiros del mes
+  // ponderados por los días que estuvieron en la cuenta). Sin depósitos/retiros en el mes = P&L ÷ capital al iniciar el mes.
+  // Capital al iniciar = balance inicial reconstruido + P&L realizado de meses anteriores + depósitos/retiros anteriores al mes.
+  // Así un depósito grande NO diluye el % del mes y un retiro no lo infla. N/D si la base no es válida (≤0).
+  const monthRet={};
+  { const byM={}; D.forEach(d=>{ const k=d.date.slice(0,7); byM[k]=(byM[k]||0)+d.netPnl; });
+    Object.keys(byM).forEach(k=>{
+      const first=k+'-01', CD=new Date(Date.UTC(+k.slice(0,4),+k.slice(5,7),0)).getUTCDate();
+      const open=initial!=null?initial+_sum(D.filter(d=>d.date<first).map(d=>d.netPnl))+_sum(cash.filter(c=>c.d<first).map(c=>c.a)):null;
+      const fl=cash.filter(c=>c.d.slice(0,7)===k), flows=_sum(fl.map(c=>c.a));
+      const base=open!=null?open+_sum(fl.map(c=>c.a*((CD-(+c.d.slice(8,10)-1))/CD))):null;
+      monthRet[k]={pnl:+byM[k].toFixed(2),open,flows,base,pct:(base!=null&&base>0)?byM[k]/base*100:null};
+    }); }
   const maxDDPct=ddPoints.length&&ddPoints.every(q=>q.pct!=null)?Math.max(...ddPoints.map(q=>q.pct)):null;
   const dates=T.map(t=>t.date).sort(); const span=Math.max(1,Math.round((Date.parse(dates[n-1])-Date.parse(dates[0]))/864e5)+1);
   const exs=T.filter(t=>t.maxFloatDD!=null), rs=T.filter(t=>t.r!=null);
@@ -2091,7 +2114,7 @@ function calcMetrics(days, trades, balance, extra) {
     // día
     days:D.length,dayWins,dayLosses,dayBE:D.length-dayWins-dayLosses,dayWinPct:(dayWins+dayLosses)?dayWins/(dayWins+dayLosses)*100:null,
     streaks:calcDayStreaks(D),equity,pnls:dpn,maxDD,peak,rf,sharpe,sharpeWhy,sharpeProvisional:D.length<20,cashKnown,
-    D:dayStats(D),ddPoints,maxDDPct,firstDate:D.length?D[0].date:null,lastDate:D.length?D[D.length-1].date:null,
+    D:dayStats(D),ddPoints,maxDDPct,dayBase,monthRet,firstDate:D.length?D[0].date:null,lastDate:D.length?D[D.length-1].date:null,
     commTotal:_sum(T.map(t=>t.comm||0)),swapTotal:_sum(T.map(t=>t.swap||0)),costsKnown:T.every(t=>t.costsKnown),
     maxTradesDay:D.length?Math.max(...D.map(d=>d.trades)):0,avgTradesDay:D.length?n/D.length:0
   };
@@ -3200,7 +3223,7 @@ function renderCharts(m, sessions) {
     type:'doughnut',
     data:{labels:[`Ganadores ${wlPctWin}% (${m.dayWins})`,`Perdedores ${wlPctLoss}% (${m.dayLosses})`,`Break Even ${wlPctBE}% (${m.dayBE})`],
       datasets:[{data:[m.dayWins,m.dayLosses,m.dayBE],
-        backgroundColor:['rgba(0,255,136,0.75)','rgba(255,51,85,0.75)','rgba(255,204,0,0.75)'],borderWidth:0,hoverBorderWidth:0}]},
+        backgroundColor:['rgba(0,255,136,0.75)','rgba(255,51,85,0.75)','rgba(255,204,0,0.49)'],borderWidth:0,hoverBorderWidth:0}]},
     options:{
       responsive:true,
       plugins:{
@@ -3236,7 +3259,48 @@ function weekNav(delta){
   _weekStart = target>=curStart ? null : target;
   renderWeekly();
 }
+// X de cierre dentro del tooltip (Rendimiento Mensual y P&L por Día): blanca; roja al pasar el mouse o al presionar.
+// El tooltip es de canvas, así que la X se dibuja aquí y su zona de clic se calcula con la posición del tooltip.
+const tipCloseXPlugin={id:'tipCloseX',
+  afterInit(chart){
+    const cv=chart.canvas, host=cv.parentNode;
+    const pos=e=>{ const r=cv.getBoundingClientRect(); return {x:e.clientX-r.left,y:e.clientY-r.top}; };
+    const over=e=>{ const b=chart._xBtn; if(!b) return false; const p=pos(e); return Math.abs(p.x-b.x)<=b.r&&Math.abs(p.y-b.y)<=b.r; };
+    const set=(h,d)=>{ if(chart._xHover===h&&chart._xDown===d) return; chart._xHover=h; chart._xDown=d; cv.style.cursor=h?'pointer':''; chart.draw(); };
+    const close=()=>{ chart._xBtn=null; chart.tooltip.setActiveElements([],{x:0,y:0}); chart.setActiveElements([]); set(false,false); chart.update('none'); };
+    const H={
+      move:e=>set(over(e),!!chart._xDown&&over(e)),
+      down:e=>{ if(over(e)) set(true,true); },
+      up:()=>set(false,false),
+      click:e=>{ if(over(e)){ e.stopPropagation(); e.preventDefault(); close(); } }   // captura: la X no abre otra barra que quede debajo
+    };
+    cv.addEventListener('pointermove',H.move); cv.addEventListener('pointerdown',H.down);
+    cv.addEventListener('pointerup',H.up); cv.addEventListener('pointercancel',H.up); cv.addEventListener('pointerleave',H.up);
+    host.addEventListener('click',H.click,true);
+    chart._xCleanup=()=>{ cv.removeEventListener('pointermove',H.move); cv.removeEventListener('pointerdown',H.down);
+      cv.removeEventListener('pointerup',H.up); cv.removeEventListener('pointercancel',H.up); cv.removeEventListener('pointerleave',H.up);
+      host.removeEventListener('click',H.click,true); };
+  },
+  afterDraw(chart){
+    const t=chart.tooltip;
+    if(!t||!t.getActiveElements().length||!(t.opacity>0)){ chart._xBtn=null; return; }
+    const cx=t.x+t.width-12, cy=t.y+12, a=4;
+    chart._xBtn={x:cx,y:cy,r:12};
+    const ctx=chart.ctx; ctx.save(); ctx.globalAlpha=t.opacity;
+    ctx.strokeStyle=(chart._xHover||chart._xDown)?'#ff3355':'#ffffff'; ctx.lineWidth=1.8; ctx.lineCap='round';
+    ctx.beginPath(); ctx.moveTo(cx-a,cy-a); ctx.lineTo(cx+a,cy+a); ctx.moveTo(cx+a,cy-a); ctx.lineTo(cx-a,cy+a); ctx.stroke();
+    ctx.restore(); },
+  beforeDestroy(chart){ if(chart._xCleanup) chart._xCleanup(); }
+};
+// Tooltips solo por clic en la barra; un clic fuera de la gráfica (o en otra gráfica) lo cierra.
+function _tipDismissOutside(){
+  if(window._tipDismissBound) return; window._tipDismissBound=true;
+  document.addEventListener('click',e=>{ ['day','monthly'].forEach(k=>{
+    const ch=charts[k]; if(!ch||e.target===ch.canvas) return;
+    if(ch.tooltip&&ch.tooltip.getActiveElements().length){ ch.tooltip.setActiveElements([],{x:0,y:0}); ch.setActiveElements([]); ch.update('none'); } }); });
+}
 function renderWeekly(){
+  _tipDismissOutside();
   const curStart=_wkStartOf(todayStr());
   if(_weekStart!=null && _weekStart>=curStart) _weekStart=null;
   const viewStart=_weekStart??curStart, isCur=_weekStart==null;
@@ -3268,15 +3332,31 @@ function renderWeekly(){
     ctx.font='12px "ZeroPlain", "Inter", "IBM Plex Mono"'; ctx.textAlign='center'; ctx.textBaseline='middle';
     weekVals.forEach((v,i)=>{ if(v===null) ctx.fillText('—',x.getPixelForValue(i),y.getPixelForValue(0)-10); });
     ctx.restore(); }};
+  // Etiqueta con el % del día sobre cada barra (arriba si es positivo, debajo si es negativo). Mismo estilo que Rendimiento Mensual.
+  const dayPctPlugin={id:'dayPct',afterDatasetsDraw(chart){
+    if(chart.tooltip&&chart.tooltip.getActiveElements().length) return; // tooltip abierto: se oculta el % externo
+    const meta=chart.getDatasetMeta(0), {ctx}=chart; ctx.save();
+    ctx.font='600 10px "ZeroPlain", "Inter", "IBM Plex Mono"'; ctx.textAlign='center';
+    meta.data.forEach((bar,i)=>{ const v=weekVals[i]; if(v===null) return;
+      const q=(typeof _lastM!=='undefined'&&_lastM&&_lastM.dayBase)?_lastM.dayBase[wkDates[wkIdx[i]]]:null;
+      const txt=(q&&q.pct!=null)?(q.pct>=0?'+':'')+q.pct.toFixed(2)+'%':'N/D';
+      ctx.fillStyle=v>=0?'#00ff88':'#ff3355';
+      if(v>=0){ ctx.textBaseline='bottom'; ctx.fillText(txt,bar.x,bar.y-4); } else { ctx.textBaseline='top'; ctx.fillText(txt,bar.x,bar.y+4); } });
+    ctx.restore(); }};
   dc('day');
   charts['day']=new Chart(document.getElementById('dayChart'),{
     type:'bar',
     data:{labels:wkIdx.map(i=>WK_DAY_NAMES[i]+' '+wkDates[i].slice(8)),
-      datasets:[{data:weekVals,backgroundColor:weekVals.map(v=>v>=0?'rgba(0,229,255,0.55)':'rgba(255,51,85,0.75)'),borderColor:weekVals.map(v=>v>=0?'rgba(0,229,255,0.55)':'rgba(255,51,85,1)'),borderWidth:1,borderRadius:6}]},
-    options:{...cOpts(v=>'$'+mny(v,0)),responsive:true,plugins:{legend:{display:false},
-        tooltip:{callbacks:{label:c=>c.parsed.y===null?' Sin operaciones':` Neto del día: ${fmt$(c.parsed.y)}`}}},
-      scales:{x:{...cOpts().scales.x,grid:{display:false}},y:cOpts(v=>'$'+mny(v,0)).scales.y},animation:{duration:600}},
-    plugins:[noDataPlugin]
+      datasets:[{data:weekVals,backgroundColor:weekVals.map(v=>v>=0?'rgba(0,255,136,0.75)':'rgba(255,51,85,0.75)'),borderColor:weekVals.map(v=>v>=0?'#00ff88':'#ff3355'),borderWidth:1,borderRadius:6,barPercentage:0.45}]},
+    options:{...cOpts(v=>'$'+mny(v,0)),responsive:true,events:['click'],layout:{padding:{top:16,bottom:4}},plugins:{legend:{display:false},
+        tooltip:{mode:'nearest',intersect:true,callbacks:{title:c=>c[0].label+'\u2003\u2003',label:c=>{
+          if(c.parsed.y===null) return ' Sin operaciones';
+          const dt=wkDates[wkIdx[c.dataIndex]], q=(typeof _lastM!=='undefined'&&_lastM&&_lastM.dayBase)?_lastM.dayBase[dt]:null;
+          const sd=v=>(v>=0?'+':'-')+'$'+mny(Math.abs(v));
+          if(q&&q.pct!=null) return [` Neto: ${sd(c.parsed.y)}`,` Rendimiento: ${q.pct>=0?'+':''}${q.pct.toFixed(2)}%`,` Capital inicial: ${fmt$(q.base)}`];
+          return [` Neto: ${sd(c.parsed.y)}`,' Rendimiento: N/D']; }}}},
+      scales:{x:{...cOpts().scales.x,grid:{display:false}},y:{...cOpts(v=>'$'+mny(v,0)).scales.y,grace:'14%'}},animation:{duration:600}},
+    plugins:[noDataPlugin,dayPctPlugin,tipCloseXPlugin]
   });
 }
 
@@ -3302,6 +3382,7 @@ function monthNavYear(delta){
   renderMonthly();
 }
 function renderMonthly(){
+  _tipDismissOutside();
   const curY=+todayStr().slice(0,4), viewY=_monthYear==null||_monthYear>=curY?curY:_monthYear;
   if(_monthYear!=null && _monthYear>=curY) _monthYear=null;
   const agg=_monthAgg();
@@ -3324,16 +3405,35 @@ function renderMonthly(){
   if(!vals.length){ cv.style.display='none'; em.style.display='block'; em.textContent=viewY===curY?'Sin meses operados todavía':`Sin meses operados en ${viewY}`; return; }
   cv.style.display=''; em.style.display='none';
   const isLight=document.body.classList.contains('light'), tick=isLight?'#3a5a7a':'#c0d4e0';
+  // Etiqueta con el % del mes sobre cada barra (arriba si es positivo, debajo si es negativo).
+  const pctPlugin={id:'monthPct',afterDatasetsDraw(chart){
+    if(chart.tooltip&&chart.tooltip.getActiveElements().length) return; // tooltip abierto: se oculta el % externo
+    const meta=chart.getDatasetMeta(0), {ctx}=chart; ctx.save();
+    ctx.font='600 10px "ZeroPlain", "Inter", "IBM Plex Mono"'; ctx.textAlign='center';
+    meta.data.forEach((bar,i)=>{ const q=(typeof _lastM!=='undefined'&&_lastM&&_lastM.monthRet)?_lastM.monthRet[keys[i]]:null;
+      const v=vals[i], txt=(q&&q.pct!=null)?(q.pct>=0?'+':'')+q.pct.toFixed(2)+'%':'N/D';
+      ctx.fillStyle=v>=0?'#00ff88':'#ff3355';
+      if(v>=0){ ctx.textBaseline='bottom'; ctx.fillText(txt,bar.x,bar.y-4); } else { ctx.textBaseline='top'; ctx.fillText(txt,bar.x,bar.y+4); } });
+    ctx.restore(); }};
   charts['monthly']=new Chart(cv,{
     type:'bar',
     data:{labels,datasets:[{label:'P&L Mensual',data:vals,
       backgroundColor:vals.map(v=>v>=0?'rgba(0,255,136,0.75)':'rgba(255,51,85,0.75)'),
-      borderColor:vals.map(v=>v>=0?'rgba(0,255,136,1)':'rgba(255,51,85,1)'),borderWidth:1,borderRadius:5,borderSkipped:false,maxBarThickness:36,barPercentage:0.5,categoryPercentage:0.8}]},
-    options:{responsive:true,
-      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` ${c.parsed.y>=0?'+':''}$${mny(c.parsed.y)}`,title:c=>c[0].label}}},
+      borderColor:vals.map(v=>v>=0?'#00ff88':'#ff3355'),borderWidth:1,borderRadius:5,borderSkipped:false,maxBarThickness:36,barPercentage:0.5,categoryPercentage:0.8}]},
+    options:{responsive:true,events:['click'],
+      layout:{padding:{top:16,bottom:4}},
+      plugins:{legend:{display:false},tooltip:{mode:'nearest',intersect:true,callbacks:{label:c=>{
+          const q=(typeof _lastM!=='undefined'&&_lastM&&_lastM.monthRet)?_lastM.monthRet[keys[c.dataIndex]]:null;
+          const sd=v=>(v>=0?'+':'-')+'$'+mny(Math.abs(v));
+          const L=[` Neto: ${sd(c.parsed.y)}`];
+          if(q&&q.pct!=null){ L.push(` Rendimiento: ${q.pct>=0?'+':''}${q.pct.toFixed(2)}%`,` Capital inicial: ${fmt$(q.open)}`);
+            if(Math.abs(q.flows)>=0.005) { L.push(` Depósitos/Retiros: ${q.flows>=0?'+':'-'}$${mny(Math.abs(q.flows))}`); L.push(` Capital promedio: ${fmt$(q.base)}`); } }
+          else L.push(' Rendimiento: N/D');
+          return L; },title:c=>c[0].label+'\u2003\u2003'}}},
       scales:{x:{ticks:{color:tick,font:{size:10,family:'ZeroPlain, Inter, IBM Plex Mono'}},grid:{display:false}},
-        y:{ticks:{color:tick,font:{size:9,family:'ZeroPlain, Inter, IBM Plex Mono'},callback:v=>(v>=0?'+':'')+' $'+mny(v,0)},grid:{color:isLight?'rgba(150,180,210,0.45)':'rgba(22,32,48,0.6)'},border:{dash:[4,4]}}},
-      animation:{duration:700}}
+        y:{grace:'14%',ticks:{color:tick,font:{size:9,family:'ZeroPlain, Inter, IBM Plex Mono'},callback:v=>(v>=0?'+':'')+' $'+mny(v,0)},grid:{color:isLight?'rgba(150,180,210,0.45)':'rgba(22,32,48,0.6)'},border:{dash:[4,4]}}},
+      animation:{duration:700}},
+    plugins:[pctPlugin,tipCloseXPlugin]
   });
 }
 
