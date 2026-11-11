@@ -302,6 +302,20 @@ body.light .kpi-tip{background:rgba(255,255,255,0.98);color:#0a1a2a;border-color
 .chart-box{background:var(--s1);border:1px solid var(--b1);border-radius:12px;padding:18px;}
 .chart-box.span2{grid-column:1/-1;}
 .chart-title{font-size:10px;color:#ffffff;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:14px;}
+.rw-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:-4px 0 10px;}
+.rw-seg{display:inline-flex;border:1px solid var(--b2);border-radius:8px;overflow:hidden;flex:none;}
+.rw-seg button{background:transparent;border:0;color:var(--muted);font:600 10px var(--font-mono);letter-spacing:.8px;padding:0 12px;min-height:30px;cursor:pointer;}
+.rw-seg button+button{border-left:1px solid var(--b2);}
+.rw-seg button.on{background:rgba(0,229,255,.14);color:var(--cyan);}
+.rw-info{font-size:10px;color:var(--muted);flex:1;min-width:150px;line-height:1.4;}
+.rw-last{background:transparent;border:1px solid var(--b2);border-radius:8px;color:var(--cyan);font:600 10px var(--font-mono);padding:0 12px;min-height:30px;cursor:pointer;}
+.rw-last[hidden]{display:none;}
+.rw-nav{display:none;position:relative;height:34px;margin-top:10px;border:1px solid var(--b1);border-radius:6px;background:var(--s2);overflow:hidden;cursor:pointer;touch-action:none;}
+.rw-nav svg{position:absolute;inset:0;width:100%;height:100%;}
+.rw-nav-win{position:absolute;top:0;bottom:0;background:rgba(0,229,255,.14);border-left:2px solid var(--cyan);border-right:2px solid var(--cyan);cursor:grab;}
+.rw-nav.off{visibility:hidden;}
+@media (hover:hover) and (pointer:fine){.rw-nav{display:block;}}
+@media (pointer:coarse){.rw-seg button,.rw-last{min-height:44px;padding:0 16px;font-size:11px;}}
 canvas{max-height:200px;}
 
 /* PROGRESS BARS */
@@ -762,6 +776,7 @@ input.jimglink:focus{border-color:var(--cyan);}
     display:grid;grid-template-columns:1fr 1fr;row-gap:12px;column-gap:8px;
   }
   .acc-sep{display:none;}
+  .acc-item{order:var(--m,0);} /* móvil conserva su orden original: Balance antes que Apalanc. */
   .acc-item .al{font-size:8px;}
   .acc-item .av{font-size:13px;}
 
@@ -1090,7 +1105,20 @@ input.jimglink:focus{border-color:var(--cyan);}
       <canvas id="wlChart"></canvas>
     </div>
     <div class="chart-box">
-      <div class="chart-title" id="dayChartTitle">P&L por Día — Semana Actual</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:14px;">
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+          <div class="chart-title" id="dayChartTitle" style="margin-bottom:0;">P&L por Día — Semana Actual</div>
+          <div class="cal-nav">
+            <button class="cal-nav-btn" id="weekPrevBtn" onclick="weekNav(-1)" title="Semana anterior">&#8249;</button>
+            <span class="cal-month-label" id="weekLabel" style="min-width:104px;">—</span>
+            <button class="cal-nav-btn" id="weekNextBtn" onclick="weekNav(1)" title="Semana siguiente">&#8250;</button>
+          </div>
+        </div>
+        <div style="display:flex;gap:12px;font-size:10px;color:var(--muted);flex-wrap:wrap;">
+          <span id="weekBestDay"></span>
+          <span id="weekWorstDay"></span>
+        </div>
+      </div>
       <canvas id="dayChart"></canvas>
     </div>
   </div>
@@ -1226,7 +1254,7 @@ input.jimglink:focus{border-color:var(--cyan);}
   <div class="roi-wrap">
     <div class="roi-header">
       <div style="font-family:var(--font-head);font-size:14px;font-weight:600;">Proyección basada en Expectancy actual</div>
-      <div style="font-size:11px;color:var(--muted);">Estimado con la expectancy por posición y el ritmo histórico de posiciones · Línea punteada en la curva de resultado realizado</div>
+      <div style="font-size:11px;color:var(--muted);">Estimado con la expectancy por posición y el ritmo histórico de posiciones</div>
     </div>
     <div class="roi-cards" id="roiCards"></div>
     <div style="font-size:10px;color:var(--muted);line-height:1.6;" id="roiNote">—</div>
@@ -1840,7 +1868,7 @@ function buildSessions(deals, openIds, exc, pxe) {
 // Regla única de fecha: el resultado REALIZADO de una posición (profit + comisión + swap) se asigna
 // al día del servidor del bróker en que se CIERRA. Una posición que cruza la medianoche o tiene varios
 // cierres cuenta una sola vez, en su día de cierre; no se crean días ficticios. Los flotantes no entran.
-// Día neutral = neto exactamente 0 (ni ganador ni perdedor; corta la racha activa).
+// Día neutral = neto dentro de ±DAY_EPS dólares (ni ganador ni perdedor).
 function buildDays(trades) {
   const map={};
   for(const t of trades){ (map[t.date]=map[t.date]||[]).push(t); }
@@ -1899,7 +1927,7 @@ function buildCampaigns(trades, campaignsEA) {
 
 // ── RACHAS DE DÍAS OPERATIVOS ──────────────────────────────────────────────────
 // Solo cuenta días con actividad, según su resultado neto. Los días sin operaciones no existen
-// en la serie (no rompen la racha). Un día neutral (neto 0) corta la racha activa.
+// en la serie (no rompen la racha). Un día neutral (neto dentro de ±DAY_EPS) corta la racha activa.
 function calcDayStreaks(days) {
   const best={win:null,loss:null};
   let run=null; const closeRun=()=>{
@@ -1967,7 +1995,7 @@ function calcMetrics(days, trades, balance, extra) {
   // curva REALIZADA diaria y su drawdown (RF sobre la misma curva)
   let acc=0,peak=0,maxDD=0; const equity=dpn.map(p=>(acc+=p));
   for(const e of equity){ if(e>peak)peak=e; if(peak-e>maxDD)maxDD=peak-e; }
-  const rf=maxDD>0?total/maxDD:null;
+  const rf=maxDD>0?_sum(dpn)/maxDD:null;   // misma curva diaria en numerador y denominador
   // Sharpe diario: retorno del día = neto del día / capital al inicio del día (balance previo + depósitos/retiros hasta ese día).
   // Solo días con operaciones (sin días ficticios a 0), σ muestral, √252, rf=0. n/d si falta la base de capital.
   const cash=(extra.cashflows||[]).map(c=>({d:nySession(c.time),a:+c.amount||0}));
@@ -2029,6 +2057,7 @@ function calcMetrics(days, trades, balance, extra) {
     // posición
     n,total,wins:P.wins,losses:P.losses,be:P.be,avgWin:P.avgWin,avgLoss:P.avgLoss,winPct:P.winPct,rr:P.rr,pf:P.pf,exp:P.exp,
     grossWin:P.grossWin,grossLoss:P.grossLoss,mxPW,mxPL,
+    grossProfit:_sum(T.filter(t=>t.grossPnl>0).map(t=>t.grossPnl)),   // ganancia bruta ANTES de comisión y swap (base del ratio de comisiones)
     avgMAE:exs.length?_sum(exs.map(t=>t.maxFloatDD))/exs.length:null,avgMFE:exs.length?_sum(exs.map(t=>t.maxFloatWin))/exs.length:null,excN:exs.length,
     avgR:rs.length?_sum(rs.map(t=>t.r))/rs.length:null,rN:rs.length,
     pxCount,pxSym,pxMode,pxN:pxUse.length,
@@ -2402,34 +2431,60 @@ function renderAll(data) {
 let _lastCampaigns = [];
 let _lastData = null, _pxMode = 'complete', _curSym = '$';
 
+// ── REALIZADO DE LA SESIÓN NY ACTUAL (corte 17:00) ─────────────────────────────
+// Se calcula desde los DEALS (no desde posiciones): lo que se cierra hoy cuenta hoy, parciales incluidos, sin importar si la
+// posición sigue abierta ni si pertenece a un ciclo SWING (el ciclo sigue siendo UNA unidad en calendario y journal).
+// Cada cierre (parcial o total) suma su beneficio + swap + su propia comisión. La comisión/swap de las ENTRADAS se incluye el
+// día en que la posición queda cerrada por completo (misma regla que el resto del dashboard). Misma conversión de sesión que el motor SWING.
+function _dealsTrade(){ return ((_lastData&&_lastData.deals)||[]).filter(d=>d&&d.entry!=='BALANCE'&&(d.type==='BUY'||d.type==='SELL')); }
+function realizedToday(){
+  const t=todayStr(), num=v=>+v||0;
+  const openIds=new Set(((_lastData&&_lastData.positions)||[]).flatMap(p=>[String(p.ticket),...(p.position_id!=null?[String(p.position_id)]:[])]));
+  const byPid={}; _dealsTrade().forEach(d=>{ (byPid[String(d.position_id)]=byPid[String(d.position_id)]||[]).push(d); });
+  let sum=0;
+  for(const [pid,ds] of Object.entries(byPid)){
+    const outs=ds.filter(d=>d.entry==='OUT'||d.entry==='INOUT').sort((a,b)=>(num(a.time)-num(b.time))||(num(a.time_msc)-num(b.time_msc))||(num(a.ticket)-num(b.ticket)));
+    if(!outs.length) continue;
+    outs.forEach(d=>{ if(nySession(num(d.time))===t) sum+=num(d.profit)+num(d.commission)+num(d.swap); });
+    if(!openIds.has(pid) && nySession(num(outs[outs.length-1].time))===t)
+      ds.filter(d=>d.entry==='IN').forEach(d=>{ sum+=num(d.commission)+num(d.swap); });
+  }
+  return +sum.toFixed(2);
+}
+// Movimiento REAL del balance en la sesión actual (todos los deals de hoy, entradas incluidas, + depósitos/retiros): base exacta del drawdown diario.
+function balanceMoveToday(){
+  const t=todayStr(), num=v=>+v||0;
+  const deals=_dealsTrade().filter(d=>nySession(num(d.time))===t).reduce((a,d)=>a+num(d.profit)+num(d.commission)+num(d.swap),0);
+  const cash=((_lastData&&Array.isArray(_lastData.cashflows))?_lastData.cashflows:[]).filter(c=>c&&nySession(num(c.time))===t).reduce((a,c)=>a+num(c.amount),0);
+  return deals+cash;
+}
+
 // ── ACCOUNT BAR ────────────────────────────────────────────────────────────────
 function renderAccBar(acc, trades, isDemo) {
   const today=todayStr();
   // P&L Realizado Hoy = TODO lo cerrado en la sesión NY actual (cierres parciales y totales), incluyendo posiciones de un ciclo SWING + intradía
-  const todayPnl=(trades||[]).filter(s=>s.date===today).reduce((a,s)=>a+s.netPnl,0);
+  const todayPnl=realizedToday();
   const fields=[
-    {l:'Cuenta',v:acc.number||'—',cls:'neu'},
-    {l:'Broker',v:acc.broker||'—',cls:''},
-    {l:'Balance',v:fmt$(acc.balance),cls:'neu'},
-    {l:'Apalanc. · Moneda',v:'1:'+(acc.leverage||'—')+' · '+(acc.currency||'USD'),cls:''},
-    {l:'P&L Realizado Hoy',v:fmt$(todayPnl),cls:Math.abs(todayPnl)<0.005?'':(todayPnl>0?'pos':'neg')},
+    {l:'Cuenta',v:acc.number||'—',cls:'neu',m:1},
+    {l:'Broker',v:acc.broker||'—',cls:'',m:2},
+    {l:'Apalanc. · Moneda',v:'1:'+(acc.leverage||'—')+' · '+(acc.currency||'USD'),cls:'',m:4},
+    {l:'Balance',v:fmt$(acc.balance),cls:'neu',m:3},
+    {l:'P&L Realizado Hoy',v:fmt$(todayPnl),cls:Math.abs(todayPnl)<0.005?'':(todayPnl>0?'pos':'neg'),m:5},
   ];
-  if(isDemo) fields.push({l:'Modo',v:'DEMO · datos simulados',cls:'neg'});
+  if(isDemo) fields.push({l:'Modo',v:'DEMO · datos simulados',cls:'neg',m:6});
   document.getElementById('accBar').innerHTML=fields.map((f,i)=>`
     ${i>0?'<div class="acc-sep"></div>':''}
-    <div class="acc-item"><div class="al">${f.l}</div><div class="av ${f.cls}">${f.v}</div></div>
+    <div class="acc-item" style="--m:${f.m||0}"><div class="al">${f.l}</div><div class="av ${f.cls}">${f.v}</div></div>
   `).join('');
 }
 
 // ── KPIs ───────────────────────────────────────────────────────────────────────
 const KPI_HEALTHY={
- "Ciclos SWING": "no hay un número ideal; lo sano es que cada ciclo tenga plan y riesgo definidos, y que pocos ciclos abiertos a la vez no concentren tu riesgo.",
  "Win Rate · ciclos": "entre 40 % y 60 %, siempre que tu ganancia media sea mayor que tu pérdida media. Con menos de 30 ciclos finalizados todavía no es concluyente.",
- "Posiciones en ciclos": "es una cantidad, no un resultado. Lo sano es pocas posiciones por ciclo (de 1 a 4) y con tamaño controlado.",
  "Neto · ciclos finalizados": "positivo y creciente de forma sostenida, sin depender de un solo ciclo grande.",
  "Ciclos abiertos": "pocos a la vez, y que el flotante de todos juntos no supere el riesgo máximo que planeaste.",
  "Resultado Neto": "positivo y creciente de forma sostenida durante 20 a 30 días o más, sin depender de uno o dos días excepcionales.",
- "Win Rate": "45 % a 60 % con ganancia media mayor que la pérdida media. Un win rate de 30 % a 40 % también es sano si ganas 2:1 o más.",
+ "Win Rate": "40 % a 60 % con ganancia media mayor que la pérdida media. Un win rate de 30 % a 40 % también es sano si ganas 2:1 o más.",
  "Profit Factor": "1.5 en adelante. 2 o más es muy sólido; menos de 1 pierde dinero.",
  "Expectancy": "mayor que 0 y estable al sumar datos; que cubra con margen comisiones y swap.",
  "Ganancia media diaria": "mayor que la pérdida media diaria, idealmente 1.5 veces o más.",
@@ -2438,23 +2493,22 @@ const KPI_HEALTHY={
  "Días operados": "20 días o más para que las métricas sean confiables; con 60 o más tienes una muestra mucho más sólida.",
  "Drawdown Máx.": "menos de 10 % del capital. Hasta 15 % es aceptable; más de 20 % es riesgo alto.",
  "Comisiones pagadas — historial de la cuenta": "menos de 30 % de tu ganancia bruta; por debajo de 20 % es ideal.",
- "Swap acumulado — historial de la cuenta": "cerca de 0 o positivo. Si es negativo, lo sano es que sea una parte pequeña (menos de 10 %) de tu ganancia bruta.",
  "Sharpe": "1 o más es bueno; 2 o más es muy sólido. Menos de 0.5 indica resultados inconsistentes.",
- "Posiciones cerradas": "no hay una cifra ideal; lo sano es que el tamaño y el riesgo por posición se mantengan constantes.",
- "Racha máx. · por posición": "rachas perdedoras cortas (menos de 5 seguidas) y un riesgo por operación que aguante una racha de 8 a 10 pérdidas.",
  "Mejor / Peor día": "que el mejor día supere en valor absoluto al peor, y que el peor día quede lejos de tu límite de drawdown diario.",
  "MAE / MFE medio · por posición": "MFE medio mayor que el MAE medio (1.5 a 2 veces o más) y cerrar capturando más de la mitad del MFE.",
  "MAE / MFE medio · puntos": "MFE medio mayor que el MAE medio (1.5 a 2 veces o más) y cerrar capturando más de la mitad del MFE.",
  "MAE / MFE medio · por campaña": "MFE medio mayor que el MAE medio (1.5 a 2 veces o más) y cerrar capturando más de la mitad del MFE.",
  "Campañas": "30 campañas o más para que el resto de métricas sea confiable.",
+ "Win Rate · campañas": "entre 40 % y 60 %, siempre que tu ganancia media por campaña sea mayor que tu pérdida media. Con menos de 30 campañas todavía no es concluyente.",
  "RR promedio": "1.5 : 1 en adelante (ganancia media al menos 1.5 veces la pérdida media); 2 : 1 o más es sólido.",
  "Duración · ganadoras / perdedoras": "ganadoras de igual duración o más largas que las perdedoras (relación 1 o mayor).",
  "Escalones · ganadoras / perdedoras": "escalones parecidos o más en las ganadoras que en las perdedoras.",
  "Volumen · ganadoras / perdedoras": "volumen parecido o menor en las perdedoras (relación perdedoras/ganadoras de 1 o menos).",
  "Mejor dirección": "que no dependas de una sola dirección: lo sano es que ambas sean rentables o que la que pierde sea claramente menor."
 };   // rango objetivo (referencia general) que se añade al tip de cada tarjeta
+const KPI_INFO=new Set(['Ciclos SWING','Posiciones en ciclos','Posiciones cerradas','Swap acumulado — historial de la cuenta','Racha máx. · por posición']);   // tarjetas informativas: solo explican qué son (sin rango objetivo ni lectura)
 function kpiHealthy(k,id){ const h=KPI_HEALTHY[k.l]; let r=''; try{ r=kpiRead(k.l,id); }catch(_){}
-  return (h?`<div class="kpi-tip-ok"><b>🎯 Rango objetivo:</b> ${h}</div>`:'')+(r?`<div class="kpi-tip-me"><b>📍 Tu lectura:</b> ${r}</div>`:''); }
+  return (KPI_INFO.has(k.l)&&k.tip?`<div class="kpi-tip-ok"><b>📘 Qué es:</b> ${k.tip}</div>`:'')+(h?`<div class="kpi-tip-ok"><b>🎯 Rango objetivo:</b> ${h}</div>`:'')+(r?`<div class="kpi-tip-me"><b>📍 Tu lectura:</b> ${r}</div>`:''); }
 // Lectura PERSONALIZADA: compara tus datos actuales con el rango objetivo y dice qué conviene trabajar (solo con lo que hay en tus datos; con pocos datos lo avisa).
 function kpiRead(l,scope){
   const m=window._kpiM; if(!m) return '';
@@ -2466,9 +2520,7 @@ function kpiRead(l,scope){
   if(scope==='kpiS'){
     const S=m.S; if(!S) return '';
     switch(l){
-      case 'Ciclos SWING': return S.finished<30?`Llevas ${S.finished} ciclo(s) finalizado(s); con menos de 30 las métricas swing son solo orientativas. No cambies de enfoque con esta muestra.`:`Con ${S.finished} ciclos finalizados la muestra ya es útil para evaluar tu swing.`;
       case 'Win Rate · ciclos': if(S.winPct==null) return ''; return S.finished<30?`Win rate de ${pc(S.winPct)} sobre ${S.finished} ciclo(s): muestra corta, no concluyas todavía. Fíjate más en si ganas más de lo que pierdes por ciclo.`:(S.winPct<40?`Win rate de ${pc(S.winPct)}: solo es sostenible si tus ciclos ganadores pagan al menos el doble que los perdedores.`:`Win rate de ${pc(S.winPct)}: dentro de lo normal; vigila que tu ganancia media por ciclo siga superando a la pérdida media.`);
-      case 'Posiciones en ciclos': return S.n?`Promedias ${(S.positions/S.n).toFixed(1)} posiciones por ciclo. ${S.positions/S.n>4?'Es un escalado alto: define un máximo de escalones por ciclo para no concentrar riesgo.':'Es un escalado moderado y controlable.'}`:'';
       case 'Neto · ciclos finalizados': return S.net<0?`Tus ciclos finalizados suman ${fmt$(S.net)}. Revisa si las pérdidas se alargan más que las ganancias (duración y escalones por ciclo) antes de aumentar tamaño.`:`Tus ciclos finalizados suman ${fmt$(S.net)}. Mantén el tamaño estable hasta tener 30 ciclos o más.`;
       case 'Ciclos abiertos': if(!S.active) return 'No tienes ciclos abiertos: tu riesgo swing actual es nulo.'; if(S.floatKnown&&S.activeFloating<0&&limUsd&&-S.activeFloating>limUsd) return `El flotante de tus ciclos abiertos (${fmt$(S.activeFloating)}) ya supera tu límite diario (${fmt$(limUsd)}): revisa si el stop y el tamaño siguen alineados con tu plan.`; return `Tienes ${S.active} ciclo(s) abierto(s). Mantén el flotante total dentro de tu riesgo máximo planeado.`;
     } return '';
@@ -2477,6 +2529,7 @@ function kpiRead(l,scope){
     const C=m.C, X=m.CX; if(!C||!X) return ''; const cN=m.cN||0;
     switch(l){
       case 'Campañas': return cN<30?`Llevas ${cN} campaña(s); faltan ${30-cN} para una lectura fiable. Evita sacar conclusiones fuertes antes.`:`Con ${cN} campañas la muestra ya es útil para evaluar tu proceso.`;
+      case 'Win Rate · campañas': { const dec=C.wins+C.losses; if(!dec) return ''; const w=C.wins/dec*100; return cN<30?`Win rate de ${pc(w)} sobre ${cN} campaña(s): muestra corta, no concluyas todavía. Fíjate más en si ganas más de lo que pierdes por campaña.`:(w<40?`Win rate de ${pc(w)}: solo es sostenible si tus campañas ganadoras pagan al menos el doble que las perdedoras${C.rr!=null?` (ahora ${t2(C.rr)}:1)`:''}.`:`Win rate de ${pc(w)}: dentro de lo normal; vigila que tu ganancia media por campaña siga superando a la pérdida media.`); }
       case 'Profit Factor': if(C.pf==null) return ''; return C.pf<1?`PF de ${t2(C.pf)}: tus campañas pierden más de lo que ganan. Prioridad: recortar la pérdida media y no promediar en contra.`:C.pf<1.5?`PF de ${t2(C.pf)}: positivo pero con poco margen frente a comisiones. Busca ganadoras más largas o filtra entradas débiles.`:`PF de ${t2(C.pf)}: dentro del rango objetivo. Confirma que se mantiene al sumar campañas.`;
       case 'Expectancy': if(C.exp==null) return ''; return C.exp<=0?`Cada campaña te resta ${fmt$(-C.exp)} de media: no subas el tamaño hasta que sea positiva.`:`Cada campaña deja ${fmt$(C.exp)} de media. Escala el riesgo solo de forma gradual y cuando se sostenga.`;
       case 'RR promedio': if(C.rr==null) return ''; return C.rr<1?`RR de ${t2(C.rr)}:1: ganas menos de lo que pierdes por campaña; con ese RR necesitas acertar más de ${(100/(1+C.rr)).toFixed(0)} % para no perder. Deja correr más las ganadoras o corta antes las perdedoras.`:C.rr<1.5?`RR de ${t2(C.rr)}:1 (punto de equilibrio: ${(100/(1+C.rr)).toFixed(0)} % de acierto). Es ajustado: busca subir la ganancia media.`:`RR de ${t2(C.rr)}:1: te basta acertar ${(100/(1+C.rr)).toFixed(0)} % de las campañas para no perder. Buen margen.`;
@@ -2485,7 +2538,7 @@ function kpiRead(l,scope){
       case 'Volumen · ganadoras / perdedoras': if(X.volW==null||X.volL==null) return ''; return X.volL>X.volW*1.1?`Arriesgas más volumen en las perdedoras (${X.volL.toFixed(2)} vs ${X.volW.toFixed(2)}): reduce el tamaño en ideas que aún no confirman.`:`Tu volumen en perdedoras (${X.volL.toFixed(2)}) no supera al de ganadoras (${X.volW.toFixed(2)}): buen control del riesgo.`;
       case 'Mejor dirección': { const a=X.bySide||[]; if(a.length<2) return a.length?'Solo has operado una dirección: aún no hay con qué comparar.':''; const b=a[0], w=a[a.length-1], nm=k=>k==='BUY'?'compras':k==='SELL'?'ventas':k;
         return w.net<0?`Tus ${nm(b.k)} rinden ${fmt$(b.net)} y tus ${nm(w.k)} pierden ${fmt$(-w.net)}: evalúa operar solo la dirección que te funciona hasta entender por qué falla la otra.`:`Ambas direcciones son rentables (${nm(b.k)} ${fmt$(b.net)} · ${nm(w.k)} ${fmt$(w.net)}): no dependes de una sola.`; }
-      case 'MAE / MFE medio · por campaña': if(m.cAvgMAE==null||m.cAvgMFE==null) return ''; { const a=Math.abs(m.cAvgMAE), f=Math.abs(m.cAvgMFE); return f<a?`Tus ideas van más en contra (${fmt$(a)}) que a favor (${fmt$(f)}): revisa la calidad de las entradas.`:`MFE (${fmt$(f)}) mayor que MAE (${fmt$(a)}): buenas entradas. El siguiente paso es capturar más del MFE al cerrar.`; }
+      case 'MAE / MFE medio · por campaña': if(m.cAvgMAE==null||m.cAvgMFE==null) return ''; { const a=Math.abs(m.cAvgMAE), f=Math.abs(m.cAvgMFE); return f<a?`Tus ideas van más en contra (${fmt$(a)}) que a favor (${fmt$(f)}): revisa la calidad de las entradas.`:f<a*1.5?`MFE (${fmt$(f)}) supera al MAE (${fmt$(a)}), pero aún no llega a 1.5 veces: entradas aceptables. Busca entradas que vayan menos en contra y captura más del MFE al cerrar.`:`MFE (${fmt$(f)}) mayor que MAE (${fmt$(a)}): buenas entradas. El siguiente paso es capturar más del MFE al cerrar.`; }
     } return '';
   }
   switch(l){
@@ -2493,18 +2546,15 @@ function kpiRead(l,scope){
     case 'Win Rate': { const w=D.winPct, p=D.payoff; if(w==null) return ''; if(w<40&&(p==null||p<2)) return `Tu win rate es ${pc(w)} y tu ratio ganancia/pérdida ${p==null?'N/D':t2(p)+':1'}: con win rate bajo necesitas ganar al menos el doble de lo que pierdes. Mejora la selección de entradas o deja correr más las ganadoras.${few}`; if(p!=null&&p<1) return `Aciertas ${pc(w)} de los días, pero tu pérdida media supera a la ganancia media (${t2(p)}:1). Corta antes las pérdidas y no cierres tan pronto las ganadoras.${few}`; return `Win rate de ${pc(w)} con ratio ${p==null?'N/D':t2(p)+':1'}: combinación coherente. Vigila que se mantenga al sumar días.${few}`; }
     case 'Profit Factor': if(D.pf==null) return ''; return (D.pf<1?`PF de ${t2(D.pf)}: pierdes más de lo que ganas. Prioridad: reducir la pérdida media y evitar operaciones fuera de plan.`:D.pf<1.5?`PF de ${t2(D.pf)}: positivo pero con poco margen; comisiones y slippage pueden volverlo negativo. Busca subir la ganancia media o filtrar entradas.`:`PF de ${t2(D.pf)}: dentro del rango objetivo. Confirma que se sostiene al sumar días.`)+few;
     case 'Expectancy': if(D.exp==null) return ''; return (D.exp<=0?`Cada día operado te resta ${fmt$(-D.exp)} de media: no aumentes el tamaño hasta que sea positiva.`:`Cada día operado deja ${fmt$(D.exp)} de media. Escala el riesgo de forma gradual y solo si se sostiene.`)+few;
-    case 'Ganancia media diaria': if(D.avgWin==null||D.avgLossAbs==null) return ''; return D.avgWin<D.avgLossAbs?`Tu ganancia media (${fmt$(D.avgWin)}) es menor que tu pérdida media (${fmt$(D.avgLossAbs)}). Deja correr las ganadoras o reduce el tamaño de las perdedoras.`:`Tu ganancia media (${fmt$(D.avgWin)}) supera a tu pérdida media (${fmt$(D.avgLossAbs)}): buena base. Cuida que no se erosione.`;
+    case 'Ganancia media diaria': if(D.avgWin==null||D.avgLossAbs==null) return ''; return D.avgWin<D.avgLossAbs?`Tu ganancia media (${fmt$(D.avgWin)}) es menor que tu pérdida media (${fmt$(D.avgLossAbs)}). Deja correr las ganadoras o reduce el tamaño de las perdedoras.`:D.avgWin<D.avgLossAbs*1.5?`Tu ganancia media (${fmt$(D.avgWin)}) supera a tu pérdida media (${fmt$(D.avgLossAbs)}), pero aún no llega a 1.5 veces (lo ideal). Busca dejar correr más las ganadoras.`:`Tu ganancia media (${fmt$(D.avgWin)}) supera a tu pérdida media (${fmt$(D.avgLossAbs)}): buena base. Cuida que no se erosione.`;
     case 'Pérdida media diaria': if(D.avgLossAbs==null) return ''; if(limUsd&&D.avgLossAbs>limUsd*0.5) return `Tu pérdida media (${fmt$(D.avgLossAbs)}) ya consume más de la mitad de tu límite diario (${fmt$(limUsd)}). Reduce el riesgo por operación.`; if(D.avgWin!=null&&D.avgLossAbs>D.avgWin) return `Tu pérdida media (${fmt$(D.avgLossAbs)}) es mayor que tu ganancia media (${fmt$(D.avgWin)}): recorta pérdidas antes.`; return `Tu pérdida media (${fmt$(D.avgLossAbs)}) está controlada${limUsd?` frente a tu límite diario (${fmt$(limUsd)})`:''}.`;
     case 'Ganancia/Pérdida diaria': if(D.payoff==null) return ''; return D.payoff<1?`Ratio de ${t2(D.payoff)}:1: pierdes más de lo que ganas por día. Necesitas un win rate muy alto para compensarlo: prioriza cortar pérdidas.`:D.payoff<1.5?`Ratio de ${t2(D.payoff)}:1: ajustado. Subirlo hacia 1.5 o más te da margen frente a comisiones.`:`Ratio de ${t2(D.payoff)}:1: dentro del rango objetivo.`;
     case 'Días operados': return n<20?`Llevas ${n} día(s); faltan ${20-n} para una lectura fiable. No cambies de estrategia por estos datos.`:n<60?`${n} días: lectura aceptable, aún sensible a rachas. Con 60 o más tendrás una muestra mucho más sólida.`:`${n} días: muestra sólida para evaluar tu operativa.`;
     case 'Drawdown Máx.': if(m.maxDDPct==null) return `Tu drawdown máximo es ${fmt$(-m.maxDD)}; no hay capital base para medirlo en %.`; return m.maxDDPct<10?`Drawdown de ${pc(m.maxDDPct)}: dentro del rango objetivo. Mantén el riesgo por operación estable.`:m.maxDDPct<15?`Drawdown de ${pc(m.maxDDPct)}: aceptable pero cerca del límite. Evita subir el tamaño hasta recuperarlo.`:m.maxDDPct<20?`Drawdown de ${pc(m.maxDDPct)}: alto. Reduce el riesgo por operación hasta recuperar capital.`:`Drawdown de ${pc(m.maxDDPct)}: riesgo alto; recuperar exige un rendimiento mucho mayor. Reduce tamaño y revisa tu plan.`;
-    case 'Comisiones pagadas — historial de la cuenta': { if(!m.costsKnown||!m.grossWin) return ''; const c=Math.max(0,-m.commTotal), r=c/m.grossWin*100; return r>30?`Las comisiones se llevan ${r.toFixed(0)} % de tu ganancia bruta (${fmt$(c)} de ${fmt$(m.grossWin)}): reduce la frecuencia o evita operaciones de poco recorrido.`:r>20?`Comisiones: ${r.toFixed(0)} % de tu ganancia bruta. Aceptable, pero vigílalo si aumentas la frecuencia.`:`Comisiones: ${r.toFixed(0)} % de tu ganancia bruta, dentro del rango objetivo.`; }
-    case 'Swap acumulado — historial de la cuenta': { if(!m.costsKnown) return ''; if(m.swapTotal>=0) return `El swap te suma ${fmt$(m.swapTotal)}: no te penaliza.`; if(!m.grossWin) return ''; const r=-m.swapTotal/m.grossWin*100; return r>10?`El swap se lleva ${r.toFixed(0)} % de tu ganancia bruta: revisa cuánto tiempo mantienes posiciones o el sentido en que las mantienes.`:`El swap (${fmt$(m.swapTotal)}) es una parte pequeña de tu ganancia bruta: sin problema por ahora.`; }
+    case 'Comisiones pagadas — historial de la cuenta': { if(!m.costsKnown||!(m.grossProfit>0)) return ''; const c=Math.max(0,-m.commTotal), r=c/m.grossProfit*100; return r>30?`Las comisiones se llevan ${r.toFixed(0)} % de tu ganancia bruta (${fmt$(c)} de ${fmt$(m.grossProfit)}): reduce la frecuencia o evita operaciones de poco recorrido.`:r>20?`Comisiones: ${r.toFixed(0)} % de tu ganancia bruta. Aceptable, pero vigílalo si aumentas la frecuencia.`:`Comisiones: ${r.toFixed(0)} % de tu ganancia bruta, dentro del rango objetivo.`; }
     case 'Sharpe': if(m.sharpe==null) return ''; return (m.sharpe<0.5?`Sharpe de ${t2(m.sharpe)}: resultados inconsistentes día a día. Trabaja la regularidad (tamaño y frecuencia estables).`:m.sharpe<1?`Sharpe de ${t2(m.sharpe)}: en construcción. Busca reducir la dispersión entre tus días.`:`Sharpe de ${t2(m.sharpe)}: dentro del rango objetivo.`)+(m.sharpeProvisional?' Es provisional (menos de 20 días).':'');
-    case 'Posiciones cerradas': return n?`Promedias ${(m.avgTradesDay||0).toFixed(1)} posiciones por día (máximo ${m.maxTradesDay}). Compara tu neto en días de muchas posiciones vs pocas antes de aumentar la frecuencia.`:'';
-    case 'Racha máx. · por posición': return m.mxPL?`Tu peor racha fue de ${m.mxPL} pérdida(s) seguida(s). Comprueba que ese número de pérdidas, a tu riesgo por operación, no supere tu límite de drawdown (${lim} %).`:'';
     case 'Mejor / Peor día': if(worst==null) return ''; if(limUsd&&-worst>limUsd) return `Tu peor día (${fmt$(worst)}) superó tu límite diario (${fmt$(limUsd)}). Revisa qué pasó ese día y respeta el corte.`; if(best!=null&&-worst>best) return `Tu peor día (${fmt$(worst)}) pesa más que tu mejor día (${fmt$(best)}): trabaja limitar las pérdidas extremas.`; return `Tu mejor día (${fmt$(best)}) supera a tu peor (${fmt$(worst)})${limUsd?` y no rompe tu límite diario (${fmt$(limUsd)})`:''}: buen control.`;
-    case 'MAE / MFE medio · por posición': if(m.avgMAE==null||m.avgMFE==null) return ''; { const a=Math.abs(m.avgMAE), f=Math.abs(m.avgMFE); return f<a?`Tus posiciones van más en contra (${fmt$(a)}) que a favor (${fmt$(f)}): revisa la calidad de tus entradas.`:`MFE (${fmt$(f)}) mayor que MAE (${fmt$(a)}): buenas entradas. El siguiente paso es capturar más del MFE al cerrar.`; }
+    case 'MAE / MFE medio · por posición': if(m.avgMAE==null||m.avgMFE==null) return ''; { const a=Math.abs(m.avgMAE), f=Math.abs(m.avgMFE); return f<a?`Tus posiciones van más en contra (${fmt$(a)}) que a favor (${fmt$(f)}): revisa la calidad de tus entradas.`:f<a*1.5?`MFE (${fmt$(f)}) supera al MAE (${fmt$(a)}), pero aún no llega a 1.5 veces: entradas aceptables. Busca entradas que vayan menos en contra y captura más del MFE al cerrar.`:`MFE (${fmt$(f)}) mayor que MAE (${fmt$(a)}): buenas entradas. El siguiente paso es capturar más del MFE al cerrar.`; }
   } return '';
 }
 
@@ -2539,6 +2589,7 @@ document.addEventListener('click',e=>{
 document.addEventListener('pointerdown',e=>{
   ['dd','eq'].forEach(k => {
     const ch = typeof charts !== 'undefined' && charts[k]; if(!ch || e.target === ch.canvas) return;
+    if(k==='eq' && ch.$blink!=null) tlBlinkSet(ch, null);
     const t = ch.tooltip; if(t && t.getActiveElements && t.getActiveElements().length){ ch.setActiveElements([]); t.setActiveElements([], {x:0, y:0}); ch.update('none'); }
   });
 });
@@ -2562,7 +2613,7 @@ function renderKPIs(m, acc) {
       tip:'Neto realizado con comisión y swap. Importa la tendencia a lo largo de muchos días, no un día aislado.'},
     {l:'Win Rate',v:fmtPct(S.winPct),cls:'neu',c:'c',icon:'🎯',sub:`${S.wins} de ${S.dec} días ganadores${S.be?` · ${S.be} Break Even fuera`:''}`,
       tip:'Porcentaje de días ganadores sobre días ganadores + perdedores; los días Break Even (dentro del umbral fijo) no cuentan. Léelo junto a la ganancia/pérdida: puedes ser rentable con win rate bajo si ganas más de lo que pierdes.'},
-    {l:'Profit Factor',v:S.pf==null?'N/D':S.pf.toFixed(2),cls:_cl(S.pf,1.5,1),c:_cc(S.pf,1.5,1),icon:'⚖️',sub:S.pf==null?'N/D':'',
+    {l:'Profit Factor',v:S.pf==null?'N/D':S.pf.toFixed(2),cls:_cl(S.pf,1.5,1),c:_cc(S.pf,1.5,1),icon:'⚖️',sub:S.pf==null?('N/D — '+(S.pfWhy||'datos insuficientes')):'',
       tip:'Referencia: menos de 1 pierde dinero · 1.3 a 1.5 aceptable · más de 2 muy sólido. Con pocos días es inestable.'},
     {l:'Expectancy',v:fmt$(S.exp),cls:S.exp>=0?'pos':'neg',c:S.exp>=0?'g':'r',icon:'🧮',sub:'Neto medio por día operado',
       tip:'Debe ser positiva y mantenerse al sumar más días. Es lo que deja cada día operado en promedio.'},
@@ -2583,13 +2634,13 @@ function renderKPIs(m, acc) {
       tip:'Referencia: las comisiones no deberían superar ~30 % de tu ganancia bruta.'},
     {l:'Swap acumulado — historial de la cuenta',v:nOk?fmt$(m.swapTotal):'N/D',cls:m.swapTotal<0?'neg':'neu',c:m.histTruncated?'w':'c',icon:'🔁',sub:nOk?'':'N/D: la EA no envió swap',
       tip:'Cargo o crédito por mantener posiciones de un día a otro. Si crece en negativo, revisa cuánto tiempo las mantienes.'},
-    {l:'Sharpe',v:fx(m.sharpe),cls:m.sharpe==null?'neu':m.sharpe>=1?'pos':m.sharpe>=0?'warn':'neg',c:m.sharpe==null?'c':m.sharpe>=1?'g':'w',icon:'📐',
+    {l:'Sharpe',v:fx(m.sharpe),cls:m.sharpe==null?'neu':m.sharpe>=1?'pos':m.sharpe>=0?'warn':'neg',c:m.sharpe==null?'c':m.sharpe>=1?'g':m.sharpe>=0?'w':'r',icon:'📐',
       sub:m.sharpe==null?`N/D — ${m.sharpeWhy||'datos insuficientes'}`:(m.sharpeProvisional?'Provisional (menos de 20 días)':''),
       tip:'Referencia: más de 1 es bueno · más de 2 muy sólido · menos de 0.5 indica resultados inconsistentes.'},
     {l:'Posiciones cerradas',v:m.n,cls:'neu',c:'c',icon:'📋',sub:`${m.wins}G / ${m.losses}P / ${m.be}N`,
-      tip:'Es una cantidad, no un resultado. Con scaling in es normal que varias posiciones pequeñas pierdan si una mayor las compensa.'},
+      tip:'Total de posiciones cerradas; debajo, ganadoras / perdedoras / neutras. Es una cantidad, no un resultado: con scaling in es normal que varias pequeñas pierdan si una mayor las compensa.'},
     {l:'Racha máx. · por posición',v:`${m.mxPW}G / ${m.mxPL}P`,cls:'neu',c:'c',icon:'🔗',sub:'',
-      tip:'Con scaling in pierde relevancia. Mira mejor la racha por campaña.'},
+      tip:'Mayor racha seguida de posiciones ganadoras (G) y perdedoras (P). Con scaling in pierde relevancia: una idea se compone de varias posiciones.'},
     {l:'Mejor / Peor día',v:dBest==null?'N/D':`${fmt$(dBest)} / ${fmt$(dWorst)}`,cls:'neu',c:'c',icon:'🗓️',sub:'',
       tip:'Tu peor día no debería acercarse al límite de drawdown diario que configuraste.'},
     {l:'MAE / MFE medio · por posición',v:m.avgMAE==null?'N/D':`${fmt$(-m.avgMAE)} / ${fmt$(m.avgMFE)}`,cls:'neu',c:'c',icon:'↔️',sub:m.excN?`${m.excN} de ${m.n} posiciones`:'N/D',
@@ -2620,13 +2671,15 @@ function renderLevelKPIs(m) {
     kpiGrid('kpiC',[
       {l:'Campañas',v:m.cN,cls:'neu',c:'c',icon:'🧩',sub:`${m.scaledN} con scaling in`,
         tip:'Cada campaña es una idea completa. Con menos de 30 campañas, el resto de métricas son orientativas.'},
+      {l:'Win Rate · campañas',v:fmtPct((C.wins+C.losses)?C.wins/(C.wins+C.losses)*100:null),cls:'neu',c:'c',icon:'🎯',sub:`${C.wins}G / ${C.losses}P · ${C.be} BE`,
+        tip:'Porcentaje de campañas ganadoras sobre ganadoras + perdedoras, una vez por campaña (no por posición). Las que cierran exactamente en 0 (BE) no cuentan. Léelo junto al RR promedio: puedes ser rentable con win rate bajo si ganas más de lo que pierdes.'},
       {l:'Profit Factor',v:fxPF(C.pf),cls:_cl(C.pf,1.5,1),c:_cc(C.pf,1.5,1),icon:'⚖️',sub:C.pf==null?'N/D':'',
         tip:'Referencia: menos de 1 pierde dinero · 1.3 a 1.5 aceptable · más de 2 muy sólido.'},
       {l:'Expectancy',v:fmt$(C.exp),cls:C.exp>=0?'pos':'neg',c:C.exp>=0?'g':'r',icon:'🧮',sub:'Neto medio por campaña',
         tip:'Debe ser positiva y sostenerse al sumar campañas. Es lo que deja cada idea en promedio.'},
       {l:'RR promedio',v:C.rr==null?'N/D':C.rr.toFixed(2)+' : 1',cls:_cl(C.rr,2,1),c:_cc(C.rr,2,1),icon:'📏',
         sub:C.rr==null?'N/D':`${fmt$(C.avgWin)} ganada / ${fmt$(C.avgLoss)} perdida`,
-        tip:'Ganancia media ÷ pérdida media por campaña. Referencia: 1:2 o más es sano.'},
+        tip:'Ganancia media ÷ pérdida media por campaña. Referencia: 2:1 o más es sano.'},
       {l:'Duración · ganadoras / perdedoras',v:pair(X.durW,X.durL,fmtDur),cls:'neu',c:'c',icon:'⏱️',sub:'',
         tip:'Lo sano es que las ganadoras duren igual o más que las perdedoras. Si las perdedoras duran mucho más, puede que estés aguantando pérdidas esperando recuperación.'},
       {l:'Escalones · ganadoras / perdedoras',v:pair(X.posW,X.posL,f2),cls:'neu',c:'c',icon:'🪜',sub:'Posiciones por campaña',
@@ -2732,55 +2785,225 @@ const chartTip = ({chart, tooltip}) => {
 const tipDate = d => { const [y, m, dd] = String(d).split('-').map(Number); if(!y) return d; return dd + ' ' + ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'][m - 1] + (y !== new Date().getFullYear() ? ' ' + y : ''); };
 function dc(id){ if(charts[id]){ if(charts[id].$tipEl) charts[id].$tipEl.remove(); charts[id].destroy();delete charts[id];} }
 
+// ── VENTANA DESLIZABLE · Curva acumulada + Drawdown (siempre sincronizadas) ──────────────────────────────────
+// La ventana solo cambia lo que se VE: la curva sigue siendo el acumulado desde el inicio y el drawdown sigue
+// medido contra el pico histórico completo. Por defecto: últimos 30 días, pegada al último día operado (avanza sola).
+// Teléfono: botones grandes + arrastrar de lado (el scroll vertical de la página sigue libre) + tocar = ver detalle.
+// PC: botones + arrastrar con el mouse + Shift/rueda horizontal para mover + Ctrl+rueda para zoom + flechas/Inicio/Fin
+//     + doble clic para restablecer + minimapa de navegación bajo la curva.
+const RW = {mode:'30', size:0, end:0, n:0, dates:[], eq:[], pinned:true};
+try{ const sv=localStorage.getItem('tl_rw_mode'); if(sv==='30'||sv==='90'||sv==='all') RW.mode=sv; }catch(e){}
+const RW_MIN = 5;
+function rwSizeFor(mode){
+  const n=RW.n; if(mode==='all'||!n) return n;
+  const lim=new Date(RW.dates[n-1]+'T12:00:00').getTime()-((+mode)-1)*864e5;
+  let c=0; for(let i=n-1;i>=0;i--){ if(new Date(RW.dates[i]+'T12:00:00').getTime()>=lim) c++; else break; }
+  return Math.max(Math.min(c,n),Math.min(RW_MIN,n));
+}
+function rwClamp(){
+  RW.size=Math.max(Math.min(RW_MIN,RW.n),Math.min(RW.size,RW.n));
+  RW.end=Math.max(RW.size-1,Math.min(RW.end,RW.n-1));
+  RW.pinned=RW.end>=RW.n-1;
+}
+function rwApply(){
+  rwClamp(); const s=RW.end-RW.size+1, e=RW.end;
+  ['eq','dd'].forEach(k=>{ const c=charts[k]; if(!c) return;
+    c.options.scales.x.min=s; c.options.scales.x.max=e;
+    if(c.tooltip&&c.tooltip.setActiveElements){ c.tooltip.setActiveElements([],{x:0,y:0}); c.setActiveElements([]); }
+    c.update('none'); });
+  rwUpdateUI(s,e);
+}
+function rwSetMode(mode){
+  RW.mode=mode; RW.size=rwSizeFor(mode); RW.end=RW.n-1;
+  try{ localStorage.setItem('tl_rw_mode',mode); }catch(e){}
+  rwApply();
+}
+function rwUpdateUI(s,e){
+  const full=RW.size>=RW.n;
+  let txt;
+  if(full) txt='Todo el historial · '+RW.n+' sesiones';
+  else if(RW.pinned&&(RW.mode==='30'||RW.mode==='90')) txt='Últimos '+RW.mode+' días · '+RW.size+' de '+RW.n+' sesiones';
+  else txt=tipDate(RW.dates[s])+' – '+tipDate(RW.dates[e])+' · '+RW.size+' de '+RW.n+' sesiones';
+  document.querySelectorAll('.rw-bar').forEach(b=>{
+    b.querySelectorAll('.rw-seg button').forEach(x=>x.classList.toggle('on',x.dataset.m===RW.mode));
+    b.querySelector('.rw-info').textContent=txt;
+    b.querySelector('.rw-last').hidden=RW.pinned;
+  });
+  const nav=document.getElementById('rwNav'); if(!nav) return;
+  nav.classList.toggle('off',full);
+  const w=nav.querySelector('.rw-nav-win'), d=Math.max(1,RW.n-1);
+  w.style.left=(s/d*100)+'%'; w.style.width=Math.max(1.5,(e-s)/d*100)+'%';
+}
+function rwDrawNav(){
+  const nav=document.getElementById('rwNav'); if(!nav||RW.n<2) return;
+  const v=RW.eq, mn=Math.min(...v,0), mx=Math.max(...v,0), r=(mx-mn)||1;
+  const pts=v.map((y,i)=>(i/(RW.n-1)*100).toFixed(2)+','+(30-((y-mn)/r*28+1)).toFixed(2)).join(' ');
+  const zero=(30-((0-mn)/r*28+1)).toFixed(2);
+  nav.querySelector('svg').innerHTML='<line x1="0" x2="100" y1="'+zero+'" y2="'+zero+'" stroke="currentColor" stroke-opacity=".25" stroke-width="1" vector-effect="non-scaling-stroke" stroke-dasharray="3 3"/>'
+    +'<polyline points="'+pts+'" fill="none" stroke="currentColor" stroke-opacity=".8" stroke-width="1.5" vector-effect="non-scaling-stroke"/>';
+}
+function rwEnsureUI(){
+  [['equityChart','eq'],['ddChart','dd']].forEach(([id,k])=>{
+    const cv=document.getElementById(id); if(!cv||cv.dataset.rw) return; cv.dataset.rw='1';
+    const bar=document.createElement('div'); bar.className='rw-bar';
+    bar.innerHTML='<div class="rw-seg" role="group" aria-label="Rango visible"><button type="button" data-m="30">30D</button><button type="button" data-m="90">90D</button><button type="button" data-m="all">Todo</button></div><span class="rw-info"></span><button type="button" class="rw-last" hidden>Ir al último día ⏭</button>';
+    cv.parentElement.insertBefore(bar,cv);
+    bar.addEventListener('click',ev=>{
+      const b=ev.target.closest('button'); if(!b) return;
+      if(b.dataset.m) rwSetMode(b.dataset.m); else if(b.classList.contains('rw-last')){ RW.end=RW.n-1; rwApply(); }
+    });
+    // Gestos: el navegador conserva el scroll vertical (pan-y); el desplazamiento horizontal lo maneja el gráfico.
+    cv.style.touchAction='pan-y'; cv.style.cursor='grab'; cv.tabIndex=0; cv.style.outline='none';
+    let drag=null, justMoved=false;
+    cv.addEventListener('pointerdown',e=>{
+      if(e.pointerType==='mouse'&&e.button!==0) return;
+      if(RW.size>=RW.n) return;
+      drag={x:e.clientX,end:RW.end,id:e.pointerId,moved:false};
+    });
+    cv.addEventListener('pointermove',e=>{
+      if(!drag||e.pointerId!==drag.id) return;
+      const c=charts[k]; if(!c) return;
+      const dx=e.clientX-drag.x;
+      if(!drag.moved){ if(Math.abs(dx)<6) return; drag.moved=true; try{cv.setPointerCapture(e.pointerId);}catch(_){} cv.style.cursor='grabbing'; }
+      const step=c.chartArea.width/Math.max(1,RW.size-1), ne=drag.end-Math.round(dx/step);
+      if(ne!==RW.end){ RW.end=ne; rwApply(); }
+    });
+    const endDrag=e=>{ if(!drag||(e&&e.pointerId!==drag.id)) return; if(drag.moved){ justMoved=true; setTimeout(()=>{justMoved=false;},0); } drag=null; cv.style.cursor='grab'; };
+    cv.addEventListener('pointerup',endDrag); cv.addEventListener('pointercancel',endDrag);
+    // Mientras se arrastra (o justo después) no se muestra el globo de detalle.
+    ['mousemove','click'].forEach(t=>cv.addEventListener(t,ev=>{ if((drag&&drag.moved)||justMoved) ev.stopImmediatePropagation(); },true));
+    cv.addEventListener('wheel',e=>{
+      const c=charts[k]; if(!c||RW.n<2) return;
+      if(e.ctrlKey||e.metaKey){            // zoom anclado al cursor
+        e.preventDefault();
+        const a=c.chartArea, rect=cv.getBoundingClientRect();
+        const frac=Math.max(0,Math.min(1,(e.clientX-rect.left-a.left)/Math.max(1,a.width)));
+        const idx=RW.end-RW.size+1+frac*(RW.size-1), f=Math.max(1,Math.round(RW.size*.15));
+        const ns=Math.max(Math.min(RW_MIN,RW.n),Math.min(RW.n,RW.size+(e.deltaY>0?f:-f)));
+        if(ns===RW.size) return;
+        RW.size=ns; RW.end=Math.round(idx-frac*(ns-1))+ns-1; RW.mode=ns>=RW.n?'all':'custom'; rwApply();
+      } else if(e.shiftKey||Math.abs(e.deltaX)>Math.abs(e.deltaY)){   // mover con Shift+rueda o rueda horizontal
+        e.preventDefault();
+        const d=Math.abs(e.deltaX)>Math.abs(e.deltaY)?e.deltaX:e.deltaY, step=c.chartArea.width/Math.max(1,RW.size-1);
+        RW.end+=Math.round(d/step)||Math.sign(d); rwApply();
+      }
+    },{passive:false});
+    cv.addEventListener('keydown',e=>{
+      const big=e.shiftKey?5:1;
+      if(e.key==='ArrowLeft') RW.end-=big; else if(e.key==='ArrowRight') RW.end+=big;
+      else if(e.key==='Home') RW.end=0; else if(e.key==='End') RW.end=RW.n-1; else return;
+      e.preventDefault(); rwApply();
+    });
+    cv.addEventListener('dblclick',()=>rwSetMode('30'));
+    // Minimapa de navegación (solo PC / puntero fino) bajo la curva acumulada.
+    if(k==='eq'){
+      const nav=document.createElement('div'); nav.className='rw-nav'; nav.id='rwNav'; nav.style.color='var(--muted)';
+      nav.innerHTML='<svg viewBox="0 0 100 30" preserveAspectRatio="none"></svg><div class="rw-nav-win"></div>';
+      cv.insertAdjacentElement('afterend',nav);
+      let nd=null;
+      const idxAt=x=>{ const r=nav.getBoundingClientRect(); return Math.round(Math.max(0,Math.min(1,(x-r.left)/r.width))*(RW.n-1)); };
+      nav.addEventListener('pointerdown',e=>{
+        if(RW.size>=RW.n) return;
+        const win=nav.querySelector('.rw-nav-win').getBoundingClientRect();
+        const inside=e.clientX>=win.left&&e.clientX<=win.right;
+        nd={id:e.pointerId,off:inside?idxAt(e.clientX)-RW.end:-Math.round((RW.size-1)/2)};
+        try{nav.setPointerCapture(e.pointerId);}catch(_){}
+        RW.end=idxAt(e.clientX)-nd.off; rwApply();
+      });
+      nav.addEventListener('pointermove',e=>{ if(!nd||e.pointerId!==nd.id) return; RW.end=idxAt(e.clientX)-nd.off; rwApply(); });
+      ['pointerup','pointercancel'].forEach(t=>nav.addEventListener(t,()=>{nd=null;}));
+    }
+  });
+}
+function rwInit(m,sessions){
+  const n=Math.min(m.equity.length,(m.ddPoints||[]).length); if(n<1) return;
+  const wasPinned=!RW.n||RW.pinned;
+  RW.n=n; RW.dates=sessions.map(s=>s.date); RW.eq=m.equity;
+  if(RW.mode!=='custom') RW.size=rwSizeFor(RW.mode); else if(!RW.size) RW.size=n;
+  RW.end=wasPinned?n-1:RW.end;
+  rwEnsureUI(); rwDrawNav(); rwApply();
+}
+
+// Cursor punteado de Curva acumulada y Drawdown: gris OPACO, el mismo de los números de los ejes (antes era semitransparente y
+// se teñía de verde/rojo al mezclarse con el relleno de la gráfica).
+const tlCursorColor = () => document.body.classList.contains('light') ? '#3a5a7a' : '#c0d4e0';
+function tlDrawCursor(chart){
+  if(chart.$mirror) return;   // en la gráfica espejo solo se muestra el globo, sin línea punteada
+  const t=chart.tooltip; if(!t||!t.getActiveElements||!t.getActiveElements().length) return;
+  const el=t.getActiveElements()[0].element, x=el.x, a=chart.chartArea, ctx=chart.ctx;
+  // La línea va solo desde el borde del punto hacia abajo (hasta el eje): no sube por encima del punto ni lo atraviesa.
+  const y0=Math.max(a.top,Math.min(a.bottom,el.y+6));   // 6 = radio del punto activo (pointHoverRadius)
+  if(y0>=a.bottom) return;
+  ctx.save(); ctx.beginPath(); ctx.moveTo(x,y0); ctx.lineTo(x,a.bottom); ctx.lineWidth=1; ctx.setLineDash([4,3]);
+  ctx.strokeStyle=tlCursorColor(); ctx.globalAlpha=1; ctx.stroke(); ctx.restore();
+}
+// Sincronía Curva acumulada ⇄ Drawdown: al pasar/tocar un día en una gráfica, la otra muestra el globo de ESE día (sin línea punteada).
+// Ambas comparten índice (rwInit usa el mismo n y el mismo orden de días).
+// Curva acumulada como destino (el mouse está en Drawdown): sin globo, solo el punto del día parpadea.
+function tlBlinkSet(chart, idx){
+  if(idx==null){ chart.$blink=null; if(chart.canvas) chart.draw(); return; }
+  chart.$blink=idx;
+  if(chart.$blinkRaf) return;
+  const loop=()=>{
+    if(chart.$blink==null||!chart.canvas||charts.eq!==chart){ chart.$blinkRaf=0; return; }
+    chart.draw(); chart.$blinkRaf=requestAnimationFrame(loop);
+  };
+  chart.$blinkRaf=requestAnimationFrame(loop);
+}
+function tlMirrorTo(other, idx){
+  if(!other) return;
+  if(other===charts.eq){ tlBlinkSet(other, idx); return; }
+  if(idx==null){
+    if(other.$mirror){ other.$mirror=false; other.setActiveElements([]); if(other.tooltip) other.tooltip.setActiveElements([],{x:0,y:0}); other.update('none'); }
+    return;
+  }
+  const meta=other.getDatasetMeta(0), el=meta&&meta.data&&meta.data[idx];
+  if(!el) return;
+  const act=[{datasetIndex:0,index:idx}];
+  other.$mirror=true;
+  other.setActiveElements(act);
+  if(other.tooltip) other.tooltip.setActiveElements(act,{x:el.x,y:el.y});
+  other.update('none');
+}
+const tlSync = key => ({id:'tlSync_'+key, afterEvent(chart,args){
+  const other=charts[key==='eq'?'dd':'eq'], e=args.event;
+  chart.$mirror=false;   // el evento real de esta gráfica manda sobre cualquier espejo
+  if(!e||e.type==='mouseout'||args.inChartArea===false){ tlMirrorTo(other,null); return; }
+  const it=chart.options.interaction||{};
+  const hit=chart.getElementsAtEventForMode(e,it.mode||'index',{intersect:false,axis:'x'},true);
+  tlMirrorTo(other, hit&&hit.length?hit[0].index:null);
+}});
+
 function renderCharts(m, sessions) {
   // EQUITY
   dc('eq');
   // Build per-point daily gain data (difference between consecutive equity points)
   const equityDailyGain = m.equity.map((v,i) => i===0 ? v : +(v - m.equity[i-1]).toFixed(2));
 
-  // Build projection (30/60/90 days dotted)
-  const sessPerDay = sessions.length > 0 ? (() => {
-    const dates = [...new Set(sessions.map(s=>s.date))];
-    return sessions.length / Math.max(dates.length, 1);
-  })() : 1;
-  const lastEquity = m.equity.length ? m.equity[m.equity.length - 1] : 0;
-  const proj30 = lastEquity + m.exp * m.tpd * 30;
-  const proj60 = lastEquity + m.exp * m.tpd * 60;
-  const proj90 = lastEquity + m.exp * m.tpd * 90;
-  // Build projection dataset: starts at last real equity point
   const histLen = m.equity.length;
-  const projLabels = ['30d','60d','90d'];
-  const projVals = [proj30, proj60, proj90];
-  const projData = new Array(histLen - 1).fill(null).concat([lastEquity, proj30, null, null]);
-  const projData60 = new Array(histLen - 1).fill(null).concat([lastEquity, null, proj60, null]);
-  const projData90 = new Array(histLen - 1).fill(null).concat([lastEquity, null, null, proj90]);
-  // Use 3 extra label slots for projections
   const equityLabels = sessions.map((_,i)=>{const d=new Date(sessions[i].date+'T12:00:00');return (d.getMonth()+1)+'/'+(d.getDate());});
-  const extLabels = [...equityLabels, '+30d', '+60d', '+90d'];
 
   // Cursor vertical punteado (misma lógica visual que el Drawdown): marca el punto activo al deslizar/tocar.
-  const eqCursor={id:'eqCursor',afterDatasetsDraw(chart){
-    const t=chart.tooltip; if(!t||!t.getActiveElements||!t.getActiveElements().length) return;
-    const x=t.getActiveElements()[0].element.x, a=chart.chartArea, ctx=chart.ctx;
-    ctx.save(); ctx.beginPath(); ctx.moveTo(x,a.top); ctx.lineTo(x,a.bottom); ctx.lineWidth=1; ctx.setLineDash([4,3]);
-    ctx.strokeStyle=document.body.classList.contains('light')?'rgba(10,26,42,0.45)':'rgba(192,212,224,0.5)'; ctx.stroke(); ctx.restore();
+  const eqCursor={id:'eqCursor',afterDatasetsDraw(chart){ tlDrawCursor(chart);
+    // Punto parpadeante del día que se señala desde Drawdown.
+    const b=chart.$blink; if(b==null) return;
+    const el=chart.getDatasetMeta(0).data[b], a=chart.chartArea; if(!el||el.x<a.left-0.5||el.x>a.right+0.5) return;
+    const ctx=chart.ctx; ctx.save();
+    ctx.globalAlpha=0.25+0.75*(0.5+0.5*Math.sin(Date.now()/170));
+    ctx.beginPath(); ctx.arc(el.x,el.y,6,0,Math.PI*2); ctx.fillStyle=eqLine; ctx.fill(); ctx.restore();
   }};
   // Curva realizada en blanco (en tema claro se mantiene el cian original: blanco sobre fondo claro no se vería).
   const eqLine=document.body.classList.contains('light')?'#00e5ff':'rgba(255,255,255,0.8)';
   charts['eq']=new Chart(document.getElementById('equityChart'),{
     type:'line',
-    data:{labels: extLabels,
+    data:{labels: equityLabels,
       datasets:[
-        {label:'Realizado acum.',data:[...m.equity, null, null, null],borderColor:eqLine,backgroundColor:'rgba(0,255,136,0.18)',borderWidth:2,tension:.4,fill:{target:'origin',above:'rgba(0,255,136,0.18)',below:'rgba(255,51,85,0.22)'},pointRadius:2.2,pointHoverRadius:6,pointBackgroundColor:eqLine,pointBorderColor:eqLine},
-        {label:'+30d',data:new Array(histLen).fill(null).concat([proj30,null,null]),borderColor:'rgba(181,123,255,0.8)',backgroundColor:'transparent',borderDash:[6,4],tension:0,pointRadius:6,pointHoverRadius:8,pointBackgroundColor:'rgba(181,123,255,0.8)',borderWidth:2},
-        {label:'+60d',data:new Array(histLen).fill(null).concat([null,proj60,null]),borderColor:'rgba(181,123,255,0.6)',backgroundColor:'transparent',borderDash:[6,4],tension:0,pointRadius:6,pointHoverRadius:8,pointBackgroundColor:'rgba(181,123,255,0.6)',borderWidth:2},
-        {label:'+90d',data:new Array(histLen).fill(null).concat([null,null,proj90]),borderColor:'rgba(181,123,255,0.4)',backgroundColor:'transparent',borderDash:[6,4],tension:0,pointRadius:6,pointHoverRadius:8,pointBackgroundColor:'rgba(181,123,255,0.4)',borderWidth:2},
-        // Connector line from last real point to projections
-        {label:'',data:new Array(histLen - 1).fill(null).concat([lastEquity,proj30,proj60,proj90]),borderColor:'rgba(181,123,255,0.35)',backgroundColor:'transparent',borderDash:[3,5],tension:0,pointRadius:0,borderWidth:1},
+        {label:'Realizado acum.',data:[...m.equity],borderColor:eqLine,backgroundColor:'rgba(0,255,136,0.14)',borderWidth:2,tension:.4,fill:{target:'origin',above:'rgba(0,255,136,0.14)',below:'rgba(255,51,85,0.14)'},pointRadius:2.2,pointHoverRadius:6,pointBackgroundColor:eqLine,pointBorderColor:eqLine},
       ]
     },
     options:{
       ...cOpts(v=>'$'+mny(v,0)),
+      events:['mousemove','mouseout','click'],
       interaction:{mode:'index',axis:'x',intersect:false},
       plugins:{
         legend:{display:true, labels:{color:'#c0d4e0',font:{size:9,family:'ZeroPlain, Inter, IBM Plex Mono'},filter:(item)=>item.text!=='',generateLabels:(ch)=>Chart.defaults.plugins.legend.labels.generateLabels(ch).map(l=>l.datasetIndex===0?{...l,fillStyle:'transparent'}:l)}},
@@ -2789,13 +3012,11 @@ function renderCharts(m, sessions) {
             title: ctx => {
               const i = ctx[0].dataIndex;
               const s = sessions[i];
-              if(i >= histLen) return extLabels[i];
               return s ? tipDate(s.date) : ctx[0].label;
             },
             label: ctx => {
               const i = ctx.dataIndex;
               if(ctx.dataset.label === '') return null;
-              if(i >= histLen) return ` Proyección: $${ctx.parsed.y == null ? '—' : mny(ctx.parsed.y)}`;
               const cumVal = ctx.parsed.y;
               const dailyGain = equityDailyGain[i];
               if(cumVal === null || dailyGain === undefined) return null;
@@ -2820,7 +3041,7 @@ function renderCharts(m, sessions) {
       responsive:true,
       animation:{duration:600}
     },
-    plugins:[eqCursor]
+    plugins:[eqCursor,tlSync('eq')]
   });
 
   // DRAWDOWN — serie de resultados REALIZADOS (netos de costes) al cierre de cada día operado.
@@ -2828,18 +3049,14 @@ function renderCharts(m, sessions) {
   const ddPts=m.ddPoints;
   dc('dd');
   const ddLight=document.body.classList.contains('light');
-  const ddCursor={id:'ddCursor',afterDatasetsDraw(chart){
-    const t=chart.tooltip; if(!t||!t.getActiveElements||!t.getActiveElements().length) return;
-    const x=t.getActiveElements()[0].element.x, a=chart.chartArea, ctx=chart.ctx;
-    ctx.save(); ctx.beginPath(); ctx.moveTo(x,a.top); ctx.lineTo(x,a.bottom); ctx.lineWidth=1; ctx.setLineDash([4,3]);
-    ctx.strokeStyle=ddLight?'rgba(10,26,42,0.45)':'rgba(192,212,224,0.5)'; ctx.stroke(); ctx.restore();
-  }};
+  const ddCursor={id:'ddCursor',afterDatasetsDraw(chart){ tlDrawCursor(chart); }};
   charts['dd']=new Chart(document.getElementById('ddChart'),{
     type:'line',
     data:{labels:ddPts.map(q=>{const d=new Date(q.date+'T12:00:00');return (d.getMonth()+1)+'/'+d.getDate();}),
-      datasets:[{label:'Drawdown',data:ddPts.map(q=>-q.dd),borderColor:'rgba(255,51,85,0.8)',backgroundColor:'rgba(255,51,85,0.08)',borderWidth:2,tension:0,fill:true,
+      datasets:[{label:'Drawdown',data:ddPts.map(q=>-q.dd),borderColor:'rgba(255,51,85,0.8)',backgroundColor:'rgba(255,51,85,0.14)',borderWidth:2,tension:0,fill:true,
         pointRadius:2.2,pointHoverRadius:6,pointHitRadius:14,pointBackgroundColor:'rgba(255,51,85,0.9)'}]},
     options:{...cOpts(v=>'$'+mny(v,0)),responsive:true,
+      events:['mousemove','mouseout','click'],
       interaction:{mode:'nearest',axis:'x',intersect:false},
       plugins:{legend:{display:false},tooltip:{
         callbacks:{
@@ -2852,28 +3069,29 @@ function renderCharts(m, sessions) {
         backgroundColor:ddLight?'rgba(240,244,248,0.97)':'rgba(8,13,18,0.95)',borderColor:ddLight?'rgba(0,119,170,0.4)':'rgba(0,229,255,0.4)',borderWidth:1,
         titleColor:ddLight?'#0a1a2a':'#c0d4e0',bodyColor:ddLight?'#0a1a2a':'#ddeeff',padding:10,displayColors:false,enabled:false,external:chartTip}},
       animation:{duration:600}},
-    plugins:[ddCursor]
+    plugins:[ddCursor,tlSync('dd')]
   });
+  rwInit(m, sessions);   // ventana deslizable sincronizada (curva acumulada + drawdown)
 
   // PROGRESS BARS
   const progs=[
-    {l:'Win Rate (diario)',v:m.D.winPct==null?0:m.D.winPct,max:100,c:'c',fv:v=>fmtPct(v),
-     info:'Porcentaje de días ganadores sobre días ganadores + perdedores (X de Y días); los días Break Even no cuentan. Es una proporción, no un P/L: un 21 % no es «−21 %». No cuenta posiciones.',
+    {l:'Win Rate (diario)',v:m.D.winPct==null?0:m.D.winPct,max:100,c:'c',fv:_=>fmtPct(m.D.winPct),
+     info:'Porcentaje de días ganadores sobre días ganadores + perdedores (X de Y días); los días Break Even no cuentan. Es una proporción, no un P/L: un 21 % no es «−21 %». No cuenta posiciones. N/D si no hay días ganadores ni perdedores.',
      rec:'Léelo junto con la relación ganancia/pérdida diaria y la expectancy diaria: un win rate diario bajo puede ser coherente con ganancias medias mayores que las pérdidas.'},
     {l:'Profit Factor (diario)',v:Math.min(m.D.pf==null?0:m.D.pf,5),max:5,c:'c',fv:_=>m.D.pf==null?'N/D':m.D.pf.toFixed(2),
      info:'Suma de los netos de los días ganadores dividida entre el valor absoluto de la suma de los netos de los días perdedores. N/D si no hay días perdedores.',
-     rec:'Por encima de 1.0 los días ganadores superan en total a los perdedores en este periodo. Con pocos días la cifra es poco estable.'},
-    {l:'Relación ganancia/pérdida (diaria)',v:Math.min(m.D.payoff==null?0:m.D.payoff,5),max:5,c:m.D.payoff>=2?'g':m.D.payoff>=1?'w':'r',fv:_=>m.D.payoff==null?'N/D':m.D.payoff.toFixed(2)+':1',
-     info:'Ganancia media de los días ganadores dividida entre la pérdida media absoluta de los días perdedores. No es un RR por operación: no usa el riesgo inicial de cada posición.',
-     rec:'Se interpreta junto con el win rate diario: ambos determinan la expectancy diaria.'},
-    {l:'Sharpe (diario)',v:Math.max(0,Math.min(m.sharpe==null?0:m.sharpe,3)),max:3,c:m.sharpe>=1?'g':'w',fv:_=>m.sharpe==null?'N/D':fx(m.sharpe),
+     rec:'Menos de 1.0 pierdes dinero. 1.5 o más es el objetivo; 2.0 o más, muy sólido. Con pocos días es inestable.'},
+    {l:'Relación ganancia/pérdida (diaria)',v:Math.min(m.D.payoff==null?0:m.D.payoff,5),max:5,c:m.D.payoff==null?'c':m.D.payoff>=2?'g':m.D.payoff>=1?'w':'r',fv:_=>m.D.payoff==null?'N/D':m.D.payoff.toFixed(2)+':1',
+     info:'Ganancia media de los días ganadores dividida entre la pérdida media absoluta de los días perdedores. No es un RR por operación: no usa el riesgo inicial de cada posición. N/D si falta algún día ganador o perdedor.',
+     rec:'2:1 o más es sólido; por debajo de 1:1 necesitas un win rate alto. Léelo junto al win rate diario.'},
+    {l:'Sharpe (diario)',v:Math.max(0,Math.min(m.sharpe==null?0:m.sharpe,3)),max:3,c:m.sharpe==null?'c':m.sharpe>=1?'g':m.sharpe>=0?'w':'r',fv:_=>m.sharpe==null?'N/D':fx(m.sharpe),
      info:'Sharpe diario: retorno neto de cada día operado sobre el capital al inicio del día (σ muestral, rf=0), anualizado con √252 suponiendo 252 sesiones/año sobre días operados. No usa posiciones individuales. N/D si hay menos de 2 días, σ=0 o falta base de capital.',
-     rec:'Por encima de 1.0 es bueno. Por encima de 2.0 es muy sólido. Menos de 0.5 indica resultados inconsistentes.'},
+     rec:'Por encima de 1.0 es bueno. Por encima de 2.0 es muy sólido. Menos de 0.5 indica resultados inconsistentes. Es provisional con menos de 20 días.'},
     {l:'Recovery Factor (curva diaria)',v:Math.max(0,Math.min(m.rf==null?0:m.rf,10)),max:10,c:m.rf>=3?'g':'c',fv:_=>fx(m.rf),
-     info:'P&L neto realizado dividido entre el máximo drawdown de la MISMA curva de resultados realizados diaria.',
-     rec:'Por encima de 1.0 el sistema se recupera. Lo saludable es ≥ 3.0. Por encima de 5.0 es excelente.'},
-    {l:'Expectancy (diaria)',v:Math.max(0,m.D.exp),max:Math.max(Math.abs(m.D.exp)||1,1),c:m.D.exp>=0?'g':'r',fv:_=>fmt$(m.D.exp),
-     info:'Neto medio por día operado (incluye días ganadores, perdedores y neutros), en la moneda de la cuenta.',
+     info:'P&L neto realizado dividido entre el máximo drawdown de la MISMA curva de resultados realizados diaria. N/D si la curva nunca tuvo caída.',
+     rec:'Por encima de 1.0 tu ganancia ya supera tu peor caída. 3.0 o más es saludable; 5.0 o más, excelente.'},
+    {l:'Expectancy (diaria)',v:(m.D.avgWin>0)?Math.max(0,Math.min(m.D.exp/m.D.avgWin,1)):0,max:1,c:m.D.exp>=0?'g':'r',fv:_=>fmt$(m.D.exp),
+     info:'Neto medio por día operado (incluye días ganadores, perdedores y neutros), en la moneda de la cuenta. La barra muestra qué fracción de la ganancia media de un día ganador deja cada día operado.',
      rec:'Positiva = en promedio cada día operado dejó ganancia neta en este periodo. Con pocos días es solo descriptiva.'},
   ];
   document.getElementById('progBars').innerHTML=progs.map(p=>`
@@ -2972,18 +3190,58 @@ function renderCharts(m, sessions) {
     plugins:[doughnutLabelPlugin]
   });
 
-  // P&L POR DÍA DE LA SEMANA — solo la semana actual (Dom→Sáb, igual que el calendario).
-  // Un día sin operaciones queda sin dato (se dibuja "—"); nunca se rellena con semanas anteriores.
-  const dayNames7=['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
-  const td=new Date(todayStr()+'T12:00:00');
-  const wkStart=new Date(td); wkStart.setDate(td.getDate()-td.getDay());
-  const wkDates=[...Array(7)].map((_,i)=>{const d=new Date(wkStart); d.setDate(wkStart.getDate()+i); return ymd(d);});
-  const byDate={}; sessions.forEach(s=>{ byDate[s.date]=s.netPnl; });
+  _weekDays = sessions;
+  renderWeekly();
+
+  _monthDays = sessions;
+  renderMonthly();
+}
+
+// ── P&L POR DÍA DE LA SEMANA (Dom→Sáb, igual que el calendario) ─────────────────
+// Por defecto muestra la semana actual y sigue al calendario real. Con ‹ › se navega a semanas anteriores con actividad
+// (hasta la última semana operada) y de vuelta hasta la actual; nunca hay semanas futuras. Mejor/peor día = de la semana vista.
+// Un día sin operaciones queda sin dato (se dibuja "—"); nunca se rellena con otras semanas.
+let _weekDays = [];
+let _weekStart = null; // null = semana actual (sigue al calendario real); 'YYYY-MM-DD' (domingo) = semana consultada
+const WK_DAY_NAMES=['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+function _wkStartOf(dateStr){ const d=new Date(dateStr+'T12:00:00'); d.setDate(d.getDate()-d.getDay()); return ymd(d); }
+function _wkActive(){ const cur=_wkStartOf(todayStr()); return [...new Set(_weekDays.map(d=>_wkStartOf(d.date)).filter(w=>w<=cur))].sort(); }
+function weekNav(delta){
+  const curStart=_wkStartOf(todayStr()), viewStart=_weekStart??curStart, weeks=_wkActive();
+  let target=null;
+  if(delta<0) target=[...weeks].reverse().find(w=>w<viewStart)??null;          // semana anterior con actividad
+  else if(viewStart<curStart) target=weeks.find(w=>w>viewStart&&w<curStart)??curStart;   // siguiente con actividad o la actual; nunca futuro
+  if(target==null) return;
+  _weekStart = target>=curStart ? null : target;
+  renderWeekly();
+}
+function renderWeekly(){
+  const curStart=_wkStartOf(todayStr());
+  if(_weekStart!=null && _weekStart>=curStart) _weekStart=null;
+  const viewStart=_weekStart??curStart, isCur=_weekStart==null;
+  const wkDates=[...Array(7)].map((_,i)=>{const d=new Date(viewStart+'T12:00:00'); d.setDate(d.getDate()+i); return ymd(d);});
+  const byDate={}; _weekDays.forEach(s=>{ byDate[s.date]=+((byDate[s.date]||0)+s.netPnl).toFixed(2); });
   // Lun–Vie siempre; Dom/Sáb solo si ese día tiene operaciones.
   const wkIdx=[0,1,2,3,4,5,6].filter(i=>(i>=1&&i<=5)||byDate[wkDates[i]]!==undefined);
   const weekVals=wkIdx.map(i=>byDate[wkDates[i]]===undefined?null:byDate[wkDates[i]]);
-  const wkT=document.getElementById('dayChartTitle');
-  if(wkT) wkT.textContent=`P&L por Día — Semana Actual (${wkDates[wkIdx[0]].slice(5).split('-').reverse().join('/')} – ${wkDates[wkIdx[wkIdx.length-1]].slice(5).split('-').reverse().join('/')})`;
+  const fd=d=>d.slice(5).split('-').reverse().join('/');
+  const wkT=document.getElementById('dayChartTitle'); if(wkT) wkT.textContent=isCur?'P&L por Día — Semana Actual':'P&L por Día — Semana';
+  const wl=document.getElementById('weekLabel'); if(wl) wl.textContent=fd(wkDates[wkIdx[0]])+' – '+fd(wkDates[wkIdx[wkIdx.length-1]]);
+  const weeks=_wkActive(), canPrev=weeks.some(w=>w<viewStart), canNext=viewStart<curStart;
+  const pb=document.getElementById('weekPrevBtn'), nb=document.getElementById('weekNextBtn');
+  if(pb){ pb.disabled=!canPrev; pb.style.opacity=canPrev?'':'.35'; pb.style.cursor=canPrev?'':'default'; }
+  if(nb){ nb.disabled=!canNext; nb.style.opacity=canNext?'':'.35'; nb.style.cursor=canNext?'':'default'; }
+  // Mejor / peor día operado de ESTA semana (no el resultado general).
+  const ops=wkIdx.map((i,k)=>({n:WK_DAY_NAMES[i]+' '+wkDates[i].slice(8),v:weekVals[k]})).filter(o=>o.v!==null);
+  const fmtDay=(o)=>`<span style="color:${o.v>=0?'var(--green)':'var(--red)'}">${o.n} (${o.v>=0?'+':'-'}$${mny(Math.abs(o.v))})</span>`;
+  const bd=document.getElementById('weekBestDay'), wd=document.getElementById('weekWorstDay');
+  if(bd&&wd){
+    if(ops.length>=2){
+      const best=ops.reduce((a,b)=>b.v>a.v?b:a), worst=ops.reduce((a,b)=>b.v<a.v?b:a);
+      bd.innerHTML='Mejor día: '+fmtDay(best); wd.innerHTML='Peor día: '+fmtDay(worst);
+    } else if(ops.length===1){ bd.innerHTML='Único día operado: '+fmtDay(ops[0]); wd.innerHTML=''; }
+    else { bd.innerHTML=''; wd.innerHTML=''; }
+  }
   const noDataPlugin={id:'noData',afterDatasetsDraw(chart){
     const {ctx,scales:{x,y}}=chart; ctx.save(); ctx.fillStyle=document.body.classList.contains('light')?'#3a5a7a':'#c0d4e0';
     ctx.font='12px "ZeroPlain", "Inter", "IBM Plex Mono"'; ctx.textAlign='center'; ctx.textBaseline='middle';
@@ -2992,16 +3250,13 @@ function renderCharts(m, sessions) {
   dc('day');
   charts['day']=new Chart(document.getElementById('dayChart'),{
     type:'bar',
-    data:{labels:wkIdx.map(i=>dayNames7[i]+' '+wkDates[i].slice(8)),
+    data:{labels:wkIdx.map(i=>WK_DAY_NAMES[i]+' '+wkDates[i].slice(8)),
       datasets:[{data:weekVals,backgroundColor:weekVals.map(v=>v>=0?'rgba(0,229,255,0.55)':'rgba(255,51,85,0.75)'),borderColor:weekVals.map(v=>v>=0?'rgba(0,229,255,0.55)':'rgba(255,51,85,1)'),borderWidth:1,borderRadius:6}]},
     options:{...cOpts(v=>'$'+mny(v,0)),responsive:true,plugins:{legend:{display:false},
         tooltip:{callbacks:{label:c=>c.parsed.y===null?' Sin operaciones':` Neto del día: ${fmt$(c.parsed.y)}`}}},
       scales:{x:{...cOpts().scales.x,grid:{display:false}},y:cOpts(v=>'$'+mny(v,0)).scales.y},animation:{duration:600}},
     plugins:[noDataPlugin]
   });
-
-  _monthDays = sessions;
-  renderMonthly();
 }
 
 // ── RENDIMIENTO MENSUAL (por año, solo meses operados) ─────────────────────────
@@ -3158,7 +3413,7 @@ function _renderCalendarForMonth(sessions, year, month) {
   const neutralDays = tradingDays - greenDays - redDays;
   // Consistencia = verdes / (verdes + rojos). Los días Break Even (dentro del umbral fijo) no cuentan.
   const decisiveDays = greenDays + redDays;
-  const consistencyPct = decisiveDays > 0 ? (greenDays / decisiveDays * 100).toFixed(0) : 0;
+  const consistencyPct = decisiveDays > 0 ? (greenDays / decisiveDays * 100).toFixed(0) : null;   // null = N/D (no hay días ganadores ni perdedores)
   const monthPnl = monthUnits.reduce((a,s) => a + s.netPnl, 0);
 
   // Business days in month (Mon-Fri)
@@ -3171,7 +3426,7 @@ function _renderCalendarForMonth(sessions, year, month) {
 
   const consEl = document.getElementById('calConsistency');
   if(consEl) {
-    const consColor = consistencyPct >= 60 ? 'var(--green)' : consistencyPct >= 40 ? 'var(--warn)' : 'var(--red)';
+    const consColor = consistencyPct == null ? 'var(--muted)' : consistencyPct >= 60 ? 'var(--green)' : consistencyPct >= 40 ? 'var(--warn)' : 'var(--red)';
     consEl.innerHTML = `
       <div class="cal-cons-item">
         <div class="cal-cons-l">Días Operados</div>
@@ -3191,7 +3446,7 @@ function _renderCalendarForMonth(sessions, year, month) {
       </div>
       <div class="cal-cons-item">
         <div class="cal-cons-l">Consistencia</div>
-        <div class="cal-cons-v" style="color:${consColor}">${consistencyPct}%</div>
+        <div class="cal-cons-v" style="color:${consColor}">${consistencyPct==null?'N/D':consistencyPct+'%'}</div>
       </div>
       <div class="cal-cons-item">
         <div class="cal-cons-l">P&L del Mes</div>
@@ -3367,7 +3622,7 @@ function renderRiskScaling(balanceOverride) {
   const curr = levels[activeIdx];
   const next = levels[nextIdx];
   const progress = activeIdx === nextIdx ? 100
-    : Math.min(100, ((balance - curr.target) / (next.target - curr.target)) * 100);
+    : Math.max(0, Math.min(100, ((balance - curr.target) / (next.target - curr.target)) * 100));
   const needed = Math.max(0, next.target - balance);
 
   document.getElementById('riskLevels').innerHTML = levels.map((l, i) => {
@@ -3384,11 +3639,23 @@ function renderRiskScaling(balanceOverride) {
   document.getElementById('riskProgLabel').textContent =
     `Nivel ${activeIdx+1} → Nivel ${nextIdx+1} | Balance actual: $${mny(balance)}`;
 
+  // Piso del Nivel 1 + freno de drawdown (solo Nivel 1: en niveles superiores, caer bajo el objetivo ya baja de nivel)
+  const brakePct = 15;   // % de caída bajo el objetivo del nivel que activa el freno
+  const brakeLimit = +(curr.target * (1 - brakePct / 100)).toFixed(2);
+  const braking = activeIdx === 0 && balance < brakeLimit;
+  const riskNow = braking ? +(curr.riskAmt / 2).toFixed(2) : curr.riskAmt;
+  const riskPctNow = braking ? +(riskPct / 2).toFixed(2) : riskPct;
+  const floorTxt = activeIdx === 0
+    ? (braking
+        ? `🛑 <strong>Freno de drawdown activo:</strong> tu balance está más de ${brakePct}% por debajo de $${mny(curr.target)}. Reduce el riesgo a la mitad (<strong>$${mny(riskNow)}/trade</strong>) hasta recuperar $${mny(brakeLimit)}.`
+        : `Estás en el <strong>Nivel 1</strong>, el piso del plan: si el balance baja de $${mny(curr.target)}, tu riesgo se mantiene en <strong>$${mny(curr.riskAmt)}/trade</strong>. Solo si cae más de ${brakePct}% (por debajo de $${mny(brakeLimit)}) se reduce a la mitad.`)
+    : `Si caes por debajo de $${mny(curr.target)}, vuelves al riesgo del Nivel ${activeIdx} (<strong>$${mny(levels[activeIdx-1].riskAmt)}/trade</strong>).`;
+
   const tip = activeIdx === nextIdx
     ? `<strong>🏆 ¡Máximo nivel alcanzado!</strong> Tu capital está en $${mny(balance)}. Sigue ejecutando con disciplina.`
-    : `<strong>Nivel actual: ${activeIdx+1}</strong> — Riesgo por trade: <strong>$${mny(curr.riskAmt)}</strong> (${riskPct}% de $${mny(curr.target)})<br>
+    : `<strong>Nivel actual: ${activeIdx+1}</strong> — Riesgo por trade: <strong>$${mny(riskNow)}</strong> (${riskPctNow}% de $${mny(curr.target)})<br>
        Para subir al Nivel ${nextIdx+1} necesitas <strong>$${mny(needed)} más</strong> → llegarás a $${mny(next.target)} y podrás arriesgar <strong>$${mny(next.riskAmt)}/trade</strong>.<br>
-       <span style="color:var(--muted);font-size:11px;">⚙️ El umbral del ${threshold}% garantiza que subas solo cuando el crecimiento es real, no por suerte. Si caes por debajo de $${mny(curr.target)}, vuelves al riesgo del Nivel ${activeIdx+1}.</span>`;
+       <span style="color:var(--muted);font-size:11px;">⚙️ El umbral del ${threshold}% garantiza que subas solo cuando el crecimiento es real, no por suerte. ${floorTxt}</span>`;
   document.getElementById('riskNextTip').innerHTML = tip;
 
   // ── Detectar subida de nivel y notificar
@@ -5129,11 +5396,11 @@ function renderCoach(m, days, balance, deposit, campaigns) {
   const bal = balance || dep;
   const factor = 1 + thresh/100;
   let lvl=0, lvlTarget=dep;
-  while(bal >= lvlTarget * factor) { lvl++; lvlTarget*=factor; }
+  while(lvl < 5 && bal >= lvlTarget * factor) { lvl++; lvlTarget*=factor; }   // máximo 6 niveles, igual que Risk Scaling
   const nextTarget = lvlTarget * factor;
-  const pctToNext = ((bal - lvlTarget)/(nextTarget - lvlTarget)*100).toFixed(1);
+  const pctToNext = Math.max(0, Math.min(100, (bal - lvlTarget)/(nextTarget - lvlTarget)*100)).toFixed(1);
   const needed = mny(nextTarget - bal);
-  tips.push({c:'c',l:`Nivel de Riesgo ${lvl+1} 📊`,t:`Riesgo actual: <strong>$${mny((lvlTarget*rPct/100))}/trade</strong> (${rPct}% de $${mny(lvlTarget)}). Llevas un <strong>${pctToNext}%</strong> del camino al Nivel ${lvl+2} — necesitas <strong>$${needed}</strong> más para escalar el riesgo a $${mny((nextTarget*rPct/100))}/trade.`});
+  tips.push({c:'c',l:`Nivel de Riesgo ${lvl+1} 📊`,t:lvl>=5?`Riesgo actual: <strong>$${mny((lvlTarget*rPct/100))}/trade</strong> (${rPct}% de $${mny(lvlTarget)}). Máximo nivel alcanzado.`:`Riesgo actual: <strong>$${mny((lvlTarget*rPct/100))}/trade</strong> (${rPct}% de $${mny(lvlTarget)}). Llevas un <strong>${pctToNext}%</strong> del camino al Nivel ${lvl+2} — necesitas <strong>$${needed}</strong> más para escalar el riesgo a $${mny((nextTarget*rPct/100))}/trade.`});
 
   // ── (1) Resultado diario primero
   const dayTxt = `${S.wins} días ganadores, ${S.losses} perdedores${S.be?`, ${S.be} Break Even`:''} de ${S.N} días operados (win rate ${fmtPct(S.winPct,0)}, sin contar Break Even)`;
@@ -5203,12 +5470,12 @@ function renderCoach(m, days, balance, deposit, campaigns) {
   const dayPnl = Array(7).fill(0), dayCnt = Array(7).fill(0);
   days.forEach(s=>{ const d=new Date(s.date+'T12:00:00'); dayPnl[d.getDay()]+=s.netPnl; dayCnt[d.getDay()]++; });
   const dayNames=['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
-  const tradingDays = dayPnl.map((p,i)=>({name:dayNames[i],pnl:p,cnt:dayCnt[i]})).filter(d=>d.cnt>0);
+  const tradingDays = dayPnl.map((p,i)=>({name:dayNames[i],pnl:p,cnt:dayCnt[i],avg:dayCnt[i]?p/dayCnt[i]:0})).filter(d=>d.cnt>0);
   if(tradingDays.length>=3){
-    const best = [...tradingDays].sort((a,b)=>b.pnl-a.pnl)[0];
-    const worst = [...tradingDays].sort((a,b)=>a.pnl-b.pnl)[0];
-    tips.push({c:'g',l:`Mejor Día: ${best.name} 🗓️`,t:`${best.name} suma ${fmt$(best.pnl)} en ${best.cnt} día(s) operado(s).`});
-    if(worst.pnl < 0) tips.push({c:'w',l:`Peor Día: ${worst.name} ⚠️`,t:`${worst.name} acumula ${fmt$(worst.pnl)} en ${worst.cnt} día(s) operado(s).`});
+    const best = [...tradingDays].sort((a,b)=>b.avg-a.avg)[0];
+    const worst = [...tradingDays].sort((a,b)=>a.avg-b.avg)[0];
+    if(best.avg > 0) tips.push({c:'g',l:`Mejor Día: ${best.name} 🗓️`,t:`${best.name} promedia ${fmt$(best.avg)} por día operado (${fmt$(best.pnl)} en ${best.cnt} día(s) operado(s)).`});
+    if(worst.avg < 0) tips.push({c:'w',l:`Peor Día: ${worst.name} ⚠️`,t:`${worst.name} promedia ${fmt$(worst.avg)} por día operado (${fmt$(worst.pnl)} en ${worst.cnt} día(s) operado(s)).`});
   }
 
   // ── Sharpe diario
@@ -5218,10 +5485,10 @@ function renderCoach(m, days, balance, deposit, campaigns) {
   }
 
   const commPaid=m.costsKnown?Math.max(0,-m.commTotal):0;
-  if(commPaid/Math.abs(m.total||1)>0.3) tips.push({c:'w',l:'Comisiones a Vigilar',t:`Comisiones pagadas ${fmt$(-commPaid)} frente a un resultado neto de ${fmt$(m.total)} (historial disponible). Es un dato a vigilar, no una conclusión sobre tu forma de operar.`});
+  if(m.grossProfit>0&&commPaid/m.grossProfit>0.3) tips.push({c:'w',l:'Comisiones a Vigilar',t:`Comisiones pagadas ${fmt$(-commPaid)} frente a una ganancia bruta de ${fmt$(m.grossProfit)} (historial disponible). Es un dato a vigilar, no una conclusión sobre tu forma de operar.`});
 
   // ── Journal
-  const journalCount = Object.keys(journalData).filter(journalHas).length;
+  const journalCount = days.filter(d=>journalHas(d.id)).length;
   if(journalCount < days.length * 0.5) tips.push({c:'p',l:'Journal Incompleto 📓',t:`Tienes notas en ${journalCount} de ${days.length} días operados. Toca un día del calendario para añadir notas y capturas.`});
 
   const urgencyOrder = {r:0, w:1, p:2, c:3, g:4};
@@ -5288,8 +5555,8 @@ function checkDailyDrawdown(sessionsArg, balanceArg) {
   const banner=document.getElementById('ddAlertBanner'), sub=document.getElementById('ddAlertSub');
   if(!balance||!banner) return;
   const limitPct=parseFloat(document.getElementById('ddLimitPct')?.value)||5;
-  const realized=(_lastTrades||[]).filter(s=>s.date===todayStr()).reduce((a,s)=>a+s.netPnl,0);
-  const base=balance-realized; // balance al inicio del día (aprox.: ignora depósitos/retiros del mismo día)
+  const realized=realizedToday();
+  const base=balance-balanceMoveToday(); // balance al inicio de la sesión NY: balance actual menos lo que se movió hoy (deals + depósitos/retiros)
   const limit=base*limitPct/100;
   const realLoss=realized<0?-realized:0;
   const eqLoss=acc.equity!=null?Math.max(0,base-acc.equity):null;
@@ -5315,7 +5582,7 @@ function renderROIProjection(m, sessions, balance) {
 
   function roiCard(days, val) {
     const gain = val - lastEquity;
-    const pct = lastEquity !== 0 ? (gain / Math.abs(lastEquity) * 100) : 0;
+    const pct = base > 0 ? (gain / base * 100) : 0;   // % sobre el balance de la cuenta (no sobre el resultado acumulado)
     const color = gain >= 0 ? 'var(--green)' : 'var(--red)';
     const sign = gain >= 0 ? '+' : '';
     return `<div class="roi-card">
@@ -5328,7 +5595,7 @@ function renderROIProjection(m, sessions, balance) {
   const spd = m.tpd.toFixed(2);
   const expSign = m.exp >= 0 ? '+' : '';
   document.getElementById('roiNote').innerHTML =
-    `Base: <strong style="color:var(--cyan)">$${mny(lastEquity)}</strong> resultado realizado acumulado (no es el equity de la cuenta) · ` +
+    `Base: <strong style="color:var(--cyan)">$${mny(lastEquity)}</strong> resultado realizado acumulado (no es el equity de la cuenta) · ${base>0?'el % se calcula sobre el balance actual de la cuenta':'sin balance: no se calcula el %'} · ` +
     `Expectancy por posición: <strong style="color:${m.exp>=0?'var(--green)':'var(--red)'}">${expSign}$${mny(m.exp)}/posición</strong> · ` +
     `Ritmo: <strong>${spd} posiciones/día calendario</strong> (histórico). ` +
     `<span style="color:var(--muted);">ESCENARIO HIPOTÉTICO (no es historial): expectativa por operación × ritmo histórico constante. No incluye varianza, drawdowns, costes futuros ni cambios de riesgo.</span>`;
@@ -5338,7 +5605,7 @@ function renderROIProjection(m, sessions, balance) {
 function exportCSV() {
   if(!_lastTrades.length) { alert('No hay trades cargados.'); return; }
   const campOf={}; _lastCampaigns.forEach(c=>c.ids.forEach(id=>{ campOf[id]=c.id; }));
-  const dayNet={}; _lastSessions.forEach(d=>{ dayNet[d.date]=d.netPnl; });
+  const dayNet={}; _lastSessions.forEach(d=>{ dayNet[d.date]=+((dayNet[d.date]||0)+d.netPnl).toFixed(2); });
   const headers = ['Fecha cierre','Símbolo','Entradas','Volumen Total','Avg Entry','Exit Price','Gross P&L','Comisión','Swap','Net P&L','Duración (min)','MAE monetario (EA, medido desde apertura)','MFE monetario (EA, medido desde apertura)','Riesgo inicial','R','Campaña','Neto del día','MAE (puntos de precio)','MFE (puntos de precio)','Calidad MAE/MFE puntos','Fuente MAE/MFE puntos'];
   const rows = _lastTrades.map(s => [
     s.date, s.sym, s.entries, s.totalVol, s.avgEntry, s.exitPx,
@@ -5360,7 +5627,7 @@ function exportCSV() {
 // ── HELPERS ────────────────────────────────────────────────────────────────────
 function curSymbolOf(c){ c=String(c||'USD').toUpperCase(); return ({USD:'$',EUR:'€',GBP:'£'})[c]||(c+' '); }
 function mny(v,d=2){ v=Number(v); return isFinite(v) ? v.toLocaleString('en',{minimumFractionDigits:d,maximumFractionDigits:d}) : String(v); }   // dinero con comas de miles y punto decimal
-function fmt$(v){ const s=v>=0?_curSym:'-'+_curSym; return s+Math.abs(v).toLocaleString('en',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function fmt$(v){ if(!isFinite(Number(v))) return 'N/D'; const s=v>=0?_curSym:'-'+_curSym; return s+Math.abs(v).toLocaleString('en',{minimumFractionDigits:2,maximumFractionDigits:2}); }
 
 // ── EXCURSIÓN DE PRECIO (MAE/MFE en PUNTOS de SYMBOL_POINT) ──
 // Unidad distinta del dinero: nunca se mezclan en promedios/ratios ni entre símbolos con puntos diferentes.
