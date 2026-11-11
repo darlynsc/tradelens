@@ -124,7 +124,8 @@ header{
 .jimg-lbl{position:absolute;left:50%;transform:translateX(-50%);top:-19px;height:19px;display:flex;align-items:center;gap:5px;padding:0 8px;font-family:var(--font-mono);font-weight:700;font-size:10px;color:var(--cyan);background:var(--s2);border:1px solid rgba(0,229,255,.35);border-bottom:none;border-radius:6px 6px 0 0;white-space:nowrap;cursor:default;user-select:none;}
 .jimg-lbl .lx{display:none;width:14px;height:14px;padding:0;border:none;background:transparent;color:var(--text);font-size:11px;line-height:14px;text-align:center;cursor:pointer;transition:color .15s,text-shadow .15s;}
 .jimg-lbl .lx:hover{color:#ff1744;text-shadow:0 0 4px #ff1744,0 0 9px #ff1744;}
-.jimg-lbl:hover .lx,.jimg-lbl.show .lx{display:inline-block;}
+@media (hover:hover){.jimg-lbl:hover .lx{display:inline-block;}}   /* ratón: aparece al pasar y se quita al salir */
+.jimg-lbl.show .lx{display:inline-block;}   /* táctil: aparece al tocar la etiqueta y se quita al tocar fuera */
 .tl-ghost{position:fixed;z-index:1000;pointer-events:none;padding:3px 10px;border-radius:12px;font-family:var(--font-mono);font-size:12px;font-weight:700;color:var(--cyan);background:rgba(0,40,50,.95);border:1px solid var(--cyan);transform:translate(10px,10px);}
 .jimg-item .jimg-x{position:absolute;top:4px;right:4px;width:24px;height:24px;border-radius:50%;border:none;background:rgba(0,0,0,0.7);color:#fff;cursor:pointer;font-size:13px;line-height:1;}
 .jimg-item .jimg-badge{position:absolute;left:4px;bottom:4px;font-size:9px;padding:2px 6px;border-radius:10px;background:rgba(0,0,0,0.7);color:#fff;}
@@ -257,6 +258,14 @@ header{
 .kpi-tip-title{font-size:10px;font-weight:700;color:var(--cyan);text-transform:uppercase;letter-spacing:1px;}
 .kpi-tip-x{background:none;border:none;color:var(--cyan);font-size:13px;font-weight:700;line-height:1;cursor:pointer;padding:0 0 0 6px;flex-shrink:0;font-family:var(--font-mono);}
 .kpi-tip-x:hover{opacity:.7;}
+.kpi-tip-ok{color:#c0d4e0;}
+.kpi-tip-ok b{color:var(--green);font-weight:700;}
+.kpi-tip-me{margin-top:7px;color:#c0d4e0;}
+.kpi-tip-me b{color:var(--cyan);font-weight:700;}
+body.light .kpi-tip-me{color:#0a1a2a;}
+body.light .kpi-tip-me b{color:#0077aa;}
+body.light .kpi-tip-ok{color:#0a1a2a;}
+body.light .kpi-tip-ok b{color:#00875a;}
 .kpi.tip-open .kpi-tip{display:block;}
 body.light .kpi-tip{background:rgba(255,255,255,0.98);color:#0a1a2a;border-color:rgba(0,119,170,0.4);box-shadow:0 8px 28px rgba(0,40,80,0.18);}
 .kpi-icon{position:absolute;right:14px;top:14px;font-size:18px;opacity:0.2;}
@@ -357,12 +366,16 @@ canvas{max-height:200px;}
 .cal-day .cal-num{font-size:13px;font-weight:700;line-height:1;}
 .cal-day .cal-pnl{font-size:10px;font-weight:600;line-height:1.3;margin-top:3px;text-align:center;}
 .cal-day .cal-trades{font-size:9px;opacity:0.7;margin-top:2px;text-align:center;}
-.cal-day.win{background:rgba(0,255,136,0.18);color:var(--green);border:1px solid rgba(0,255,136,0.25);}
-.cal-day.loss{background:rgba(255,51,85,0.18);color:var(--red);border:1px solid rgba(255,51,85,0.25);}
+.cal-day.win{background:rgba(0,255,136,0.162);color:var(--green);border:1px solid rgba(0,255,136,0.225);}
+.cal-day.loss{background:rgba(255,51,85,0.162);color:var(--red);border:1px solid rgba(255,51,85,0.225);}
 .cal-day.be{background:rgba(30,45,61,0.5);color:var(--muted);border:1px solid transparent;}
-.cal-day.neu{background:rgba(255,204,0,0.18);color:#ffcc00;border:1px solid rgba(255,204,0,0.3);}
+.cal-day.neu{background:rgba(255,204,0,0.162);color:#ffcc00;border:1px solid rgba(255,204,0,0.27);}
 /* Número del día: mismo color que los días sin actividad, en todo el calendario */
 .cal-grid .cal-num{color:var(--muted) !important;}
+/* Todas las filas con la altura de la más alta (la del swing) y el calendario un 30% más estrecho */
+.cal-grid{grid-auto-rows:1fr;}
+/* Ancho: se adapta a la pantalla (móvil y PC) hasta un máximo, y siempre centrado y simétrico */
+.cal-days-hdr,.cal-grid{width:100%;max-width:1250px;margin-left:auto;margin-right:auto;}
 .cal-day.today-marker{box-shadow:0 0 0 1px var(--cyan) inset;}   /* marco de HOY: azul neón (trazo fino) */
 .cal-day.empty{background:transparent;min-height:54px;border:none;}
 /* SWING: las fechas del ciclo forman un bloque continuo (se cubre el hueco de la rejilla entre días contiguos) */
@@ -385,9 +398,9 @@ canvas{max-height:200px;}
 .cal-swc .cal-mini{position:relative;z-index:1;}
 .cal-swc.sw-hover .sw-bg,.cal-swc.sw-hover .sw-body{transform:scale(1.06);}
 /* Fondo OPACO (mismo tono que el translúcido sobre el fondo del calendario): al agrandarse, las celdas del ciclo se solapan sin sumar transparencias, así no aparece la franja más intensa entre días */
-.cal-day.swing.win{background:linear-gradient(rgba(0,255,136,0.18),rgba(0,255,136,0.18)),var(--s1);}
-.cal-day.swing.loss{background:linear-gradient(rgba(255,51,85,0.18),rgba(255,51,85,0.18)),var(--s1);}
-.cal-day.swing.neu{background:linear-gradient(rgba(255,204,0,0.18),rgba(255,204,0,0.18)),var(--s1);}
+.cal-day.swing.win{background:linear-gradient(rgba(0,255,136,0.162),rgba(0,255,136,0.162)),var(--s1);}
+.cal-day.swing.loss{background:linear-gradient(rgba(255,51,85,0.162),rgba(255,51,85,0.162)),var(--s1);}
+.cal-day.swing.neu{background:linear-gradient(rgba(255,204,0,0.162),rgba(255,204,0,0.162)),var(--s1);}
 /* El mini-marco intradía mantiene su tamaño cuando salta el bloque swing (contra-escala 1/1.06) */
    /* --mx/--my los calcula el JS: anulan el desplazamiento que provoca el escalado del bloque, así el intradía queda 100% quieto */
 .cal-day .cal-mini{transition:.15s;}
@@ -404,9 +417,9 @@ canvas{max-height:200px;}
 .cal-day .cal-mini .mi-r{font-size:13px;font-weight:800;}
 .cal-day .cal-mini .mi-n{font-size:9px;opacity:.75;}
 .cal-day .cal-mini .mi-note{position:absolute;top:1px;right:3px;font-size:8px;opacity:.9;}
-.cal-day .cal-mini.win{background:linear-gradient(rgba(0,255,136,0.18),rgba(0,255,136,0.18)),var(--s1);color:var(--green);border-color:rgba(0,255,136,0.45);}
-.cal-day .cal-mini.loss{background:linear-gradient(rgba(255,51,85,0.18),rgba(255,51,85,0.18)),var(--s1);color:var(--red);border-color:rgba(255,51,85,0.5);}
-.cal-day .cal-mini.neu{background:linear-gradient(rgba(255,204,0,0.18),rgba(255,204,0,0.18)),var(--s1);color:#ffcc00;border-color:rgba(255,204,0,0.5);}
+.cal-day .cal-mini.win{background:linear-gradient(rgba(0,255,136,0.162),rgba(0,255,136,0.162)),var(--s1);color:var(--green);border-color:rgba(0,255,136,0.405);}
+.cal-day .cal-mini.loss{background:linear-gradient(rgba(255,51,85,0.162),rgba(255,51,85,0.162)),var(--s1);color:var(--red);border-color:rgba(255,51,85,0.45);}
+.cal-day .cal-mini.neu{background:linear-gradient(rgba(255,204,0,0.162),rgba(255,204,0,0.162)),var(--s1);color:#ffcc00;border-color:rgba(255,204,0,0.45);}
 .cal-day .cal-mini.today-marker{box-shadow:0 0 0 1px var(--cyan);}
 /* Hoy dentro de un SWING sin actividad intradía: el marco azul envuelve todo el bloque desde su inicio hasta hoy */
 .cal-day.swing.sw-hl{box-shadow:inset 0 1px 0 var(--cyan),inset 0 -1px 0 var(--cyan);}
@@ -837,6 +850,28 @@ input.jimglink:focus{border-color:var(--cyan);}
   .roi-card-val{font-size:18px;}
   .roi-card-label{font-size:8px;}
 }
+/* Resultado con su sombrita de brillo (mismo tono del color): PC y móvil, días normales, swing e intradía */
+.cal-day .cal-pnl,.cal-day .cal-mini .mi-r{filter:none;text-shadow:0 0 12px currentColor;}
+@media(max-width:600px){.cal-day .cal-pnl,.cal-day .cal-mini .mi-r{text-shadow:0 0 8px currentColor;}}
+/* ── CALENDARIO EN PC: el RESULTADO manda; el número del día pasa a segundo plano y todo queda alineado ── */
+@media(min-width:701px){
+  /* Días con actividad (normales y swing): mismo punto de partida arriba → el número del día queda a la misma altura en todos */
+  .cal-day.win,.cal-day.loss,.cal-day.neu{justify-content:flex-start;padding-top:10px;}
+  .cal-swc{padding-top:10px;}
+  .cal-day.swing.sw-bg{padding-top:0;}
+  /* Número del día: discreto y del mismo tamaño en todas las celdas */
+  .cal-grid .cal-num{font-size:12px;font-weight:700;line-height:1;}
+  .cal-day.be .cal-num{font-size:14px;}   /* sin actividad: centrado, un poco más legible */
+  /* Resultado en $: protagonista (idéntico en día normal y en swing) */
+  .cal-day .cal-pnl{font-size:17px;font-weight:800;line-height:1.1;margin-top:8px;letter-spacing:-.3px;font-variant-numeric:tabular-nums;}
+  /* Posiciones: tamaño y separación iguales en normal y swing */
+  .cal-day .cal-trades,.cal-day .cal-sw{font-size:10px;line-height:1.2;margin-top:4px;opacity:.85;font-weight:600;}
+  /* Recuadro intradía: mismo énfasis en el resultado (brillo, negrita), con el tamaño que ya tenía */
+  .cal-day .cal-mini .mi-r{font-weight:800;letter-spacing:-.3px;font-variant-numeric:tabular-nums;}
+  .cal-day .cal-mini .mi-n{font-weight:600;opacity:.85;}
+  /* Emoji del journal en el intradía: un poco más abajo */
+  .cal-day .cal-mini .mi-note{top:5px;}
+}
 /* ── CALENDARIO EN MÓVIL: columnas iguales, SWING debajo de las posiciones e INTRADÍA legible ── */
 @media(max-width:600px){
   .cal-wrap{padding:12px 10px;}
@@ -854,8 +889,22 @@ input.jimglink:focus{border-color:var(--cyan);}
   .cal-day .cal-mini .mi-t{font-size:5.1px;letter-spacing:.2px;}
   .cal-day .cal-mini .mi-r{font-size:8.1px;letter-spacing:-.3px;white-space:nowrap;}
   .cal-day .cal-mini .mi-n{font-size:6px;}
-  .cal-day .cal-mini .mi-note{top:-4px;right:-3px;font-size:7.6px;}
+  .cal-day .cal-mini .mi-note{top:auto;bottom:3px;right:1px;font-size:4.95px;line-height:1;}
+  .cal-day .cal-mini.has-jn .mi-n{padding-right:6px;}   /* con journal: «pos.» un poco a la izquierda para dejar sitio al emoji */   /* esquina inferior derecha, junto a «pos.»: no tapa ninguna letra */
   .cal-day.has-note::after{top:2px;right:2px;font-size:7px;}
+}
+/* ── MÓVIL: el MONTO manda y el número del día pasa a segundo plano (el monto arranca grande y el ajuste automático lo reduce lo justo para que quepa) ── */
+@media(max-width:600px){
+  .cal-day.win,.cal-day.loss,.cal-day.neu{justify-content:flex-start;padding-top:6px;}   /* número del día a la misma altura en días normales y swing */
+  .cal-grid .cal-num{font-size:9.5px;font-weight:700;}
+  .cal-day.be .cal-num{font-size:11px;}   /* sin actividad: centrado, un poco más legible */
+  .cal-day .cal-pnl{font-size:14px;font-weight:800;letter-spacing:-.6px;margin-top:5px;line-height:1.1;font-variant-numeric:tabular-nums;white-space:nowrap;}
+  .cal-day .cal-trades{font-size:7.5px;margin-top:3px;font-weight:600;opacity:.85;}
+  /* Lun–Vie ocupan casi todo el ancho; Sáb y Dom siguen visibles pero en columnas angostas (misma proporción en encabezados y rejilla) */
+  .cal-days-hdr,.cal-grid{grid-template-columns:minmax(0,.5fr) repeat(5,minmax(0,1fr)) minmax(0,.5fr);}
+  .cal-wrap{padding:12px 6px;}
+  .cal-day.empty .cal-num{font-size:10px;font-weight:600;}
+  .cal-days-hdr span:first-child,.cal-days-hdr span:last-child{font-size:8px;}
 }
 </style>
 </head>
@@ -1213,7 +1262,6 @@ input.jimglink:focus{border-color:var(--cyan);}
         <select class="jimg-trade" id="jimgTrade" title="Operación relacionada (opcional)" hidden></select>
       </div>
       <div class="jtip-pc" style="font-size:10px;color:var(--muted);margin-top:6px;">💡Pega captura con Ctrl+V</div>
-      <div class="jtip-mob" style="font-size:10px;color:var(--muted);margin-top:6px;display:none;">💡Para asignar un Trade a una captura: mantén pulsado “Trade N” en la nota y arrástralo hasta la imagen</div>
       <input type="file" id="jimgFile" accept="image/jpeg,image/png,image/webp,image/gif" multiple style="display:none" onchange="onImgPicked(this)"/>
       <input type="file" id="jimgCam" accept="image/*" capture="environment" style="display:none" onchange="onImgPicked(this)"/>
       <div class="jimg-msg" id="jimgMsg"></div>
@@ -2041,7 +2089,7 @@ function swingStatsOf(sw){
     floatKnown:act.every(c=>c.floating&&c.floating.known)};
 }
 function renderSwingKPIs(m){
-  const S=m.S, note=document.getElementById('swNote');
+  window._kpiM=m; const S=m.S, note=document.getElementById('swNote');
   if(!S){ kpiGrid('kpiS',[{l:'Ciclos SWING',v:'0',cls:'neu',c:'c',icon:'🔗',sub:'Ninguna posición ha cruzado de una fecha a otra'}]); if(note) note.textContent=''; return; }
   kpiGrid('kpiS',[
     {l:'Ciclos SWING',v:S.n,cls:'neu',c:'c',icon:'🔗',sub:`${S.finished} finalizados · ${S.active} abiertos`,
@@ -2374,13 +2422,99 @@ function renderAccBar(acc, trades, isDemo) {
 }
 
 // ── KPIs ───────────────────────────────────────────────────────────────────────
+const KPI_HEALTHY={
+ "Ciclos SWING": "no hay un número ideal; lo sano es que cada ciclo tenga plan y riesgo definidos, y que pocos ciclos abiertos a la vez no concentren tu riesgo.",
+ "Win Rate · ciclos": "entre 40 % y 60 %, siempre que tu ganancia media sea mayor que tu pérdida media. Con menos de 30 ciclos finalizados todavía no es concluyente.",
+ "Posiciones en ciclos": "es una cantidad, no un resultado. Lo sano es pocas posiciones por ciclo (de 1 a 4) y con tamaño controlado.",
+ "Neto · ciclos finalizados": "positivo y creciente de forma sostenida, sin depender de un solo ciclo grande.",
+ "Ciclos abiertos": "pocos a la vez, y que el flotante de todos juntos no supere el riesgo máximo que planeaste.",
+ "Resultado Neto": "positivo y creciente de forma sostenida durante 20 a 30 días o más, sin depender de uno o dos días excepcionales.",
+ "Win Rate": "45 % a 60 % con ganancia media mayor que la pérdida media. Un win rate de 30 % a 40 % también es sano si ganas 2:1 o más.",
+ "Profit Factor": "1.5 en adelante. 2 o más es muy sólido; menos de 1 pierde dinero.",
+ "Expectancy": "mayor que 0 y estable al sumar datos; que cubra con margen comisiones y swap.",
+ "Ganancia media diaria": "mayor que la pérdida media diaria, idealmente 1.5 veces o más.",
+ "Pérdida media diaria": "menor que la ganancia media y siempre por debajo de tu límite de drawdown diario (1 % a 2 % del capital es una referencia común).",
+ "Ganancia/Pérdida diaria": "1.5 : 1 en adelante; 2 : 1 o más es sólido.",
+ "Días operados": "20 días o más para que las métricas sean confiables; con 60 o más tienes una muestra mucho más sólida.",
+ "Drawdown Máx.": "menos de 10 % del capital. Hasta 15 % es aceptable; más de 20 % es riesgo alto.",
+ "Comisiones pagadas — historial de la cuenta": "menos de 30 % de tu ganancia bruta; por debajo de 20 % es ideal.",
+ "Swap acumulado — historial de la cuenta": "cerca de 0 o positivo. Si es negativo, lo sano es que sea una parte pequeña (menos de 10 %) de tu ganancia bruta.",
+ "Sharpe": "1 o más es bueno; 2 o más es muy sólido. Menos de 0.5 indica resultados inconsistentes.",
+ "Posiciones cerradas": "no hay una cifra ideal; lo sano es que el tamaño y el riesgo por posición se mantengan constantes.",
+ "Racha máx. · por posición": "rachas perdedoras cortas (menos de 5 seguidas) y un riesgo por operación que aguante una racha de 8 a 10 pérdidas.",
+ "Mejor / Peor día": "que el mejor día supere en valor absoluto al peor, y que el peor día quede lejos de tu límite de drawdown diario.",
+ "MAE / MFE medio · por posición": "MFE medio mayor que el MAE medio (1.5 a 2 veces o más) y cerrar capturando más de la mitad del MFE.",
+ "MAE / MFE medio · puntos": "MFE medio mayor que el MAE medio (1.5 a 2 veces o más) y cerrar capturando más de la mitad del MFE.",
+ "MAE / MFE medio · por campaña": "MFE medio mayor que el MAE medio (1.5 a 2 veces o más) y cerrar capturando más de la mitad del MFE.",
+ "Campañas": "30 campañas o más para que el resto de métricas sea confiable.",
+ "RR promedio": "1.5 : 1 en adelante (ganancia media al menos 1.5 veces la pérdida media); 2 : 1 o más es sólido.",
+ "Duración · ganadoras / perdedoras": "ganadoras de igual duración o más largas que las perdedoras (relación 1 o mayor).",
+ "Escalones · ganadoras / perdedoras": "escalones parecidos o más en las ganadoras que en las perdedoras.",
+ "Volumen · ganadoras / perdedoras": "volumen parecido o menor en las perdedoras (relación perdedoras/ganadoras de 1 o menos).",
+ "Mejor dirección": "que no dependas de una sola dirección: lo sano es que ambas sean rentables o que la que pierde sea claramente menor."
+};   // rango objetivo (referencia general) que se añade al tip de cada tarjeta
+function kpiHealthy(k,id){ const h=KPI_HEALTHY[k.l]; let r=''; try{ r=kpiRead(k.l,id); }catch(_){}
+  return (h?`<div class="kpi-tip-ok"><b>🎯 Rango objetivo:</b> ${h}</div>`:'')+(r?`<div class="kpi-tip-me"><b>📍 Tu lectura:</b> ${r}</div>`:''); }
+// Lectura PERSONALIZADA: compara tus datos actuales con el rango objetivo y dice qué conviene trabajar (solo con lo que hay en tus datos; con pocos datos lo avisa).
+function kpiRead(l,scope){
+  const m=window._kpiM; if(!m) return '';
+  const D=m.D||{}, n=m.days||0, bal=+((window._kpiAcc||{}).balance)||0;
+  const lim=parseFloat((document.getElementById('ddLimitPct')||{}).value)||5, limUsd=bal>0?bal*lim/100:null;
+  const pc=v=>v==null?'N/D':v.toFixed(1)+' %', t2=v=>v==null?'N/D':v.toFixed(2);
+  const few=n<20?` Con ${n} día(s) operado(s) es solo una lectura preliminar.`:'';
+  const pnls=m.pnls||[], best=pnls.length?Math.max(...pnls):null, worst=pnls.length?Math.min(...pnls):null;
+  if(scope==='kpiS'){
+    const S=m.S; if(!S) return '';
+    switch(l){
+      case 'Ciclos SWING': return S.finished<30?`Llevas ${S.finished} ciclo(s) finalizado(s); con menos de 30 las métricas swing son solo orientativas. No cambies de enfoque con esta muestra.`:`Con ${S.finished} ciclos finalizados la muestra ya es útil para evaluar tu swing.`;
+      case 'Win Rate · ciclos': if(S.winPct==null) return ''; return S.finished<30?`Win rate de ${pc(S.winPct)} sobre ${S.finished} ciclo(s): muestra corta, no concluyas todavía. Fíjate más en si ganas más de lo que pierdes por ciclo.`:(S.winPct<40?`Win rate de ${pc(S.winPct)}: solo es sostenible si tus ciclos ganadores pagan al menos el doble que los perdedores.`:`Win rate de ${pc(S.winPct)}: dentro de lo normal; vigila que tu ganancia media por ciclo siga superando a la pérdida media.`);
+      case 'Posiciones en ciclos': return S.n?`Promedias ${(S.positions/S.n).toFixed(1)} posiciones por ciclo. ${S.positions/S.n>4?'Es un escalado alto: define un máximo de escalones por ciclo para no concentrar riesgo.':'Es un escalado moderado y controlable.'}`:'';
+      case 'Neto · ciclos finalizados': return S.net<0?`Tus ciclos finalizados suman ${fmt$(S.net)}. Revisa si las pérdidas se alargan más que las ganancias (duración y escalones por ciclo) antes de aumentar tamaño.`:`Tus ciclos finalizados suman ${fmt$(S.net)}. Mantén el tamaño estable hasta tener 30 ciclos o más.`;
+      case 'Ciclos abiertos': if(!S.active) return 'No tienes ciclos abiertos: tu riesgo swing actual es nulo.'; if(S.floatKnown&&S.activeFloating<0&&limUsd&&-S.activeFloating>limUsd) return `El flotante de tus ciclos abiertos (${fmt$(S.activeFloating)}) ya supera tu límite diario (${fmt$(limUsd)}): revisa si el stop y el tamaño siguen alineados con tu plan.`; return `Tienes ${S.active} ciclo(s) abierto(s). Mantén el flotante total dentro de tu riesgo máximo planeado.`;
+    } return '';
+  }
+  if(scope==='kpiC'){
+    const C=m.C, X=m.CX; if(!C||!X) return ''; const cN=m.cN||0;
+    switch(l){
+      case 'Campañas': return cN<30?`Llevas ${cN} campaña(s); faltan ${30-cN} para una lectura fiable. Evita sacar conclusiones fuertes antes.`:`Con ${cN} campañas la muestra ya es útil para evaluar tu proceso.`;
+      case 'Profit Factor': if(C.pf==null) return ''; return C.pf<1?`PF de ${t2(C.pf)}: tus campañas pierden más de lo que ganan. Prioridad: recortar la pérdida media y no promediar en contra.`:C.pf<1.5?`PF de ${t2(C.pf)}: positivo pero con poco margen frente a comisiones. Busca ganadoras más largas o filtra entradas débiles.`:`PF de ${t2(C.pf)}: dentro del rango objetivo. Confirma que se mantiene al sumar campañas.`;
+      case 'Expectancy': if(C.exp==null) return ''; return C.exp<=0?`Cada campaña te resta ${fmt$(-C.exp)} de media: no subas el tamaño hasta que sea positiva.`:`Cada campaña deja ${fmt$(C.exp)} de media. Escala el riesgo solo de forma gradual y cuando se sostenga.`;
+      case 'RR promedio': if(C.rr==null) return ''; return C.rr<1?`RR de ${t2(C.rr)}:1: ganas menos de lo que pierdes por campaña; con ese RR necesitas acertar más de ${(100/(1+C.rr)).toFixed(0)} % para no perder. Deja correr más las ganadoras o corta antes las perdedoras.`:C.rr<1.5?`RR de ${t2(C.rr)}:1 (punto de equilibrio: ${(100/(1+C.rr)).toFixed(0)} % de acierto). Es ajustado: busca subir la ganancia media.`:`RR de ${t2(C.rr)}:1: te basta acertar ${(100/(1+C.rr)).toFixed(0)} % de las campañas para no perder. Buen margen.`;
+      case 'Duración · ganadoras / perdedoras': if(X.durW==null||X.durL==null) return ''; return X.durL>X.durW*1.25?`Tus perdedoras duran ${fmtDur(X.durL)} frente a ${fmtDur(X.durW)} de las ganadoras: señal de aguantar pérdidas. Respeta el stop o corta antes.`:`Tus perdedoras (${fmtDur(X.durL)}) no duran más que las ganadoras (${fmtDur(X.durW)}): buena disciplina de salida.`;
+      case 'Escalones · ganadoras / perdedoras': if(X.posW==null||X.posL==null) return ''; return X.posL>X.posW*1.1?`Escalas más en las perdedoras (${X.posL.toFixed(2)} vs ${X.posW.toFixed(2)}): estás promediando en contra. Fija un máximo de escalones por idea.`:`Escalas parecido o más en las ganadoras (${X.posW.toFixed(2)} vs ${X.posL.toFixed(2)}): coherente con aumentar cuando la idea va a favor.`;
+      case 'Volumen · ganadoras / perdedoras': if(X.volW==null||X.volL==null) return ''; return X.volL>X.volW*1.1?`Arriesgas más volumen en las perdedoras (${X.volL.toFixed(2)} vs ${X.volW.toFixed(2)}): reduce el tamaño en ideas que aún no confirman.`:`Tu volumen en perdedoras (${X.volL.toFixed(2)}) no supera al de ganadoras (${X.volW.toFixed(2)}): buen control del riesgo.`;
+      case 'Mejor dirección': { const a=X.bySide||[]; if(a.length<2) return a.length?'Solo has operado una dirección: aún no hay con qué comparar.':''; const b=a[0], w=a[a.length-1], nm=k=>k==='BUY'?'compras':k==='SELL'?'ventas':k;
+        return w.net<0?`Tus ${nm(b.k)} rinden ${fmt$(b.net)} y tus ${nm(w.k)} pierden ${fmt$(-w.net)}: evalúa operar solo la dirección que te funciona hasta entender por qué falla la otra.`:`Ambas direcciones son rentables (${nm(b.k)} ${fmt$(b.net)} · ${nm(w.k)} ${fmt$(w.net)}): no dependes de una sola.`; }
+      case 'MAE / MFE medio · por campaña': if(m.cAvgMAE==null||m.cAvgMFE==null) return ''; { const a=Math.abs(m.cAvgMAE), f=Math.abs(m.cAvgMFE); return f<a?`Tus ideas van más en contra (${fmt$(a)}) que a favor (${fmt$(f)}): revisa la calidad de las entradas.`:`MFE (${fmt$(f)}) mayor que MAE (${fmt$(a)}): buenas entradas. El siguiente paso es capturar más del MFE al cerrar.`; }
+    } return '';
+  }
+  switch(l){
+    case 'Resultado Neto': if(!n) return ''; if(m.total<0) return `Estás en ${fmt$(m.total)} tras ${n} día(s). Antes de subir tamaño o frecuencia, el foco es recortar la pérdida media y operar solo tus mejores setups.${few}`; if(best>0&&best/m.total>0.5) return `Vas en ${fmt$(m.total)}, pero tu mejor día (${fmt$(best)}) es más de la mitad del total: trabaja la consistencia para no depender de un solo día.${few}`; return `Vas en ${fmt$(m.total)} y repartido en varios días: buena señal. Mantén el riesgo estable hasta ampliar la muestra.${few}`;
+    case 'Win Rate': { const w=D.winPct, p=D.payoff; if(w==null) return ''; if(w<40&&(p==null||p<2)) return `Tu win rate es ${pc(w)} y tu ratio ganancia/pérdida ${p==null?'N/D':t2(p)+':1'}: con win rate bajo necesitas ganar al menos el doble de lo que pierdes. Mejora la selección de entradas o deja correr más las ganadoras.${few}`; if(p!=null&&p<1) return `Aciertas ${pc(w)} de los días, pero tu pérdida media supera a la ganancia media (${t2(p)}:1). Corta antes las pérdidas y no cierres tan pronto las ganadoras.${few}`; return `Win rate de ${pc(w)} con ratio ${p==null?'N/D':t2(p)+':1'}: combinación coherente. Vigila que se mantenga al sumar días.${few}`; }
+    case 'Profit Factor': if(D.pf==null) return ''; return (D.pf<1?`PF de ${t2(D.pf)}: pierdes más de lo que ganas. Prioridad: reducir la pérdida media y evitar operaciones fuera de plan.`:D.pf<1.5?`PF de ${t2(D.pf)}: positivo pero con poco margen; comisiones y slippage pueden volverlo negativo. Busca subir la ganancia media o filtrar entradas.`:`PF de ${t2(D.pf)}: dentro del rango objetivo. Confirma que se sostiene al sumar días.`)+few;
+    case 'Expectancy': if(D.exp==null) return ''; return (D.exp<=0?`Cada día operado te resta ${fmt$(-D.exp)} de media: no aumentes el tamaño hasta que sea positiva.`:`Cada día operado deja ${fmt$(D.exp)} de media. Escala el riesgo de forma gradual y solo si se sostiene.`)+few;
+    case 'Ganancia media diaria': if(D.avgWin==null||D.avgLossAbs==null) return ''; return D.avgWin<D.avgLossAbs?`Tu ganancia media (${fmt$(D.avgWin)}) es menor que tu pérdida media (${fmt$(D.avgLossAbs)}). Deja correr las ganadoras o reduce el tamaño de las perdedoras.`:`Tu ganancia media (${fmt$(D.avgWin)}) supera a tu pérdida media (${fmt$(D.avgLossAbs)}): buena base. Cuida que no se erosione.`;
+    case 'Pérdida media diaria': if(D.avgLossAbs==null) return ''; if(limUsd&&D.avgLossAbs>limUsd*0.5) return `Tu pérdida media (${fmt$(D.avgLossAbs)}) ya consume más de la mitad de tu límite diario (${fmt$(limUsd)}). Reduce el riesgo por operación.`; if(D.avgWin!=null&&D.avgLossAbs>D.avgWin) return `Tu pérdida media (${fmt$(D.avgLossAbs)}) es mayor que tu ganancia media (${fmt$(D.avgWin)}): recorta pérdidas antes.`; return `Tu pérdida media (${fmt$(D.avgLossAbs)}) está controlada${limUsd?` frente a tu límite diario (${fmt$(limUsd)})`:''}.`;
+    case 'Ganancia/Pérdida diaria': if(D.payoff==null) return ''; return D.payoff<1?`Ratio de ${t2(D.payoff)}:1: pierdes más de lo que ganas por día. Necesitas un win rate muy alto para compensarlo: prioriza cortar pérdidas.`:D.payoff<1.5?`Ratio de ${t2(D.payoff)}:1: ajustado. Subirlo hacia 1.5 o más te da margen frente a comisiones.`:`Ratio de ${t2(D.payoff)}:1: dentro del rango objetivo.`;
+    case 'Días operados': return n<20?`Llevas ${n} día(s); faltan ${20-n} para una lectura fiable. No cambies de estrategia por estos datos.`:n<60?`${n} días: lectura aceptable, aún sensible a rachas. Con 60 o más tendrás una muestra mucho más sólida.`:`${n} días: muestra sólida para evaluar tu operativa.`;
+    case 'Drawdown Máx.': if(m.maxDDPct==null) return `Tu drawdown máximo es ${fmt$(-m.maxDD)}; no hay capital base para medirlo en %.`; return m.maxDDPct<10?`Drawdown de ${pc(m.maxDDPct)}: dentro del rango objetivo. Mantén el riesgo por operación estable.`:m.maxDDPct<15?`Drawdown de ${pc(m.maxDDPct)}: aceptable pero cerca del límite. Evita subir el tamaño hasta recuperarlo.`:m.maxDDPct<20?`Drawdown de ${pc(m.maxDDPct)}: alto. Reduce el riesgo por operación hasta recuperar capital.`:`Drawdown de ${pc(m.maxDDPct)}: riesgo alto; recuperar exige un rendimiento mucho mayor. Reduce tamaño y revisa tu plan.`;
+    case 'Comisiones pagadas — historial de la cuenta': { if(!m.costsKnown||!m.grossWin) return ''; const c=Math.max(0,-m.commTotal), r=c/m.grossWin*100; return r>30?`Las comisiones se llevan ${r.toFixed(0)} % de tu ganancia bruta (${fmt$(c)} de ${fmt$(m.grossWin)}): reduce la frecuencia o evita operaciones de poco recorrido.`:r>20?`Comisiones: ${r.toFixed(0)} % de tu ganancia bruta. Aceptable, pero vigílalo si aumentas la frecuencia.`:`Comisiones: ${r.toFixed(0)} % de tu ganancia bruta, dentro del rango objetivo.`; }
+    case 'Swap acumulado — historial de la cuenta': { if(!m.costsKnown) return ''; if(m.swapTotal>=0) return `El swap te suma ${fmt$(m.swapTotal)}: no te penaliza.`; if(!m.grossWin) return ''; const r=-m.swapTotal/m.grossWin*100; return r>10?`El swap se lleva ${r.toFixed(0)} % de tu ganancia bruta: revisa cuánto tiempo mantienes posiciones o el sentido en que las mantienes.`:`El swap (${fmt$(m.swapTotal)}) es una parte pequeña de tu ganancia bruta: sin problema por ahora.`; }
+    case 'Sharpe': if(m.sharpe==null) return ''; return (m.sharpe<0.5?`Sharpe de ${t2(m.sharpe)}: resultados inconsistentes día a día. Trabaja la regularidad (tamaño y frecuencia estables).`:m.sharpe<1?`Sharpe de ${t2(m.sharpe)}: en construcción. Busca reducir la dispersión entre tus días.`:`Sharpe de ${t2(m.sharpe)}: dentro del rango objetivo.`)+(m.sharpeProvisional?' Es provisional (menos de 20 días).':'');
+    case 'Posiciones cerradas': return n?`Promedias ${(m.avgTradesDay||0).toFixed(1)} posiciones por día (máximo ${m.maxTradesDay}). Compara tu neto en días de muchas posiciones vs pocas antes de aumentar la frecuencia.`:'';
+    case 'Racha máx. · por posición': return m.mxPL?`Tu peor racha fue de ${m.mxPL} pérdida(s) seguida(s). Comprueba que ese número de pérdidas, a tu riesgo por operación, no supere tu límite de drawdown (${lim} %).`:'';
+    case 'Mejor / Peor día': if(worst==null) return ''; if(limUsd&&-worst>limUsd) return `Tu peor día (${fmt$(worst)}) superó tu límite diario (${fmt$(limUsd)}). Revisa qué pasó ese día y respeta el corte.`; if(best!=null&&-worst>best) return `Tu peor día (${fmt$(worst)}) pesa más que tu mejor día (${fmt$(best)}): trabaja limitar las pérdidas extremas.`; return `Tu mejor día (${fmt$(best)}) supera a tu peor (${fmt$(worst)})${limUsd?` y no rompe tu límite diario (${fmt$(limUsd)})`:''}: buen control.`;
+    case 'MAE / MFE medio · por posición': if(m.avgMAE==null||m.avgMFE==null) return ''; { const a=Math.abs(m.avgMAE), f=Math.abs(m.avgMFE); return f<a?`Tus posiciones van más en contra (${fmt$(a)}) que a favor (${fmt$(f)}): revisa la calidad de tus entradas.`:`MFE (${fmt$(f)}) mayor que MAE (${fmt$(a)}): buenas entradas. El siguiente paso es capturar más del MFE al cerrar.`; }
+  } return '';
+}
+
 function kpiGrid(id,data){ document.getElementById(id).innerHTML=data.map(k=>`
     <div class="kpi ${k.c}">
       <div class="kpi-icon">${k.icon}</div>
       <div class="kpi-label">${k.l}</div>
       <div class="kpi-val ${k.cls}">${k.v}</div>
       <div class="kpi-sub">${k.sub||''}</div>
-      ${k.tip?`<div class="kpi-tip"><div class="kpi-tip-head"><span class="kpi-tip-title">${k.l}</span><button class="kpi-tip-x" type="button" aria-label="Cerrar">✕</button></div>${k.tip}</div>`:''}
+      ${k.tip?`<div class="kpi-tip"><div class="kpi-tip-head"><span class="kpi-tip-title">${k.l}</span><button class="kpi-tip-x" type="button" aria-label="Cerrar">✕</button></div>${kpiHealthy(k,id)}</div>`:''}
     </div>`).join(''); }
 // El tip se abre hacia arriba y se acomoda si no cabe (borde derecho o parte alta de la pantalla).
 function placeKpiTip(card){
@@ -2421,6 +2555,7 @@ const _cl=(v,g,w)=>v==null?'neu':v>=g?'pos':v>=w?'warn':'neg', _cc=(v,g,w)=>v==n
 
 // RESUMEN PRINCIPAL — unidad: DÍA OPERADO. Textos mínimos; la recomendación sale al pasar el mouse (tip).
 function renderKPIs(m, acc) {
+  window._kpiM=m; window._kpiAcc=acc;
   const S=m.D, nOk=m.costsKnown;
   const g1=[
     {l:'Resultado Neto',v:fmt$(m.total),cls:m.total>=0?'pos':'neg',c:m.total>=0?'g':'r',icon:'💰',sub:`${m.days} días · ${m.n} posiciones`,
@@ -2467,6 +2602,7 @@ function renderKPIs(m, acc) {
 // Campañas (scaling in): cada idea completa cuenta una vez. Misma lógica de lectura que NinjaTrader (ganancia media ÷ pérdida media).
 function fmtDur(min){ return min==null?'N/D':(min<60?Math.round(min)+'m':(min/60).toFixed(1)+'h'); }
 function renderLevelKPIs(m) {
+  window._kpiM=m;
   const C=m.C, X=m.CX;
   if(!C||!X){ kpiGrid('kpiC',[{l:'Campañas',v:'N/D',cls:'neu',c:'c',icon:'🧩',sub:'Sin posiciones cerradas'}]); }
   else {
@@ -3099,7 +3235,7 @@ function _renderCalendarForMonth(sessions, year, month) {
       const fmtS = v => { const a=Math.abs(v); return a>=1000 ? (v>=0?'+':'-')+'$'+(a/1000).toFixed(1)+'k' : (v>=0?'+':'')+fmt$(v); };
       let inner = first ? `<div class="cal-pnl">${fmtS(net)}</div><div class="cal-sw"><span>${sw.counts.total} pos.</span><span class="sw-sep"> · </span><span>SWING${act?' ●':''}</span></div>` : '';
       const chips = swc.slice(1).map(c=>`<span class="cal-intra" onclick="event.stopPropagation();openSwingJournal('${c.id}')">+SWING</span>`).join('');
-      const miniHtml = (pnl !== undefined ? `<div title="INTRADÍA ${k}: ${fmt$(pnl)} neto del día · ${cnt} posiciones — Click para el journal intradía" class="cal-mini ${dayClass(pnl)==='win'?'win':dayClass(pnl)==='loss'?'loss':'neu'} ${k === today ? 'today-marker' : ''}" onclick="event.stopPropagation();openJournal('${k}', _intraDays.find(s=>s.date==='${k}'))"><span class="mi-t">intradía</span><span class="mi-r">${fmtS(pnl)}</span><span class="mi-n">${cnt} pos.</span>${journalHas(k)?'<span class="mi-note">📝</span>':''}</div>` : '');
+      const miniHtml = (pnl !== undefined ? `<div title="INTRADÍA ${k}: ${fmt$(pnl)} neto del día · ${cnt} posiciones — Click para el journal intradía" class="cal-mini ${dayClass(pnl)==='win'?'win':dayClass(pnl)==='loss'?'loss':'neu'} ${k === today ? 'today-marker' : ''} ${journalHas(k)?'has-jn':''}" onclick="event.stopPropagation();openJournal('${k}', _intraDays.find(s=>s.date==='${k}'))"><span class="mi-t">intradía</span><span class="mi-r">${fmtS(pnl)}</span><span class="mi-n">${cnt} pos.</span>${journalHas(k)?'<span class="mi-note">📝</span>':''}</div>` : '');
       const noteCls = (first && journalHas(sw.id)) ? 'has-note' : '';
       // Número del día: si el intradía de ese día coincide con el resultado del SWING se queda de ese color; si no coincide, blanco
       const intraCls = pnl !== undefined ? (dayClass(pnl)==='win'?'win':dayClass(pnl)==='loss'?'loss':'neu') : null;
@@ -3127,7 +3263,33 @@ function _renderCalendarForMonth(sessions, year, month) {
     cal.innerHTML += `<div class="cal-day ${cls} ${hasNote} ${isToday}" ${clickable} title="${k}: ${pnl!==undefined?fmt$(pnl)+' neto del día · '+cnt+' posiciones — Click para journal':'Sin operaciones'}">
       <div class="cal-num">${d.getDate()}</div>${inner}</div>`;
   }
+  fitCalendarAmounts();
 }
+
+// Móvil: reduce la letra de los montos hasta que quepan dentro de su casilla (sin salirse del recuadro)
+function fitCalendarAmounts(){
+  const grid = document.getElementById('calGrid'); if(!grid) return;
+  const mobile = window.matchMedia('(max-width:600px)').matches;
+  grid.querySelectorAll('.cal-pnl, .mi-r').forEach(el => { el.style.fontSize = ''; });
+  if(!mobile) return;
+  // Cada grupo (montos de los días / montos del intradía) se ajusta para que quepa el más ancho y TODOS quedan con ese mismo tamaño
+  ['.cal-pnl', '.mi-r'].forEach(sel => {
+    let min = Infinity;
+    const els = [...grid.querySelectorAll(sel)];
+    els.forEach(el => {
+      const box = el.closest('.cal-mini') || el.closest('.cal-day'); if(!box) return;
+      const cs = getComputedStyle(box);
+      const avail = box.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight) - 4;   // margen de seguridad: el monto nunca toca el borde
+      let size = parseFloat(getComputedStyle(el).fontSize);
+      while(el.getBoundingClientRect().width > avail && size > 2.5){ size -= 0.25; el.style.fontSize = size + 'px'; }
+      min = Math.min(min, size);
+    });
+    if(isFinite(min)) els.forEach(el => { el.style.fontSize = min + 'px'; });
+  });
+}
+window.addEventListener('resize', fitCalendarAmounts);
+window.addEventListener('load', fitCalendarAmounts);
+if(document.fonts && document.fonts.ready) document.fonts.ready.then(fitCalendarAmounts);   // reajusta cuando carga la tipografía (cambia el ancho del texto)
 
 // ── RISK SCALING ───────────────────────────────────────────────────────────────
 let _riskBalance = 0;
@@ -3967,6 +4129,9 @@ function _imgLbl(ref,kind,key){
   const txt=/^\d+$/.test(ref)?'IMG Trade '+ref:'#'+ref;
   return `<div class="jimg-lbl" onclick="this.classList.toggle('show')">${txt}<button class="lx" type="button" title="Quitar asignación" onclick="event.stopPropagation();unassignImg('${kind}','${key}')">✕</button></div>`;
 }
+document.addEventListener('pointerdown',e=>{   // la X de la etiqueta de la captura se oculta al tocar fuera de ella (todas las veces)
+  document.querySelectorAll('.jimg-lbl.show').forEach(l=>{ if(!l.contains(e.target)) l.classList.remove('show'); });
+},true);
 function _noteDragStart(e,tk,touch){
   const P=ev=>(ev.touches&&ev.touches[0])||(ev.changedTouches&&ev.changedTouches[0])||ev;
   const st={x:P(e).clientX,y:P(e).clientY,on:false,g:null,lx:P(e).clientX,ly:P(e).clientY,sc:null}, t=document.getElementById('jnoteText');
@@ -3998,22 +4163,36 @@ function _noteDragStart(e,tk,touch){
   if(touch){
     document.addEventListener('touchmove',mv,{passive:false}); document.addEventListener('touchend',up); document.addEventListener('touchcancel',up);
     mv({clientX:st.x,clientY:st.y});   // el arrastre arranca ya (se llega aquí tras la pulsación larga)
-    const box=document.querySelector('.jmodal');   // cerca del borde de la pantalla el modal se desplaza solo, para alcanzar las capturas
-    st.sc=setInterval(()=>{ if(!box) return; const h=window.innerHeight; if(st.ly<90) box.scrollTop-=12; else if(st.ly>h-90) box.scrollTop+=12; else return;
+    const box=_scrollerOf(t);   // con el dedo en la mitad baja/alta de la pantalla la vista sigue al dedo (sin soltar) para llegar a las capturas
+    st.sc=setInterval(()=>{ if(!box) return; const h=window.innerHeight, z=Math.min(220,Math.max(120,h*.3)); let v=0;
+      if(st.ly<z) v=-Math.max(3,Math.round(20*Math.min(1,(z-st.ly)/z))); else if(st.ly>h-z) v=Math.max(3,Math.round(20*Math.min(1,(st.ly-(h-z))/z))); else return;
+      box.scrollTop+=v;
       document.querySelectorAll('.dropt').forEach(x=>x.classList.remove('dropt')); const it=under({clientX:st.lx,clientY:st.ly}); if(it) it.classList.add('dropt'); },16);
   } else { document.addEventListener('mousemove',mv); document.addEventListener('mouseup',up); }
 }
-(function(){   // TELÉFONO: mantener pulsado "Trade N" (~0,4 s) y arrastrar hasta una captura; un toque corto sigue abriendo el desglose
+function _scrollerOf(el){   // contenedor con scroll vertical más cercano (el modal del journal); si no, la página
+  for(let n=el&&el.parentElement;n&&n!==document.body;n=n.parentElement){ const o=getComputedStyle(n).overflowY; if((o==='auto'||o==='scroll')&&n.scrollHeight>n.clientHeight) return n; }
+  return document.scrollingElement||document.documentElement;
+}
+(function(){   // TELÉFONO: encima de "Trade N": toque corto = abre el desglose · mantener (~0,4 s) = agarrarlo y arrastrarlo a una captura · deslizar rápido = desplazar la pantalla
   const t=document.getElementById('jnoteText'); if(!t) return;
   t.addEventListener('touchstart',e=>{
     if(e.touches.length!==1) return;
     const p=e.touches[0], tk=_noteHitTok({clientX:p.clientX,clientY:p.clientY}); if(!tk) return;
-    const sx=p.clientX, sy=p.clientY; let lx=sx, ly=sy;
-    const stop=()=>{ clearTimeout(tm); t.removeEventListener('touchmove',chk); t.removeEventListener('touchend',stop); t.removeEventListener('touchcancel',stop); };
-    const chk=ev=>{ const q=ev.touches[0]; if(!q) return; lx=q.clientX; ly=q.clientY; if(Math.hypot(lx-sx,ly-sy)>10) stop(); };   // se movió antes de tiempo: es un desplazamiento, no un arrastre
-    const tm=setTimeout(()=>{ stop(); try{ navigator.vibrate&&navigator.vibrate(15); }catch(_){} _noteDragStart({clientX:lx,clientY:ly},tk,true); },380);
-    t.addEventListener('touchmove',chk,{passive:true}); t.addEventListener('touchend',stop); t.addEventListener('touchcancel',stop);
-  },{passive:true});
+    if(e.cancelable) e.preventDefault();   // el sistema NO selecciona/copia el texto ni abre el menú de copiar al mantener pulsado
+    const sc=_scrollerOf(t), sx=p.clientX, sy=p.clientY; let lx=sx, ly=sy, moved=false;
+    const cleanup=()=>{ clearTimeout(tm); t.removeEventListener('touchmove',chk); t.removeEventListener('touchend',end); t.removeEventListener('touchcancel',end); };
+    const chk=ev=>{ const q=ev.touches[0]; if(!q) return;
+      if(!moved && Math.hypot(q.clientX-sx,q.clientY-sy)>10){ moved=true; clearTimeout(tm); }
+      if(moved){ if(ev.cancelable) ev.preventDefault(); sc.scrollTop-=q.clientY-ly; }   // deslizó antes de tiempo: se desplaza la pantalla con el dedo
+      lx=q.clientX; ly=q.clientY; };
+    const end=ev=>{ cleanup(); if(moved||ev.type==='touchcancel') return;
+      if(ev.cancelable) ev.preventDefault();
+      t.blur(); jumpToTrade(tk.n);   // toque corto
+      if(!_trTags(t.value)[tk.n]){ window._trPick=tk.n; _trTagsApply(); } };
+    const tm=setTimeout(()=>{ cleanup(); try{ navigator.vibrate&&navigator.vibrate(15); }catch(_){} t.blur(); _noteDragStart({clientX:lx,clientY:ly},tk,true); },380);
+    t.addEventListener('touchmove',chk,{passive:false}); t.addEventListener('touchend',end,{passive:false}); t.addEventListener('touchcancel',end);
+  },{passive:false});
   t.addEventListener('contextmenu',e=>{ if(_noteHitTok(e)) e.preventDefault(); });   // la pulsación larga sobre "Trade N" no abre el menú de copiar/pegar
 })();
 (function(){   // el ícono es atómico: ninguna edición del teclado/cortar/pegar/deshacer puede quitarlo (solo la X de la etiqueta)
