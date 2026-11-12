@@ -311,17 +311,19 @@ body.light .kpi-tip{background:rgba(255,255,255,0.98);color:#0a1a2a;border-color
 .rw-last{background:transparent;border:1px solid var(--b2);border-radius:8px;color:var(--cyan);font:600 10px var(--font-mono);padding:0 12px;min-height:30px;cursor:pointer;}
 .rw-last[hidden]{display:none;}
 /* Barra de desplazamiento estilo NinjaTrader bajo las fechas (Curva acumulada + Drawdown, sincronizadas) */
-.rw-sb{display:flex;align-items:stretch;height:17px;margin:6px 0 0;border:1px solid var(--b2);border-radius:6px;background:var(--s2);overflow:hidden;user-select:none;-webkit-user-select:none;touch-action:none;}
+.rw-sb{display:flex;align-items:stretch;height:13.6px;margin:6px 0 0;border:1px solid var(--b2);border-radius:6px;background:var(--s2);overflow:hidden;user-select:none;-webkit-user-select:none;touch-action:none;}
 .rw-sb-arrow{flex:none;width:22px;border:0;background:var(--s2);color:var(--muted);font-size:8px;line-height:1;cursor:pointer;padding:0;display:flex;align-items:center;justify-content:center;}
 .rw-sb-arrow:first-child{border-right:1px solid var(--b2);}
 .rw-sb-arrow:last-child{border-left:1px solid var(--b2);}
-.rw-sb-arrow:active{background:var(--b2);color:var(--cyan);}
+.rw-sb-arrow:active{background:var(--b2);color:rgba(255,255,255,.85);}
 .rw-sb-track{flex:1;position:relative;cursor:pointer;touch-action:none;}
-.rw-sb-thumb{position:absolute;top:1px;bottom:1px;left:0;min-width:28px;border-radius:4px;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.28);cursor:grab;touch-action:none;box-sizing:border-box;}
-.rw-sb-thumb:hover,.rw-sb-thumb.drag{background:rgba(0,229,255,.22);border-color:var(--cyan);}
+.rw-sb-thumb{position:absolute;top:1px;bottom:1px;left:0;min-width:28px;border-radius:4px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);cursor:grab;touch-action:none;box-sizing:border-box;}
+.rw-sb-thumb.drag{background:rgba(255,255,255,.16);border-color:rgba(255,255,255,.28);}
+@media (hover:hover) and (pointer:fine){.rw-sb-thumb:hover{background:rgba(255,255,255,.16);border-color:rgba(255,255,255,.28);}}   /* :hover solo con ratón; en táctil se quedaba pegado */   /* en reposo: el mismo gris al 50 %; al usarlo se resalta al gris de antes (sin azul) */
 .rw-sb.off{opacity:.45;pointer-events:none;}
-@media (pointer:coarse){.rw-sb{height:22px;}.rw-sb-arrow{width:30px;font-size:9px;}}
+@media (pointer:coarse){.rw-sb{height:17.6px;}.rw-sb-arrow{width:30px;font-size:9px;}}
 @media (pointer:coarse){.rw-seg button,.rw-last{min-height:44px;padding:0 16px;font-size:11px;}}
+@media (max-width:600px){.rw-bar{align-items:stretch;gap:8px;}.rw-seg{order:1;}.rw-seg button{padding:0 11px;font-size:10px;min-height:31px;}.rw-last{order:2;display:inline-flex;align-items:center;white-space:nowrap;padding:0 10px;font-size:10px;box-sizing:border-box;min-height:31px;}.rw-last[hidden]{display:none;}.rw-info{order:3;flex:0 0 100%;}}   /* móvil: «Ir al último día» junto a 30S·90S·Todo, misma altura; el texto del rango debajo */
 canvas{max-height:200px;}
 
 /* PROGRESS BARS */
@@ -780,8 +782,8 @@ input.jimglink:focus{border-color:var(--cyan);}
 
   /* Account bar */
   .acc-bar{
-    padding:12px 14px;gap:0;
-    display:grid;grid-template-columns:1fr 1fr;row-gap:12px;column-gap:8px;
+    padding:12px 10px 12px 30px;gap:0;
+    display:grid;grid-template-columns:1fr 1fr;row-gap:12px;column-gap:8px;align-items:start;
   }
   .acc-sep{display:none;}
   .acc-item{order:var(--m,0);} /* móvil conserva su orden original: Balance antes que Apalanc. */
@@ -811,6 +813,7 @@ input.jimglink:focus{border-color:var(--cyan);}
   .chart-title{font-size:9px;margin-bottom:10px;}
   canvas{max-height:160px !important;}
   #monthlyChart{max-height:180px !important;}
+  #equityChart,#ddChart{max-height:173px !important;}   /* 160 + 13 px cedidos por los botones de rango */
 
   /* Best/worst symbols — stack */
   .sym-row{grid-template-columns:1fr;gap:10px;}
@@ -1096,7 +1099,7 @@ input.jimglink:focus{border-color:var(--cyan);}
   <!-- EQUITY CURVE -->
   <div class="charts-2" style="margin-bottom:16px;">
     <div class="chart-box span2">
-      <div class="chart-title">Curva de Resultado Realizado Acumulado (neto por día)</div>
+      <div class="chart-title">Curva de Resultado Realizado Acumulado</div>
       <canvas id="equityChart"></canvas>
     </div>
   </div>
@@ -1104,7 +1107,7 @@ input.jimglink:focus{border-color:var(--cyan);}
   <!-- DRAWDOWN + PROGRESS BARS -->
   <div class="charts-2" style="margin-bottom:16px;">
     <div class="chart-box">
-      <div class="chart-title">Drawdown — Resultados Realizados (cierre de cada día operado)</div>
+      <div class="chart-title">Drawdown — Resultados Realizados</div>
       <canvas id="ddChart"></canvas>
     </div>
     <div class="chart-box">
@@ -2791,6 +2794,15 @@ const cOpts=(cb)=>{
     }};
 };
 const cOptsEdge=(cb)=>{ const o=cOpts(cb); o.scales.x.offset=true; o.scales.x.grid={...o.scales.x.grid,offset:false}; return o; };   // margen de medio paso a cada lado: el primer y el último punto quedan COMPLETOS dentro del recuadro
+// Móvil (<=600px): Curva acumulada y Drawdown ganan +13 px de alto (los que se quitaron a los botones de rango). PC no cambia.
+const RW_EXTRA_H=13;
+const rwMobAspect=(id)=>{
+  if(window.innerWidth>600) return {};
+  const cv=document.getElementById(id), box=cv&&cv.parentElement; if(!box) return {};
+  const cs=getComputedStyle(box), inner=box.clientWidth-(parseFloat(cs.paddingLeft)||0)-(parseFloat(cs.paddingRight)||0);
+  if(!(inner>0)) return {};
+  return {aspectRatio: inner/(Math.min(160,inner/2)+RW_EXTRA_H)};
+};
 // Tooltips de Drawdown y Curva acumulada: globo con triangulito apuntando al día. El texto SIEMPRE va arriba del punto (triángulo hacia abajo),
 // así nunca tapa las fechas del eje inferior.
 // Chart.js recorta su tooltip de canvas al borde del canvas (y desde 0): en puntos altos lo empujaba hacia abajo y ya no salía desde el punto.
@@ -2936,7 +2948,9 @@ function rwEnsureUI(){
       const ns=sd.start+Math.round((e.clientX-sd.x)/g.span*g.range);
       const ne=ns+RW.size-1; if(ne!==RW.end){ RW.end=ne; rwApply(); }
     });
-    ['pointerup','pointercancel'].forEach(t=>th.addEventListener(t,()=>{sd=null;th.classList.remove('drag');}));
+    const endDrag=()=>{sd=null;th.classList.remove('drag');};
+    ['pointerup','pointercancel','lostpointercapture'].forEach(t=>th.addEventListener(t,endDrag));
+    ['pointerup','pointercancel'].forEach(t=>window.addEventListener(t,()=>{ if(sd) endDrag(); }));   // respaldo: soltar fuera del tirador también quita el gris
     // Tocar el carril (fuera del tirador) = avanzar/retroceder una página.
     tr.addEventListener('pointerdown',e=>{
       if(e.target!==tr||RW.size>=RW.n) return;
@@ -3047,7 +3061,7 @@ function renderCharts(m, sessions) {
       ]
     },
     options:{
-      ...cOptsEdge(v=>'$'+mny(v,0)),
+      ...cOptsEdge(v=>'$'+mny(v,0)),...rwMobAspect('equityChart'),
       animation:false,events:['mousemove','mouseout','click','touchstart','touchmove'],
       interaction:{mode:'index',axis:'x',intersect:false},
       plugins:{
@@ -3099,7 +3113,7 @@ function renderCharts(m, sessions) {
     data:{labels:ddPts.map(q=>{const d=new Date(q.date+'T12:00:00');return (d.getMonth()+1)+'/'+d.getDate();}),
       datasets:[{label:'Drawdown',data:ddPts.map(q=>-q.dd),borderColor:'rgba(255,51,85,0.8)',backgroundColor:'rgba(255,51,85,0.14)',borderWidth:2,tension:0,fill:true,
         pointRadius:2.2,pointHoverRadius:6,pointHitRadius:14,pointBackgroundColor:'rgba(255,51,85,0.9)'}]},
-    options:{...cOptsEdge(v=>'$'+mny(v,0)),responsive:true,
+    options:{...cOptsEdge(v=>'$'+mny(v,0)),responsive:true,...rwMobAspect('ddChart'),
       animation:false,events:['mousemove','mouseout','click','touchstart','touchmove'],
       interaction:{mode:'nearest',axis:'x',intersect:false},
       plugins:{legend:{display:false},tooltip:{
@@ -3223,7 +3237,7 @@ function renderCharts(m, sessions) {
     type:'doughnut',
     data:{labels:[`Ganadores ${wlPctWin}% (${m.dayWins})`,`Perdedores ${wlPctLoss}% (${m.dayLosses})`,`Break Even ${wlPctBE}% (${m.dayBE})`],
       datasets:[{data:[m.dayWins,m.dayLosses,m.dayBE],
-        backgroundColor:['rgba(0,255,136,0.75)','rgba(255,51,85,0.75)','rgba(255,204,0,0.49)'],borderWidth:0,hoverBorderWidth:0}]},
+        backgroundColor:['rgba(0,255,136,0.75)','rgba(255,51,85,0.75)','rgba(255,204,0,0.75)'],borderWidth:0,hoverBorderWidth:0}]},
     options:{
       responsive:true,
       plugins:{
