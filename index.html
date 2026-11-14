@@ -2594,9 +2594,9 @@ body.light .risk-prog-bar,body.light .wd-prog-bar{background:repeating-linear-gr
 .tl-secnav{position:sticky;top:calc(var(--tl-nav-top,0px) + env(safe-area-inset-top,0px));z-index:150;display:flex;gap:8px;overflow-x:auto;
   padding:10px 2px 12px;margin:0 0 4px;background:linear-gradient(180deg,var(--bg) 72%,transparent);scrollbar-width:none;-webkit-overflow-scrolling:touch;}
 .tl-secnav::-webkit-scrollbar{display:none;}
-.tl-secnav{transition:opacity .22s ease,visibility 0s linear 0s;}
-/* Con el menú, el journal u otra pestaña abierta, el navegador de secciones se oculta (queda «por debajo») y reaparece al cerrarla */
-html.tl-layer-open .tl-secnav{opacity:0;visibility:hidden;pointer-events:none;transition:opacity .15s ease,visibility 0s linear .15s;}
+.tl-secnav{transition:opacity .5s cubic-bezier(.22,1,.36,1) .14s,transform .55s cubic-bezier(.16,1,.3,1) .14s,visibility 0s linear 0s;will-change:opacity,transform;}   /* entrada suave al cerrar el journal: pequeño retardo + fundido y deslizamiento desde arriba */
+/* Con el journal o el visor de imagen abierto, el navegador de secciones se oculta (queda «por debajo») y reaparece al cerrarlo. El menú ☰ no lo oculta */
+html.tl-layer-open .tl-secnav{opacity:0;transform:translateY(-8px);visibility:hidden;pointer-events:none;transition:opacity .15s ease,transform .15s ease,visibility 0s linear .15s;}
 /* Journal abierto: la página de fondo no se desplaza; el scroll es solo del journal */
 html.tl-jlock,html.tl-jlock body{overflow:hidden;}
 #jmodalOverlay .jmodal{overscroll-behavior:contain;}
@@ -8710,12 +8710,11 @@ if("serviceWorker" in navigator && location.protocol.startsWith("http")){
 })();
 </script>
 <script id="tl-layers-js">
-/* Pestañas superpuestas: oculta el navegador de secciones mientras haya una abierta y encierra el scroll dentro del journal */
+/* Pestañas superpuestas (journal / visor de imagen): oculta el navegador de secciones mientras haya una abierta y encierra el scroll dentro del journal. El menú ☰ NO lo oculta. */
 (function(){
   var root=document.documentElement, body=document.body, lockOn=false;
   function $(id){ return document.getElementById(id); }
   function layerOpen(){
-    var m=$('menuPop'); if(m && m.classList.contains('open')) return true;
     if(document.querySelector('.jmodal-overlay.open')) return true;
     return !!document.querySelector('.jimg-viewer.open');
   }
@@ -8732,7 +8731,7 @@ if("serviceWorker" in navigator && location.protocol.startsWith("http")){
   var iv=document.querySelector('.jimg-viewer'); if(iv) mo.observe(iv,{attributes:true,attributeFilter:['class']});
   sync();
 
-  // Menú abierto + scroll de la página (rueda o deslizar el dedo): el menú se cierra solo y el navegador de secciones reaparece
+  // Menú abierto + scroll de la página (rueda o deslizar el dedo): el menú se cierra solo (el navegador de secciones permanece visible)
   var menuY=0, mp=$('menuPop');
   if(mp){
     new MutationObserver(function(){ if(mp.classList.contains('open')) menuY=window.pageYOffset; }).observe(mp,{attributes:true,attributeFilter:['class']});
