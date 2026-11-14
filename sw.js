@@ -1,4 +1,4 @@
-const CACHE = 'tradelens-v2';
+const CACHE = 'tradelens-v3';
 const SHELL = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)));
@@ -45,4 +45,26 @@ self.addEventListener('notificationclick', e => {
     }
     await self.clients.openWindow(target);
   })());
+});
+
+// ── Renovación automática de la suscripción push (sin abrir la web ni iniciar sesión) ──
+const TL_DB = 'tl-push', TL_ST = 'kv';
+const tlDb = () => new Promise((ok, no) => { const r = indexedDB.open(TL_DB, 1); r.onupgradeneeded = () => r.result.createObjectStore(TL_ST); r.onsuccess = () => ok(r.result); r.onerror = () => no(r.error); });
+const tlGet = k => tlDb().then(db => new Promise(ok => { const q = db.transaction(TL_ST).objectStore(TL_ST).get(k); q.onsuccess = () => ok(q.result); q.onerror = () => ok(null); })).catch(() => null);
+const tlSet = (k, v) => tlDb().then(db => new Promise(ok => { const tx = db.transaction(TL_ST, 'readwrite'); tx.objectStore(TL_ST).put(v, k); tx.oncomplete = () => ok(true); tx.onerror = () => ok(false); })).catch(() => false);
+const b64ToU8 = b => { const raw = atob((b + '='.repeat((4 - b.length % 4) % 4)).replace(/-/g, '+').replace(/_/g, '/')); return Uint8Array.from(raw, c => c.charCodeAt(0)); };
+async function tlResubscribe(oldEp) {
+  try {
+    const cfg = await tlGet('cfg'); if (!cfg || !cfg.publicKey || !cfg.server) return;
+    const sub = (await self.registration.pushManager.getSubscription()) || await self.registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64ToU8(cfg.publicKey) });
+    const r = await fetch(cfg.server + '/push/resubscribe', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ oldEndpoint: oldEp || cfg.endpoint || '', deviceId: cfg.deviceId || '', subscription: sub.toJSON() }) });
+    if (r.ok) await tlSet('cfg', Object.assign({}, cfg, { endpoint: sub.endpoint }));
+  } catch (_) {}
+}
+self.addEventListener('pushsubscriptionchange', e => e.waitUntil(tlResubscribe(e.oldSubscription && e.oldSubscription.endpoint)));
+self.addEventListener('message', e => {
+  const m = e.data || {};
+  if (m.type === 'tl-push-cfg') e.waitUntil(tlSet('cfg', { server: m.server, publicKey: m.publicKey, deviceId: m.deviceId, endpoint: m.endpoint }));
+  else if (m.type === 'tl-push-clear') e.waitUntil(tlSet('cfg', null));
 });
