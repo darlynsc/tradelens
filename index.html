@@ -940,6 +940,941 @@ input.jimglink:focus{border-color:var(--cyan);}
   .cal-day.empty .cal-num{font-size:10px;font-weight:600;}
   .cal-days-hdr span:first-child,.cal-days-hdr span:last-child{font-size:8px;}
 }
+@media(max-width:600px){#weekNetPct,#monthlyNetPct{margin-left:0 !important;flex-basis:100%;}}
+/* Barra de resumen (PC): etiqueta arriba, valor abajo */
+.sumbar{display:flex;flex:0 0 100%;border:1px solid var(--b1);border-radius:10px;background:var(--s2);overflow:hidden;}
+.sumbar:empty{display:none;}
+.sb-cell{flex:1 1 0;min-width:0;padding:9px 14px;display:flex;flex-direction:column;gap:3px;border-left:1px solid var(--b1);}
+.sb-cell:first-child{border-left:none;}
+.sb-lbl{font-size:9px;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);white-space:nowrap;}
+.sb-val{font-size:13px;font-weight:700;white-space:nowrap;}
+.sb-val small{font-size:10px;font-weight:600;opacity:.8;margin-left:4px;}
+@media(min-width:601px){.sum-old{display:none !important;}}
+@media(max-width:600px){
+.sum-old{display:none !important;}
+.sumbar{display:grid;grid-template-columns:1fr 1fr;border-radius:10px;}
+.sb-cell{padding:8px 11px;border-left:none;border-top:1px solid var(--b1);}
+.sb-cell:nth-child(2n){border-left:1px solid var(--b1);}
+.sb-cell:nth-child(-n+2){border-top:none;}
+.sb-cell:last-child:nth-child(odd){grid-column:1/-1;}
+.sb-val{font-size:12px;white-space:normal;}
+}
+/* ── Barras de resumen (mismo estilo que Rendimiento Mensual) en el resto de secciones ── */
+.sumbar-top{margin-bottom:14px;}
+.sb-lbl{overflow:hidden;text-overflow:ellipsis;}
+.sb-val .sb-ico{margin-right:4px;}
+#streakRow:empty{display:none;}
+#streakRow{margin-bottom:20px;}
+.sb-note{font-size:10px;color:var(--muted);line-height:1.7;margin-top:12px;}
+.sb-note b{color:var(--text);font-weight:600;}
+/* Mejor / Peor símbolo: cabecera de columnas + filas alineadas */
+.sym-head,.sym-item{display:grid;grid-template-columns:minmax(0,1fr) 96px 40px 52px;column-gap:10px;align-items:center;}
+.sym-head{padding:0 0 7px;border-bottom:1px solid var(--b2);}
+.sym-head span{font-size:9px;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);text-align:right;white-space:nowrap;}
+.sym-head span:first-child{text-align:left;}
+.sym-item .sym-pnl,.sym-item .sym-ops,.sym-item .sym-wr{text-align:right;white-space:nowrap;}
+.sym-item .sym-ops,.sym-item .sym-wr{font-size:12px;font-weight:600;color:var(--text);}
+/* Barras con muchas celdas (7 / 5): en pantallas medianas pasan a rejilla de 2 columnas para que nada se corte */
+@media(max-width:1100px){
+.sumbar.sb-many{display:grid;grid-template-columns:1fr 1fr;border-radius:10px;}
+.sumbar.sb-many .sb-cell{padding:8px 11px;border-left:none;border-top:1px solid var(--b1);}
+.sumbar.sb-many .sb-cell:nth-child(2n){border-left:1px solid var(--b1);}
+.sumbar.sb-many .sb-cell:nth-child(-n+2){border-top:none;}
+.sumbar.sb-many .sb-cell:last-child:nth-child(odd){grid-column:1/-1;}
+.sumbar.sb-many .sb-val{font-size:12px;white-space:normal;}
+}
+@media(max-width:600px){
+.sumbar-top{margin-bottom:12px;}
+.sym-head,.sym-item{grid-template-columns:minmax(0,1fr) 84px 32px 44px;column-gap:8px;}
+.sb-note{font-size:9px;}
+}
+/* ═════════════════════════════════════════════════════════════════════════════
+   REDISEÑO PROFESIONAL — solo estilo. Misma paleta, misma lógica.
+   1) Pulido de barras / símbolos / rachas   2) Base visual (tarjetas, KPIs, títulos, tipografía)
+   3) Calendario y Risk Scaling              4) Movimiento, botones y tema claro
+   ═════════════════════════════════════════════════════════════════════════════ */
+:root{--r-card:14px;--ease:cubic-bezier(.2,.7,.2,1);
+  --shadow-card:0 1px 0 rgba(255,255,255,.035) inset,0 10px 28px -14px rgba(0,0,0,.65);}
+body{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;font-variant-numeric:tabular-nums;}
+::selection{background:rgba(0,229,255,.25);color:var(--text);}
+*{scrollbar-width:thin;scrollbar-color:var(--b2) transparent;}
+::-webkit-scrollbar{width:8px;height:8px;}
+::-webkit-scrollbar-thumb{background:var(--b2);border-radius:8px;}
+::-webkit-scrollbar-track{background:transparent;}
+
+/* ── 2 · Sistema de tarjetas unificado ── */
+.chart-box,.cal-wrap,.sym-card,.coach-card,.risk-wrap,.wd-wrap,.roi-wrap,.acc-bar,.kpi{
+  background:linear-gradient(180deg,rgba(255,255,255,.028),rgba(255,255,255,0) 55%),var(--s1);
+  border-radius:var(--r-card);box-shadow:var(--shadow-card);}
+.risk-wrap,.wd-wrap{border-radius:18px;}
+.chart-box,.cal-wrap,.sym-card,.roi-wrap,.coach-card{transition:border-color .25s,box-shadow .25s,transform .25s var(--ease);}
+.chart-box:hover,.cal-wrap:hover,.sym-card:hover,.roi-wrap:hover{border-color:var(--b2);}
+.coach-card{padding:16px 18px;}
+.coach-card:hover{transform:translateY(-2px);box-shadow:0 14px 30px -16px rgba(0,0,0,.75),0 1px 0 rgba(255,255,255,.035) inset;}
+.chart-title,.sym-card-title{font-family:var(--font-head);font-weight:600;letter-spacing:1.6px;}
+.sym-card-title{color:var(--text);}
+@media(min-width:601px){.chart-title{font-size:11px;}}
+
+/* ── 2 · Encabezados de sección ── */
+.sec-label{font-family:var(--font-head);font-weight:600;font-size:11px;letter-spacing:2.2px;color:var(--text);gap:10px;margin-top:6px;}
+.sec-label::before{box-shadow:0 0 10px rgba(0,229,255,.55);}
+.sec-label.green::before{box-shadow:0 0 10px rgba(0,255,136,.55);}
+.sec-label.purple::before{box-shadow:0 0 10px rgba(181,123,255,.55);}
+.sec-label.red::before{box-shadow:0 0 10px rgba(255,51,85,.55);}
+.sec-label::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,var(--b2),transparent);}
+
+/* ── 2 · Encabezado y barra de cuenta ── */
+header{border-bottom:0;position:relative;}
+header::after{content:'';position:absolute;left:0;right:0;bottom:0;height:1px;background:linear-gradient(90deg,var(--cyan),var(--b2) 35%,transparent);opacity:.55;}
+.live-badge{box-shadow:0 0 18px -6px rgba(0,255,136,.5);}
+.acc-bar{padding:16px 22px;gap:26px;}
+.acc-sep{background:linear-gradient(180deg,transparent,var(--b2),transparent);}
+.acc-item .av{letter-spacing:-.2px;}
+@media(min-width:601px){.acc-item .av{font-size:16px;}}
+.acc-item .al{letter-spacing:1.4px;}
+@media(min-width:601px){
+  .acc-bar{justify-content:space-evenly;align-items:center;gap:20px;}
+  .acc-item{align-items:center;text-align:center;}
+}
+
+/* ── 2 · KPIs: chip de icono, brillo de color y jerarquía ── */
+.kpi{padding:18px 16px 16px;}
+.kpi::before{border-radius:14px 14px 0 0;}
+.kpi.c{background:radial-gradient(120% 90% at 0% 0%,rgba(0,229,255,.07),transparent 58%),linear-gradient(180deg,rgba(255,255,255,.02),transparent 55%),var(--s1);}
+.kpi.g{background:radial-gradient(120% 90% at 0% 0%,rgba(0,255,136,.06),transparent 58%),linear-gradient(180deg,rgba(255,255,255,.02),transparent 55%),var(--s1);}
+.kpi.r{background:radial-gradient(120% 90% at 0% 0%,rgba(255,51,85,.07),transparent 58%),linear-gradient(180deg,rgba(255,255,255,.02),transparent 55%),var(--s1);}
+.kpi.w{background:radial-gradient(120% 90% at 0% 0%,rgba(255,204,0,.06),transparent 58%),linear-gradient(180deg,rgba(255,255,255,.02),transparent 55%),var(--s1);}
+.kpi.p{background:radial-gradient(120% 90% at 0% 0%,rgba(181,123,255,.07),transparent 58%),linear-gradient(180deg,rgba(255,255,255,.02),transparent 55%),var(--s1);}
+.kpi-icon{opacity:1;right:10px;top:10px;width:26px;height:26px;display:flex;align-items:center;justify-content:center;border-radius:9px;font-size:14px;
+  background:rgba(255,255,255,.04);border:1px solid var(--b1);}
+.kpi.c .kpi-icon{background:rgba(0,229,255,.08);border-color:rgba(0,229,255,.22);}
+.kpi.g .kpi-icon{background:rgba(0,255,136,.08);border-color:rgba(0,255,136,.22);}
+.kpi.r .kpi-icon{background:rgba(255,51,85,.08);border-color:rgba(255,51,85,.24);}
+.kpi.w .kpi-icon{background:rgba(255,204,0,.08);border-color:rgba(255,204,0,.24);}
+.kpi.p .kpi-icon{background:rgba(181,123,255,.08);border-color:rgba(181,123,255,.24);}
+.kpi:has(.kpi-icon) .kpi-label{padding-right:32px;}
+.kpi-label{letter-spacing:1.4px;margin-bottom:10px;}
+.kpi-sub{line-height:1.45;}
+
+/* ── 1 · Barras de resumen: acento de color, hover y jerarquía ── */
+.sumbar{background:linear-gradient(180deg,rgba(255,255,255,.025),transparent),var(--s2);border-color:var(--b2);box-shadow:0 1px 0 rgba(255,255,255,.03) inset;}
+.sb-cell{position:relative;transition:background .2s;}
+.sb-cell::before{content:'';position:absolute;top:0;left:12px;right:12px;height:2px;border-radius:0 0 3px 3px;background:transparent;}
+.sb-cell:has([style*="var(--cyan)"])::before{background:linear-gradient(90deg,var(--cyan),transparent);}
+.sb-cell:has([style*="var(--warn)"])::before{background:linear-gradient(90deg,var(--warn),transparent);}
+.sb-cell:has([style*="var(--green)"])::before{background:linear-gradient(90deg,var(--green),transparent);}
+.sb-cell:has([style*="var(--red)"])::before{background:linear-gradient(90deg,var(--red),transparent);}
+.sb-cell:hover{background:rgba(255,255,255,.025);}
+.sb-lbl{font-weight:500;letter-spacing:1px;}
+@media(min-width:601px){.sb-val{font-size:14px;letter-spacing:-.2px;}}
+/* Calendario en móvil: 3 columnas compactas en lugar de 4 filas altas */
+@media(max-width:600px){
+  #calConsistency.sumbar{grid-template-columns:repeat(3,1fr);}
+  #calConsistency .sb-cell{padding:7px 8px;border-left:none;border-top:1px solid var(--b1);}
+  #calConsistency .sb-cell:nth-child(3n+2),#calConsistency .sb-cell:nth-child(3n){border-left:1px solid var(--b1);}
+  #calConsistency .sb-cell:nth-child(-n+3){border-top:none;}
+  #calConsistency .sb-cell:last-child:nth-child(3n+1){grid-column:1/-1;}
+  #calConsistency .sb-lbl{font-size:8px;letter-spacing:.5px;}
+  #calConsistency .sb-val{font-size:11px;}
+  #calConsistency .sb-val small{display:block;margin:1px 0 0;font-size:9px;}
+}
+
+/* ── 1 · Símbolos: mini barra proporcional ── */
+.sym-item{position:relative;padding:9px 0;border-bottom-color:var(--b1);}
+.sym-bar{position:absolute;left:0;bottom:0;height:2px;border-radius:2px;pointer-events:none;opacity:.9;}
+.sym-bar.pos{background:linear-gradient(90deg,var(--green),transparent);}
+.sym-bar.neg{background:linear-gradient(90deg,var(--red),transparent);}
+.sym-name{letter-spacing:.3px;}
+
+/* ── 1 · Rachas: chips con las fechas ── */
+.sb-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;align-items:center;}
+.sb-chips .lead{font-size:10px;color:var(--muted);margin-right:4px;}
+.sb-chip{display:inline-flex;gap:6px;align-items:center;font-size:10px;padding:4px 10px;border-radius:999px;background:var(--s2);border:1px solid var(--b2);color:var(--text);white-space:nowrap;}
+.sb-chip em{font-style:normal;color:var(--muted);letter-spacing:.6px;text-transform:uppercase;font-size:9px;}
+.sb-chip.g{border-color:rgba(0,255,136,.3);}
+.sb-chip.r{border-color:rgba(255,51,85,.3);}
+.sb-chip.c{border-color:rgba(0,229,255,.3);}
+@media(max-width:600px){.sb-chip{font-size:9px;padding:3px 8px;}}
+
+/* ── 3 · Calendario ── */
+.cal-day{border-radius:9px;}
+.cal-day.win.h1{background:rgba(0,255,136,.085);border-color:rgba(0,255,136,.2);}
+.cal-day.win.h2{background:rgba(0,255,136,.15);border-color:rgba(0,255,136,.3);}
+.cal-day.win.h3{background:rgba(0,255,136,.235);border-color:rgba(0,255,136,.46);}
+.cal-day.loss.h1{background:rgba(255,51,85,.085);border-color:rgba(255,51,85,.2);}
+.cal-day.loss.h2{background:rgba(255,51,85,.15);border-color:rgba(255,51,85,.3);}
+.cal-day.loss.h3{background:rgba(255,51,85,.235);border-color:rgba(255,51,85,.46);}
+.cal-day.today-marker{box-shadow:0 0 0 1px var(--cyan) inset,0 0 16px -4px rgba(0,229,255,.55);}
+.cal-nav{gap:6px;}
+.cal-nav-btn{width:30px;height:30px;border-radius:8px;}
+.cal-month-label{background:var(--s2);border:1px solid var(--b1);border-radius:8px;padding:6px 12px;font-family:var(--font-head);letter-spacing:.4px;}
+.cal-days-hdr span{font-size:9px;letter-spacing:1.4px;text-transform:uppercase;}
+
+/* ── 3 · Risk Scaling y Plan de Retiro ── */
+.risk-level{overflow:hidden;border-radius:12px;padding:17px 14px 14px;}
+.risk-level::after{content:'';position:absolute;left:0;right:0;top:0;height:3px;background:var(--b2);}
+.risk-level.active::after{background:linear-gradient(90deg,var(--cyan),transparent);}
+.risk-level.achieved::after{background:linear-gradient(90deg,var(--green),transparent);}
+.risk-level.active{box-shadow:0 0 0 1px rgba(0,229,255,.22),0 12px 30px -16px rgba(0,229,255,.5);}
+.risk-level.locked{opacity:.5;border-style:dashed;}
+.risk-level-target{letter-spacing:-.2px;}
+@media(min-width:601px){.risk-level-target{font-size:16px;}}
+.risk-prog-bar,.wd-prog-bar{height:7px;box-shadow:inset 0 1px 2px rgba(0,0,0,.4);}
+.prog-bar{height:6px;}
+.risk-prog-fill{box-shadow:0 0 12px -2px rgba(0,255,136,.5);}
+.risk-next-tip{border-radius:12px;background:linear-gradient(90deg,rgba(0,229,255,.09),rgba(0,229,255,.02));}
+.risk-field,.risk-input-group input,.wd-field input,.wd-field select{border-radius:10px;}
+.wd-tab{border-radius:10px;}
+.wd-table tbody tr{transition:background .15s;}
+.wd-table tbody tr:hover td{background:rgba(255,255,255,.025);}
+.wd-box{border-radius:12px;}
+.roi-card{border-radius:12px;background:linear-gradient(180deg,rgba(181,123,255,.07),transparent),var(--s2);}
+.roi-card-val{letter-spacing:-.4px;}
+@media(min-width:601px){.roi-card-val{font-size:24px;}}
+
+/* ── 4 · Botones: estados coherentes ── */
+.btn,.btn-csv,.jbtn-summary,.wd-btn,.jimg-add,.cal-nav-btn,.wd-tab,.menu-btn{transition:background .2s,border-color .2s,color .2s,box-shadow .2s,transform .15s var(--ease);}
+.btn:hover,.jbtn-summary:hover,.jimg-add:hover{transform:translateY(-1px);}
+.jbtn-summary:hover{box-shadow:0 4px 16px rgba(181,123,255,.2);}
+.btn:active,.btn-csv:active,.jbtn-summary:active,.wd-btn:active,.jimg-add:active,.cal-nav-btn:active,.wd-tab:active{transform:translateY(0) scale(.98);}
+button:focus-visible,select:focus-visible{outline:2px solid rgba(0,229,255,.75);outline-offset:2px;}
+
+/* ── 4 · Movimiento: entrada escalonada (solo la primera vez que aparece cada bloque) ── */
+@keyframes tlRise{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:none;}}
+@media(prefers-reduced-motion:no-preference){
+  #dashboard.on>.acc-bar,#dashboard.on>.dd-config-row,#dashboard.on>.sec-label,#dashboard.on>.sec-group,#dashboard.on>.kpi-grid,#dashboard.on>.cal-wrap,
+  #dashboard.on>.charts-2,#dashboard.on>#streakRow,#dashboard.on>.coach-grid,#dashboard.on>.risk-wrap,#dashboard.on>.wd-wrap,
+  #dashboard.on>.roi-wrap,#dashboard.on>.export-row{animation:tlRise .55s var(--ease) backwards;}
+  #dashboard.on>:nth-child(3){animation-delay:.04s}#dashboard.on>:nth-child(4){animation-delay:.08s}#dashboard.on>:nth-child(5){animation-delay:.12s}
+  #dashboard.on>:nth-child(6){animation-delay:.16s}#dashboard.on>:nth-child(7){animation-delay:.2s}#dashboard.on>:nth-child(8){animation-delay:.24s}
+  #dashboard.on>:nth-child(9){animation-delay:.28s}#dashboard.on>:nth-child(10){animation-delay:.32s}#dashboard.on>:nth-child(11){animation-delay:.36s}
+  #dashboard.on>:nth-child(12){animation-delay:.4s}#dashboard.on>:nth-child(n+13){animation-delay:.44s}
+}
+@media(prefers-reduced-motion:reduce){*{animation-duration:.01ms !important;transition-duration:.01ms !important;}}
+
+@media(max-width:600px){
+  .chart-box,.cal-wrap,.sym-card,.coach-card,.roi-wrap,.kpi{border-radius:12px;}
+  .risk-wrap,.wd-wrap{border-radius:14px;}
+  .kpi::before{border-radius:12px 12px 0 0;}
+  .sec-label{font-size:10px;letter-spacing:1.8px;}
+  .acc-bar{padding:14px 16px;gap:18px;}
+}
+
+/* ── 4 · Tema claro: mismas mejoras, con sombras suaves ── */
+body.light .chart-box,body.light .cal-wrap,body.light .sym-card,body.light .coach-card,body.light .risk-wrap,body.light .wd-wrap,
+body.light .roi-wrap,body.light .acc-bar{background:var(--s1);box-shadow:0 1px 2px rgba(10,40,80,.06),0 10px 26px -16px rgba(10,40,80,.22);}
+body.light .kpi{box-shadow:0 1px 2px rgba(10,40,80,.06),0 10px 26px -16px rgba(10,40,80,.22);}
+body.light .kpi.c{background:radial-gradient(120% 90% at 0% 0%,rgba(0,119,170,.08),transparent 58%),var(--s1);}
+body.light .kpi.g{background:radial-gradient(120% 90% at 0% 0%,rgba(0,153,85,.08),transparent 58%),var(--s1);}
+body.light .kpi.r{background:radial-gradient(120% 90% at 0% 0%,rgba(204,17,51,.07),transparent 58%),var(--s1);}
+body.light .kpi.w{background:radial-gradient(120% 90% at 0% 0%,rgba(204,119,0,.08),transparent 58%),var(--s1);}
+body.light .kpi.p{background:radial-gradient(120% 90% at 0% 0%,rgba(119,68,204,.07),transparent 58%),var(--s1);}
+body.light .kpi-icon{background:rgba(0,40,80,.04);}
+body.light .sumbar{background:var(--s2);box-shadow:none;}
+body.light .sb-cell:hover{background:rgba(0,40,80,.03);}
+body.light .sec-label::before{box-shadow:none;}
+body.light .live-badge{box-shadow:none;}
+body.light .roi-card{background:linear-gradient(180deg,rgba(119,68,204,.06),transparent),var(--s2);}
+body.light .risk-level.active{box-shadow:0 0 0 1px rgba(0,119,170,.25),0 12px 26px -16px rgba(0,119,170,.45);}
+body.light .risk-prog-bar,body.light .wd-prog-bar{box-shadow:none;}
+body.light .wd-table tbody tr:hover td{background:rgba(0,40,80,.03);}
+body.light .coach-card:hover{box-shadow:0 12px 26px -16px rgba(10,40,80,.3);}
+body.light ::-webkit-scrollbar-thumb{background:var(--b2);}
+body.light .chart-title{color:var(--text);}   /* el título era blanco fijo: invisible sobre fondo claro */
+
+/* ═════════════════════════════════════════════════════════════════════════════
+   REDISEÑO FUTURISTA · FASE 2 — solo estilo. Misma paleta, misma lógica.
+   A) Métricas clave (medidores)  B) Win/Loss (leyenda HUD)  C) Tooltips  D) Journal
+   ═════════════════════════════════════════════════════════════════════════════ */
+:root{--c-rgb:0,229,255;--g-rgb:0,255,136;--r-rgb:255,51,85;--w-rgb:255,204,0;--p-rgb:181,123,255;}
+body.light{--c-rgb:0,119,170;--g-rgb:0,153,85;--r-rgb:204,17,51;--w-rgb:204,119,0;--p-rgb:119,68,204;}
+
+/* ── A · Métricas Clave — Progreso: medidor neón con degradado que se intensifica ── */
+.prog-row{--pc:var(--cyan);--pc-rgb:var(--c-rgb);position:relative;margin-bottom:9px;padding:11px 13px 12px;border:1px solid var(--b1);border-radius:12px;
+  background:linear-gradient(180deg,rgba(255,255,255,.025),transparent 70%),var(--s2);transition:border-color .25s,box-shadow .25s;}
+.prog-row.pr-g{--pc:var(--green);--pc-rgb:var(--g-rgb);}
+.prog-row.pr-w{--pc:var(--warn);--pc-rgb:var(--w-rgb);}
+.prog-row.pr-r{--pc:var(--red);--pc-rgb:var(--r-rgb);}
+.prog-row.pr-p{--pc:var(--purple);--pc-rgb:var(--p-rgb);}
+.prog-row:hover{border-color:rgba(var(--pc-rgb),.42);box-shadow:0 0 24px -12px rgba(var(--pc-rgb),.85);}
+.prog-row .prog-labels{align-items:center;margin-bottom:10px;font-size:9.5px;letter-spacing:1.1px;text-transform:uppercase;color:var(--muted);}
+.prog-row .prog-val{font-family:var(--font-head);font-size:14px;font-weight:700;letter-spacing:0;text-transform:none;color:var(--pc);text-shadow:0 0 14px rgba(var(--pc-rgb),.55);}
+.prog-row .prog-bar{position:relative;height:8px;overflow:visible;border-radius:6px;
+  background:repeating-linear-gradient(90deg,transparent 0,transparent calc(10% - 1px),rgba(255,255,255,.07) calc(10% - 1px),rgba(255,255,255,.07) 10%),rgba(255,255,255,.04);
+  box-shadow:inset 0 1px 2px rgba(0,0,0,.55),0 0 0 1px rgba(255,255,255,.035);}
+.prog-row .prog-bar .prog-fill{position:relative;border-radius:6px;
+  background:linear-gradient(90deg,rgba(var(--pc-rgb),0) 0%,rgba(var(--pc-rgb),.35) 35%,rgba(var(--pc-rgb),1) 100%);
+  box-shadow:none;}
+.prog-row .prog-bar .prog-fill::after{content:'';position:absolute;right:-1px;top:50%;width:3px;height:15px;border-radius:2px;transform:translateY(-50%);
+  background:rgb(var(--pc-rgb));box-shadow:none;}
+.prog-row .prog-bar .prog-fill[style*="width:0%"]::after,.prog-row .prog-bar .prog-fill[style*="width:0;"]::after{display:none;}
+.prog-row .metric-info-icon{width:15px;height:15px;font-size:9px;margin-right:8px;background:rgba(var(--c-rgb),.08);box-shadow:0 0 10px -3px rgba(var(--c-rgb),.7);}
+body.light .prog-row{background:var(--s2);}
+body.light .prog-row .prog-bar{box-shadow:inset 0 1px 2px rgba(10,40,80,.12);background:repeating-linear-gradient(90deg,transparent 0,transparent calc(10% - 1px),rgba(10,40,80,.08) calc(10% - 1px),rgba(10,40,80,.08) 10%),rgba(10,40,80,.05);}
+
+/* Encabezados de grupo (jerarquía de la página): número + título + para qué sirve */
+.sec-group{display:flex;align-items:center;gap:14px;margin:34px 0 16px;}
+.sec-group::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,var(--b2),transparent);}
+.sg-num{flex:none;width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;background:var(--s2);border:1px solid var(--b2);
+  font-family:var(--font-head);font-size:12px;font-weight:600;letter-spacing:.6px;color:var(--cyan);}
+.sg-title{font-family:var(--font-head);font-size:15px;font-weight:600;letter-spacing:.4px;color:var(--text);line-height:1.2;}
+@media(max-width:600px){.sec-group{gap:10px;margin:26px 0 12px;}.sg-num{width:30px;height:30px;border-radius:9px;font-size:11px;}.sg-title{font-size:13px;}}
+/* Win/Loss del mismo alto que Métricas Clave (solo PC, donde hay 2 columnas) */
+@media(min-width:901px){
+  .wl-box{display:flex;flex-direction:column;overflow:hidden;}
+  /* título, barra de resumen y chips mantienen su alto natural (la barra traía flex:0 0 100%, que en columna ocupaba todo el alto) */
+  .wl-box>.chart-title,.wl-box>.sumbar,.wl-box>.wl-legend{flex:0 0 auto;}
+  .wl-fill{position:relative;flex:1 1 0;min-height:240px;}
+  .wl-fill canvas{position:absolute;left:0;top:0;width:100% !important;height:100% !important;max-height:none !important;}
+}
+/* Drawdown: la gráfica aprovecha el alto sobrante de la tarjeta (solo PC) */
+@media(min-width:901px){
+  .dd-box{display:flex;flex-direction:column;}
+  .dd-box>*{flex:0 0 auto;}
+  .dd-box>.dd-fill{flex:1 1 0;min-height:200px;position:relative;}
+  .dd-fill canvas{position:absolute;left:0;top:0;width:100% !important;height:100% !important;max-height:none !important;}
+}
+/* ── B · Distribución Win / Loss · propuesta 2: tarjeta neutra + mini barra de progreso (como Métricas Clave) ── */
+.wl-legend{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:0 0 8px;}
+.wl-chip{--lc:var(--g-rgb);--p:0%;position:relative;display:grid;grid-template-columns:auto 1fr;align-items:center;column-gap:8px;text-align:left;
+  padding:11px 12px 22px;border-radius:10px;border:1px solid var(--b1);overflow:hidden;cursor:pointer;color:var(--text);font-family:var(--font-mono);
+  background:var(--s2);transition:border-color .2s,opacity .2s,filter .2s;}
+.wl-chip.loss{--lc:var(--r-rgb);}
+.wl-chip.be{--lc:var(--w-rgb);}
+.wl-chip::before{content:'';position:absolute;left:12px;right:12px;bottom:10px;height:4px;border-radius:4px;
+  background:linear-gradient(90deg,rgba(var(--lc),0) 0%,rgba(var(--lc),.35) 35%,rgba(var(--lc),.95) 100%) left center/var(--p) 100% no-repeat,rgba(255,255,255,.06);}
+body.light .wl-chip::before{background:linear-gradient(90deg,rgba(var(--lc),0) 0%,rgba(var(--lc),.35) 35%,rgba(var(--lc),.95) 100%) left center/var(--p) 100% no-repeat,rgba(10,40,80,.08);}
+.wl-chip:hover{border-color:rgba(var(--lc),.45);}
+.wl-dot{width:7px;height:7px;border-radius:50%;background:rgb(var(--lc));}
+.wl-name{font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.wl-pct{grid-column:1/-1;margin-top:7px;font-family:var(--font-head);font-size:22px;font-weight:600;line-height:1.1;letter-spacing:-.3px;color:var(--text);}
+.wl-cnt{grid-column:1/-1;margin-top:3px;font-size:10px;color:var(--muted);}
+.wl-cnt b{color:var(--text);font-weight:700;font-size:12px;}
+.wl-chip.off{opacity:.38;filter:saturate(.25);}
+.wl-chip.off .wl-name{text-decoration:line-through;}
+@media(max-width:600px){.wl-legend{gap:6px;}.wl-chip{padding:9px 8px 18px;column-gap:6px;border-radius:10px;}.wl-chip::before{left:8px;right:8px;bottom:8px;}.wl-name{font-size:8px;letter-spacing:.8px;}.wl-pct{font-size:17px;margin-top:5px;}.wl-cnt{font-size:9px;}.wl-cnt b{font-size:11px;}}
+
+/* ── C · Tooltips futuristas (vidrio oscuro, borde cian, esquinas HUD) ── */
+.kpi-tip,.metric-info-popup{background:linear-gradient(180deg,rgba(var(--c-rgb),.08),transparent 46%),rgba(6,10,15,.96);
+  border:1px solid rgba(var(--c-rgb),.42);border-radius:12px;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+  box-shadow:0 16px 42px -12px rgba(0,0,0,.9),0 0 30px -10px rgba(var(--c-rgb),.5);}
+.kpi-tip::before,.metric-info-popup::before,.kpi-tip::after,.metric-info-popup::after{content:'';position:absolute;width:9px;height:9px;pointer-events:none;border:0 solid rgba(var(--c-rgb),.95);}
+.kpi-tip::before,.metric-info-popup::before{top:-1px;left:-1px;border-top-width:2px;border-left-width:2px;border-top-left-radius:12px;}
+.kpi-tip::after,.metric-info-popup::after{bottom:-1px;right:-1px;border-bottom-width:2px;border-right-width:2px;border-bottom-right-radius:12px;}
+.kpi-tip-head,.metric-info-popup-head{align-items:center;padding-bottom:7px;margin-bottom:7px;border-bottom:1px solid rgba(var(--c-rgb),.18);}
+.kpi-tip-title,.metric-info-popup-title{font-family:var(--font-head);font-size:10px;letter-spacing:1.5px;}
+.kpi-tip-title::before,.metric-info-popup-title::before{content:'◆';font-size:7px;margin-right:7px;vertical-align:1px;text-shadow:0 0 8px var(--cyan);}
+.kpi-tip-x,.metric-info-x{width:20px;height:20px;padding:0;border-radius:7px;display:inline-flex;align-items:center;justify-content:center;font-size:11px;
+  border:1px solid rgba(var(--c-rgb),.3);color:#fff;transition:.15s;}
+.kpi-tip-x:hover,.metric-info-x:hover{opacity:1;color:var(--red);border-color:rgba(var(--r-rgb),.7);background:rgba(var(--r-rgb),.12);box-shadow:0 0 12px -2px rgba(var(--r-rgb),.8);}
+.metric-info-popup-body{font-size:10.5px;line-height:1.65;}
+.metric-info-popup-rec{border-top:1px dashed rgba(var(--c-rgb),.25);margin-top:8px;padding-top:8px;}
+body.light .kpi-tip,body.light .metric-info-popup{background:linear-gradient(180deg,rgba(var(--c-rgb),.07),transparent 46%),rgba(255,255,255,.98);border-color:rgba(var(--c-rgb),.45);box-shadow:0 14px 34px -14px rgba(10,40,80,.35);}
+body.light .metric-info-popup-body{color:#0a1a2a;}
+body.light .kpi-tip-x,body.light .metric-info-x{color:#0a1a2a;}
+/* Globo HTML de Curva acumulada y Drawdown */
+.ct-tip{border-radius:12px !important;padding:11px 15px !important;font-family:var(--font-mono) !important;letter-spacing:.2px;
+  background:linear-gradient(180deg,rgba(var(--c-rgb),.09),transparent 48%),rgba(6,10,15,.95) !important;border-color:rgba(var(--c-rgb),.5) !important;
+  backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+  box-shadow:0 14px 36px -12px rgba(0,0,0,.9),0 0 28px -8px rgba(var(--c-rgb),.55);}
+.ct-tip .ct-txt>div:first-child{font-family:var(--font-head);font-size:10px;letter-spacing:1.4px;text-transform:uppercase;color:var(--cyan) !important;
+  padding-bottom:6px;margin-bottom:6px;border-bottom:1px solid rgba(var(--c-rgb),.2);}
+.ct-tip .ct-caret{background:rgba(6,10,15,.97) !important;border-color:rgba(var(--c-rgb),.5) !important;}
+body.light .ct-tip{background:linear-gradient(180deg,rgba(var(--c-rgb),.07),transparent 48%),rgba(255,255,255,.98) !important;box-shadow:0 12px 30px -14px rgba(10,40,80,.4);}
+body.light .ct-tip .ct-caret{background:rgba(255,255,255,.98) !important;}
+
+/* ── D · JOURNAL: panel de cristal, estadísticas en tarjetas, etiquetas y notas ── */
+@keyframes jmIn{from{opacity:0;transform:translateY(14px) scale(.985);}to{opacity:1;transform:none;}}
+.jmodal-overlay{background:radial-gradient(60% 50% at 50% 28%,rgba(var(--c-rgb),.08),transparent 72%),rgba(2,4,7,.88);backdrop-filter:blur(10px) saturate(1.15);-webkit-backdrop-filter:blur(10px) saturate(1.15);}
+.jmodal,.sum-modal{border-radius:20px;border:1px solid rgba(var(--c-rgb),.24);
+  background:radial-gradient(120% 55% at 0% 0%,rgba(var(--c-rgb),.10),transparent 62%),radial-gradient(90% 60% at 100% 100%,rgba(var(--p-rgb),.07),transparent 62%),var(--s1);
+  box-shadow:0 34px 90px -24px rgba(0,0,0,.9),0 0 0 1px rgba(255,255,255,.02) inset,0 0 70px -34px rgba(var(--c-rgb),.6);}
+.jmodal-overlay.open .jmodal,.jmodal-overlay.open .sum-modal{animation:jmIn .38s var(--ease);}
+.jmodal::before,.sum-modal::before{content:'';position:absolute;top:0;left:26px;right:26px;height:2px;border-radius:0 0 3px 3px;background:linear-gradient(90deg,transparent,var(--cyan),var(--green) 55%,transparent);opacity:.85;pointer-events:none;}
+.jmodal-close{top:18px;right:18px;width:32px;height:32px;border-radius:10px;border:1px solid var(--b2);background:rgba(255,255,255,.03);color:#fff;z-index:3;transition:.18s;}
+.jmodal-close:hover{color:var(--red);background:rgba(var(--r-rgb),.12);border-color:rgba(var(--r-rgb),.65);box-shadow:0 0 16px -3px rgba(var(--r-rgb),.85);}
+.jmodal-date{display:block;font-size:22px;letter-spacing:-.3px;padding-right:46px;margin-bottom:16px;}
+.jmodal-date::before{content:'';display:inline-block;width:3px;height:.85em;margin-right:11px;border-radius:2px;vertical-align:-.08em;background:linear-gradient(180deg,var(--cyan),var(--green));box-shadow:0 0 10px rgba(var(--c-rgb),.75);}
+/* Estadísticas del día → tarjetas */
+.jmodal-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(122px,1fr));gap:10px;margin-bottom:18px;padding-bottom:0;border-bottom:0;}
+.jstat{position:relative;gap:6px;padding:12px 13px 11px;border-radius:12px;border:1px solid var(--b1);overflow:hidden;
+  background:linear-gradient(180deg,rgba(255,255,255,.035),transparent 70%),var(--s2);transition:border-color .2s,transform .2s var(--ease);}
+.jstat:hover{border-color:var(--b2);transform:translateY(-1px);}
+.jstat::before{content:'';position:absolute;top:0;left:12px;right:12px;height:2px;border-radius:0 0 3px 3px;background:linear-gradient(90deg,var(--b2),transparent);}
+.jstat:has([style*="var(--cyan)"])::before{background:linear-gradient(90deg,var(--cyan),transparent);}
+.jstat:has([style*="var(--green)"])::before{background:linear-gradient(90deg,var(--green),transparent);}
+.jstat:has([style*="var(--red)"])::before{background:linear-gradient(90deg,var(--red),transparent);}
+.jstat:has([style*="#ffcc00"])::before,.jstat:has([style*="var(--warn)"])::before{background:linear-gradient(90deg,var(--warn),transparent);}
+.jstat-l{font-size:8.5px;letter-spacing:1.4px;line-height:1.3;}
+.jstat-v{font-family:var(--font-head);font-size:16px;font-weight:700;letter-spacing:-.2px;line-height:1.2;text-shadow:0 0 18px color-mix(in srgb,currentColor 40%,transparent);}
+/* Encabezados de bloque */
+.jtag-label,.jnote-label,.jimg-label{display:flex;align-items:center;gap:9px;font-family:var(--font-head);font-weight:600;font-size:10px;letter-spacing:1.9px;color:var(--text);}
+.jtag-label::before,.jnote-label::before,.jimg-label::before{content:'';width:3px;height:11px;border-radius:2px;background:var(--cyan);box-shadow:0 0 8px rgba(var(--c-rgb),.75);flex:none;}
+.jtag-label::after,.jnote-label::after,.jimg-label::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,var(--b2),transparent);}
+.jtag-label{margin-bottom:11px;}.jnote-label{margin-bottom:9px;}
+/* ¿Cómo ejecutaste hoy? */
+.jtags{gap:10px;margin-bottom:22px;}
+.jtag{padding:9px 16px;border-radius:12px;font-size:11.5px;font-weight:600;letter-spacing:.3px;background:linear-gradient(180deg,rgba(255,255,255,.03),transparent),var(--s2);
+  transition:transform .2s var(--ease),border-color .2s,box-shadow .2s,background .2s,color .2s;}
+.jtag:hover{transform:translateY(-1px);border-color:rgba(var(--c-rgb),.6);box-shadow:0 8px 20px -12px rgba(var(--c-rgb),.8);}
+.jtag.sel-ok{background:linear-gradient(135deg,rgba(var(--g-rgb),.22),rgba(var(--g-rgb),.05)),var(--s2);box-shadow:0 0 0 1px rgba(var(--g-rgb),.35),0 0 24px -6px rgba(var(--g-rgb),.65);}
+.jtag.sel-warn{background:linear-gradient(135deg,rgba(var(--w-rgb),.22),rgba(var(--w-rgb),.05)),var(--s2);box-shadow:0 0 0 1px rgba(var(--w-rgb),.35),0 0 24px -6px rgba(var(--w-rgb),.65);}
+.jtag.sel-bad{background:linear-gradient(135deg,rgba(var(--r-rgb),.22),rgba(var(--r-rgb),.05)),var(--s2);box-shadow:0 0 0 1px rgba(var(--r-rgb),.35),0 0 24px -6px rgba(var(--r-rgb),.65);}
+.jtag.sel-lesson{background:linear-gradient(135deg,rgba(var(--p-rgb),.22),rgba(var(--p-rgb),.05)),var(--s2);box-shadow:0 0 0 1px rgba(var(--p-rgb),.35),0 0 24px -6px rgba(var(--p-rgb),.65);}
+/* Notas (mismas medidas internas: el texto pintado detrás debe seguir alineado con el textarea) */
+.jnote-wrap{border-radius:12px;background:linear-gradient(180deg,rgba(var(--c-rgb),.035),transparent 60%),var(--s2);transition:box-shadow .25s;}
+.jnote-wrap:focus-within{box-shadow:0 0 0 1px rgba(var(--c-rgb),.5),0 0 30px -10px rgba(var(--c-rgb),.75);}
+textarea.jnote{border-radius:12px;}
+textarea.jnote:focus{border-color:rgba(var(--c-rgb),.55);}
+.jnote-bd{border-radius:12px;}
+.jnote-wrap::before,.jnote-wrap::after{content:'';position:absolute;width:11px;height:11px;z-index:2;pointer-events:none;border:0 solid var(--cyan);filter:drop-shadow(0 0 4px rgba(var(--c-rgb),.8));}
+.jnote-wrap::before{top:-1px;left:-1px;border-top-width:2px;border-left-width:2px;border-top-left-radius:12px;}
+.jnote-wrap::after{bottom:-1px;right:-1px;border-bottom-width:2px;border-right-width:2px;border-bottom-right-radius:12px;}
+.jnote-bd .tl-tr{background:linear-gradient(90deg,rgba(var(--c-rgb),.26),rgba(var(--c-rgb),.10));box-shadow:0 0 0 1px rgba(var(--c-rgb),.35);border-radius:5px;text-shadow:0 0 10px rgba(var(--c-rgb),.7);}
+.jnote-bd .tl-ico{background:rgba(var(--c-rgb),.18);box-shadow:0 0 0 1px rgba(var(--c-rgb),.3);border-radius:5px;}
+/* Capturas */
+.jimg-label{margin:20px 0 10px;}
+.jimg-add{padding:10px 17px;border-radius:12px;font-size:12px;letter-spacing:.3px;border:1px solid rgba(var(--c-rgb),.38);
+  background:linear-gradient(180deg,rgba(var(--c-rgb),.14),rgba(var(--c-rgb),.04));box-shadow:0 0 0 0 rgba(var(--c-rgb),0);}
+.jimg-add:hover{background:linear-gradient(180deg,rgba(var(--c-rgb),.22),rgba(var(--c-rgb),.07));border-color:rgba(var(--c-rgb),.7);box-shadow:0 8px 22px -12px rgba(var(--c-rgb),.9);}
+.jimg-add.rec{background:linear-gradient(180deg,rgba(var(--r-rgb),.2),rgba(var(--r-rgb),.06));border-color:rgba(var(--r-rgb),.55);box-shadow:0 0 20px -6px rgba(var(--r-rgb),.7);}
+.jimg-trade{border-radius:10px;}
+.jtip-pc,.jtip-mob{letter-spacing:.2px;}
+.jimg-item{border-radius:12px;border:1px solid rgba(var(--c-rgb),.26);box-shadow:0 10px 24px -14px rgba(0,0,0,.9);transition:border-color .2s,box-shadow .2s,transform .2s var(--ease);}
+.jimg-item:hover{border-color:rgba(var(--c-rgb),.65);box-shadow:0 12px 30px -14px rgba(var(--c-rgb),.75);transform:translateY(-2px);}
+.jimg-item img{border-radius:11px;}
+.jimg-lbl{height:20px;top:-20px;padding:0 10px;border-radius:8px 8px 0 0;letter-spacing:.8px;border-color:rgba(var(--c-rgb),.5);
+  background:linear-gradient(180deg,rgba(var(--c-rgb),.18),rgba(var(--c-rgb),.06)),var(--s2);text-shadow:0 0 8px rgba(var(--c-rgb),.7);}
+.jimg-item .jimg-x{width:26px;height:26px;background:rgba(4,6,8,.78);border:1px solid rgba(255,255,255,.22);backdrop-filter:blur(4px);transition:.15s;}
+.jimg-item .jimg-x:hover{color:var(--red);border-color:rgba(var(--r-rgb),.8);box-shadow:0 0 12px -2px rgba(var(--r-rgb),.9);}
+.jimg-item .jimg-badge{border-radius:8px;border:1px solid rgba(255,255,255,.15);backdrop-filter:blur(4px);}
+/* Botones de acción */
+.jbtn-row{margin-top:26px;padding-top:18px;border-top:1px solid var(--b1);align-items:center;}
+.jbtn-save{background:linear-gradient(135deg,var(--cyan),#00ffb4);padding:11px 24px;border-radius:12px;letter-spacing:.3px;box-shadow:0 8px 24px -10px rgba(var(--c-rgb),.9);}
+.jbtn-save:hover{transform:translateY(-2px);box-shadow:0 12px 30px -10px rgba(var(--c-rgb),1);}
+.jbtn-summary,.jbtn-del,.jbtn-cancel{padding:10px 20px;border-radius:12px;letter-spacing:.3px;}
+.jbtn-del{background:linear-gradient(180deg,rgba(var(--r-rgb),.16),rgba(var(--r-rgb),.05));border-color:rgba(var(--r-rgb),.4);}
+.jbtn-del:hover{border-color:rgba(var(--r-rgb),.8);box-shadow:0 8px 22px -12px rgba(var(--r-rgb),.95);}
+/* Actividad de la sesión */
+.jsw-act{border-radius:14px;padding:12px 14px;margin-bottom:20px;border:1px solid rgba(var(--c-rgb),.2);background:linear-gradient(180deg,rgba(var(--c-rgb),.06),transparent 55%),var(--s2);}
+.jsw-act>summary{display:flex;align-items:center;gap:9px;list-style:none;font-family:var(--font-head);font-size:10.5px;letter-spacing:1.6px;}
+.jsw-act>summary::-webkit-details-marker{display:none;}
+.jsw-act>summary::before{content:'';flex:none;width:7px;height:7px;border-right:2px solid var(--cyan);border-bottom:2px solid var(--cyan);transform:rotate(-45deg);transition:transform .2s var(--ease);filter:drop-shadow(0 0 4px rgba(var(--c-rgb),.9));margin:0 3px 0 1px;}
+.jsw-act[open]>summary::before{transform:rotate(45deg);}
+.jsw-act[open]>summary{padding-bottom:10px;margin-bottom:6px;border-bottom:1px solid rgba(var(--c-rgb),.16);}
+.jsw-tbl th,.jsw-tbl tr.jsw-colh td{letter-spacing:1.2px;}
+.jsw-tbl tbody tr:not(.jsw-trh):hover td{background:rgba(255,255,255,.025);}
+.jsw-trh td{background:linear-gradient(90deg,rgba(var(--c-rgb),.16),rgba(var(--c-rgb),.04));border-top-color:rgba(var(--c-rgb),.55);}
+.jsw-trh td:first-child{border-left:2px solid var(--cyan);}
+.jsw-badge{padding:3px 10px;border-radius:999px;background:rgba(var(--c-rgb),.10);box-shadow:0 0 14px -4px rgba(var(--c-rgb),.8);}
+.jsw-warn{border-radius:12px;}
+#tlConfirm .jmodal{border-radius:18px;}
+/* Journal · tema claro */
+body.light .jmodal-overlay{background:rgba(214,226,238,.8);}
+body.light .jmodal,body.light .sum-modal{background:radial-gradient(120% 55% at 0% 0%,rgba(var(--c-rgb),.09),transparent 62%),var(--s1);box-shadow:0 30px 70px -26px rgba(10,40,80,.4);}
+body.light .jmodal-close{color:var(--text);}
+body.light .jstat,body.light .jtag,body.light .jsw-act{background:var(--s2);}
+body.light .jstat-v{text-shadow:none;}
+body.light .jbtn-save{box-shadow:0 8px 20px -10px rgba(var(--c-rgb),.7);}
+@media(max-width:600px){
+  .jmodal,.sum-modal{border-radius:16px;}
+  .jmodal-date{font-size:17px;padding-right:40px;}
+  .jmodal-stats{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;}
+  .jstat{padding:10px 11px 9px;}.jstat-v{font-size:14px;}
+  .jtag{padding:8px 13px;font-size:11px;}
+}
+
+/* ═════════════════════════════════════════════════════════════════════════════
+   TARJETAS · TIPOGRAFÍA REFINADA — solo estilo. Misma paleta, misma lógica.
+   Etiquetas en versalitas con tracking fino · cifras con la fuente de títulos ·
+   subtextos más discretos · acentos de color solo con los tonos actuales.
+   ═════════════════════════════════════════════════════════════════════════════ */
+
+/* ── Etiquetas (todas las tarjetas) ── */
+.kpi-label,.acc-item .al,.sb-lbl,.coach-label,.roi-card-label,.risk-level-num,
+.risk-input-group label,.jstat-l,.sym-head span,.wl-name,.prog-row .prog-labels{
+  font-family:var(--font-head);font-weight:500;text-transform:uppercase;letter-spacing:1.3px;color:var(--muted);}
+@media(min-width:601px){
+  .kpi-label{font-size:10px;margin-bottom:12px;}
+  .acc-item .al,.sb-lbl{font-size:9.5px;}
+  .roi-card-label{font-size:10px;}
+  .jstat-l{font-size:9px;}
+}
+@media(max-width:600px){
+  .kpi-label,.sb-lbl,.acc-item .al,.coach-label{letter-spacing:.9px;}
+}
+
+/* ── Cifras principales ── */
+.kpi-val{
+  font-family:var(--font-head);font-weight:600;letter-spacing:-.025em;line-height:1.08;
+  font-variant-numeric:tabular-nums lining-nums;overflow-wrap:anywhere;
+  text-shadow:0 0 22px color-mix(in srgb,currentColor 26%,transparent);}
+@media(min-width:601px){.kpi-val{font-size:27px;}}
+.roi-card-val{
+  font-family:var(--font-head);font-weight:600;letter-spacing:-.03em;font-variant-numeric:tabular-nums lining-nums;
+  text-shadow:0 0 20px color-mix(in srgb,currentColor 28%,transparent);}
+.acc-item .av{font-family:var(--font-head);font-weight:600;letter-spacing:-.01em;font-variant-numeric:tabular-nums lining-nums;}
+.sb-val{font-family:var(--font-head);font-weight:600;letter-spacing:-.015em;font-variant-numeric:tabular-nums lining-nums;}
+.sb-val small{font-family:var(--font-mono);font-weight:500;font-size:10px;letter-spacing:0;opacity:.7;margin-left:6px;}
+.risk-level-target{font-family:var(--font-head);font-weight:600;letter-spacing:-.02em;}
+.wl-pct{font-weight:600;letter-spacing:-.03em;}
+.wl-cnt{letter-spacing:.2px;}
+.wl-cnt b{font-family:var(--font-head);font-weight:600;}
+.prog-row .prog-val{font-weight:600;letter-spacing:-.01em;}
+
+/* ── Subtextos ── */
+.kpi-sub{line-height:1.5;letter-spacing:.1px;color:var(--muted);opacity:.8;margin-top:8px;}
+@media(min-width:601px){.kpi-sub{font-size:10.5px;}}
+.roi-card-sub{font-size:11px;letter-spacing:.1px;color:var(--muted);}
+.risk-level-amount{font-weight:500;letter-spacing:.1px;}
+.risk-level-pct{letter-spacing:.1px;}
+
+/* ── Símbolos ── */
+.sym-name{font-family:var(--font-head);font-weight:600;letter-spacing:.4px;}
+.sym-pnl{font-family:var(--font-head);font-weight:600;letter-spacing:-.01em;font-variant-numeric:tabular-nums lining-nums;}
+.sym-item .sym-ops,.sym-item .sym-wr{font-weight:500;color:var(--muted);}
+
+/* ── Rachas ── */
+.sb-chip em{font-family:var(--font-head);font-weight:500;letter-spacing:.8px;}
+
+/* ── Coach: etiqueta con el acento de su tarjeta y texto más legible ── */
+.coach-card .coach-label{color:var(--cyan);letter-spacing:1.2px;}
+.coach-card.g .coach-label{color:var(--green);}
+.coach-card.r .coach-label{color:var(--red);}
+.coach-card.w .coach-label{color:var(--warn);}
+.coach-card.p .coach-label{color:var(--purple);}
+@media(min-width:601px){
+  .coach-label{font-size:10.5px;margin-bottom:8px;}
+  .coach-text{font-size:12.5px;}
+}
+.coach-text{line-height:1.7;color:var(--text);}
+.coach-text strong{font-weight:600;}
+
+/* ── Risk Scaling / Plan de retiro ── */
+.risk-next-tip,.wd-box{line-height:1.7;}
+.risk-next-tip strong,.wd-box strong{font-weight:600;}
+.wd-big{letter-spacing:-.02em;}
+.wd-table th{font-family:var(--font-head);font-weight:500;letter-spacing:1.2px;}
+.wd-table td{font-variant-numeric:tabular-nums lining-nums;}
+
+/* ── Tips de las tarjetas ── */
+.kpi-tip,.metric-info-popup{line-height:1.65;}
+.kpi-tip-ok b,.kpi-tip-me b{font-family:var(--font-head);font-weight:600;letter-spacing:.3px;}
+
+/* ── Tema claro: sin resplandor en las cifras ── */
+body.light .kpi-val,body.light .roi-card-val{text-shadow:none;}
+
+/* ═════════════════════════════════════════════════════════════════════════════
+   UNIFICACIÓN FINAL — solo estilo. Misma paleta, misma lógica.
+   Barras con inicio desvanecido y sin sombra · tablas · botones · foco · notas.
+   ═════════════════════════════════════════════════════════════════════════════ */
+
+/* ── Barras de Risk Scaling y Plan de retiro: inicio desvanecido, sin resplandor ── */
+.risk-prog-bar,.wd-prog-bar{overflow:hidden;border-radius:6px;background:rgba(255,255,255,.05);}
+.risk-prog-fill,.wd-prog-fill{border-radius:6px;box-shadow:none;
+  background:linear-gradient(90deg,rgba(var(--c-rgb),0) 0%,rgba(var(--c-rgb),.4) 35%,rgba(var(--g-rgb),.95) 100%);}
+body.light .risk-prog-bar,body.light .wd-prog-bar{background:rgba(10,40,80,.07);}
+
+/* ── Tablas (Plan de retiro, resumen de ciclos): encabezado fino, filas limpias ── */
+.wd-table th,.jsw-tbl th{font-family:var(--font-head);font-weight:500;font-size:9px;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--b2);}
+.wd-table td,.jsw-tbl td{font-variant-numeric:tabular-nums lining-nums;border-bottom:1px solid var(--b1);}
+.wd-table tbody tr:last-child td,.jsw-tbl tbody tr:last-child td{border-bottom:none;}
+.wd-table tr.cur td{background:linear-gradient(90deg,rgba(var(--c-rgb),.10),rgba(var(--c-rgb),.02));}
+.wd-table tr.avail td{background:linear-gradient(90deg,rgba(var(--g-rgb),.12),rgba(var(--g-rgb),.02));}
+
+/* ── Botones y pestañas: misma familia (radio, tipografía, foco) ── */
+.btn,.btn-csv,.wd-btn,.wd-tab,.jbtn-summary,.cal-nav-btn{font-family:var(--font-head);font-weight:600;letter-spacing:.3px;}
+.wd-btn,.wd-tab,.btn,.btn-csv,.jbtn-summary{border-radius:10px;}
+button:focus-visible,select:focus-visible,input:focus-visible,[tabindex]:focus-visible{outline:2px solid rgba(var(--c-rgb),.7);outline-offset:2px;}
+select{cursor:pointer;transition:border-color .2s,box-shadow .2s;}
+select:hover{border-color:rgba(var(--c-rgb),.5) !important;}
+select:focus{border-color:rgba(var(--c-rgb),.7) !important;box-shadow:0 0 0 3px rgba(var(--c-rgb),.12);}
+
+/* ── Notas bajo las secciones y rótulos ── */
+#campNote,#swNote,.risk-auto-note{letter-spacing:.1px;opacity:.85;}
+.sec-label{font-family:var(--font-head);font-weight:600;letter-spacing:1.6px;}
+.risk-header>div:first-child>div:first-child{letter-spacing:-.01em;}
+
+/* ── Calendario: rótulos y estado de hoy más discretos ── */
+.cal-days-hdr span{font-family:var(--font-head);font-weight:500;color:var(--muted);}
+.cal-day{transition:border-color .2s,transform .2s var(--ease);}
+.cal-day:hover{border-color:rgba(var(--c-rgb),.45);}
+
+
+/* ══ CALENDARIO · rediseño de casillas (la barra de resumen no se toca) ══ */
+.cal-grid .win{--k:var(--g-rgb);}
+.cal-grid .loss{--k:var(--r-rgb);}
+.cal-grid .neu{--k:var(--w-rgb);}
+.cal-grid .cal-day.win:not(.sw-bg),.cal-grid .cal-day.loss:not(.sw-bg),.cal-grid .cal-day.neu:not(.sw-bg){position:relative;overflow:hidden;}
+.cal-grid .cal-day.be{background:transparent;border:1px solid var(--b1);}
+.cal-grid .cal-day.be .cal-num{opacity:.45;font-weight:500;}
+.cal-grid .cal-day.empty .cal-num{opacity:.28;}
+.cal-grid .cal-day .cal-pnl,.cal-grid .cal-day .cal-mini .mi-r{font-family:var(--font-head);font-variant-numeric:tabular-nums;}
+.cal-grid .cal-day .cal-num{font-family:var(--font-head);letter-spacing:.4px;opacity:.6;}
+.cal-grid .cal-day .cal-mini:hover{filter:none;}
+/* DISEÑO 4 · «Barra inferior» con barra de datos reales:
+   · día ganador  → % del MEJOR día del mes (si aparece un día mayor, todo se recalcula)
+   · día perdedor → % del límite diario = riesgo por trade de Risk Scaling × 2
+   · break even   → marca corta fija */
+.cal-grid .cal-day{border-radius:10px;transition:border-color .2s,transform .2s var(--ease),box-shadow .25s;}
+.cal-grid .cal-day.win,.cal-grid .cal-day.loss,.cal-grid .cal-day.neu{
+  background:linear-gradient(rgba(var(--k),.035),rgba(var(--k),.035)),linear-gradient(180deg,rgba(255,255,255,.03),transparent 60%),var(--s1);
+  border-color:var(--b2);
+}
+/* Barra: pista tenue + relleno proporcional */
+.cal-grid .cal-day.win::before,.cal-grid .cal-day.loss::before,.cal-grid .cal-day.neu::before{
+  content:'';position:absolute;left:12px;right:12px;bottom:9px;height:4px;border-radius:3px;pointer-events:none;
+  background:linear-gradient(90deg,rgba(var(--k),.04) 0%,rgba(var(--k),.55) 45%,rgb(var(--k)) 100%) 0 0/var(--w,0%) 100% no-repeat,rgba(var(--k),.13);
+}
+/* Bloque swing: una sola barra continua a lo largo de sus casillas */
+.cal-grid .cal-day.sw-bg::before{left:0;right:0;border-radius:0;}
+.cal-grid .cal-day.sw-bg.sw-jl::before{background:linear-gradient(rgb(var(--k)),rgb(var(--k))) 0 0/var(--w,0%) 100% no-repeat,rgba(var(--k),.13);}   /* el desvanecido solo al inicio del bloque swing */
+.cal-grid .cal-day.sw-bg:not(.sw-jl)::before{left:12px;border-radius:3px 0 0 3px;}
+.cal-grid .cal-day.sw-bg:not(.sw-jr)::before{right:12px;border-radius:0 3px 3px 0;}
+.cal-grid .cal-day.sw-bg:not(.sw-jl):not(.sw-jr)::before{border-radius:3px;}
+.cal-grid .cal-day .cal-pnl,.cal-grid .cal-day .cal-mini .mi-r{font-weight:700;}
+.cal-grid .cal-day .cal-trades,.cal-grid .cal-day .cal-sw{opacity:.6;letter-spacing:.3px;}
+.cal-grid .cal-day.win:not(.swing):hover,.cal-grid .cal-day.loss:not(.swing):hover,.cal-grid .cal-day.neu:not(.swing):hover{
+  transform:translateY(-2px) scale(1.03);border-color:rgba(var(--k),.5);box-shadow:0 10px 22px -14px rgba(var(--k),.7);
+}
+.cal-grid .cal-day .cal-mini.win,.cal-grid .cal-day .cal-mini.loss,.cal-grid .cal-day .cal-mini.neu{background:var(--s2);border-color:rgba(var(--k),.45);}
+@media(min-width:701px){.cal-grid .cal-day .cal-mini{border-radius:8px;}}
+@media(max-width:700px){
+  .cal-grid .cal-day.win::before,.cal-grid .cal-day.loss::before,.cal-grid .cal-day.neu::before{left:6px;right:6px;bottom:5px;height:3px;}
+  .cal-grid .cal-day.sw-bg:not(.sw-jl)::before{left:6px;}
+  .cal-grid .cal-day.sw-bg:not(.sw-jr)::before{right:6px;}
+  .cal-grid .cal-day.win:not(.swing):hover,.cal-grid .cal-day.loss:not(.swing):hover,.cal-grid .cal-day.neu:not(.swing):hover{transform:none;}
+}
+/* Espacio para la barra bajo el recuadro intradía del swing */
+.cal-grid .cal-swc{padding-bottom:18px;}
+@media(max-width:700px){.cal-grid .cal-swc{padding-bottom:12px;}}
+/* Break even: barra completa, con desvanecido al inicio y al final (no se mide contra nada) */
+.cal-grid .cal-day.neu::before{background:linear-gradient(90deg,rgba(var(--k),.04) 0%,rgb(var(--k)) 40%,rgb(var(--k)) 60%,rgba(var(--k),.04) 100%);}
+.cal-grid .cal-day.sw-bg.neu.sw-jr:not(.sw-jl)::before{background:linear-gradient(90deg,rgba(var(--k),.04) 0%,rgb(var(--k)) 40%,rgb(var(--k)) 100%);}
+.cal-grid .cal-day.sw-bg.neu.sw-jl.sw-jr::before{background:rgb(var(--k));}
+.cal-grid .cal-day.sw-bg.neu.sw-jl:not(.sw-jr)::before{background:linear-gradient(90deg,rgb(var(--k)) 0%,rgb(var(--k)) 60%,rgba(var(--k),.04) 100%);}
+/* Indicador de journal: insignia moderna con ícono de nota (reemplaza el emoji) */
+.cal-grid .cal-day.has-note::after{
+  content:'';position:absolute;top:7px;right:7px;width:17px;height:17px;border-radius:6px;font-size:0;opacity:1;pointer-events:none;
+  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2300e5ff' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 3h9l4 4v14H6z'/%3E%3Cpath d='M9 12h7M9 16h5'/%3E%3C/svg%3E") center/11px 11px no-repeat,rgba(var(--c-rgb),.12);
+  border:1px solid rgba(var(--c-rgb),.38);
+  box-shadow:0 2px 6px -2px rgba(0,0,0,.5);
+}
+body.light .cal-grid .cal-day.has-note::after{
+  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%230077aa' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 3h9l4 4v14H6z'/%3E%3Cpath d='M9 12h7M9 16h5'/%3E%3C/svg%3E") center/11px 11px no-repeat,rgba(var(--c-rgb),.12);
+}
+.cal-grid .cal-day .cal-mini .mi-note{
+  font-size:0;width:13px;height:13px;border-radius:5px;top:4px;right:4px;opacity:1;
+  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2300e5ff' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 3h9l4 4v14H6z'/%3E%3Cpath d='M9 12h7M9 16h5'/%3E%3C/svg%3E") center/9px 9px no-repeat,rgba(var(--c-rgb),.12);
+  border:1px solid rgba(var(--c-rgb),.38);
+}
+body.light .cal-grid .cal-day .cal-mini .mi-note{
+  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%230077aa' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 3h9l4 4v14H6z'/%3E%3Cpath d='M9 12h7M9 16h5'/%3E%3C/svg%3E") center/9px 9px no-repeat,rgba(var(--c-rgb),.12);
+}
+@media(max-width:700px){
+  .cal-grid .cal-day.has-note::after{top:3px;right:3px;width:11px;height:11px;border-radius:4px;background-size:7px 7px,auto;}
+  .cal-grid .cal-day .cal-mini .mi-note{top:auto;bottom:3px;right:2px;width:8px;height:8px;border-radius:3px;background-size:5px 5px,auto;}
+}
+/* Altura uniforme: todos los meses (con o sin swing) usan casillas del mismo tamaño y la barra nunca pisa el texto */
+.cal-grid{grid-auto-rows:1fr;}
+.cal-grid .cal-day{min-height:134px;}
+.cal-grid .cal-day.win:not(.sw-bg),.cal-grid .cal-day.loss:not(.sw-bg),.cal-grid .cal-day.neu:not(.sw-bg){padding-bottom:22px;}
+@media(max-width:700px){
+  .cal-grid .cal-day{min-height:101px;}
+  .cal-grid .cal-day.win:not(.sw-bg),.cal-grid .cal-day.loss:not(.sw-bg),.cal-grid .cal-day.neu:not(.sw-bg){padding-bottom:14px;}
+}
+/* ══ CALENDARIO · compactación PC (~25 % menos de alto y de ancho; barra de llenado intacta) ══ */
+@media(min-width:701px){
+  .cal-days-hdr,.cal-grid{max-width:940px;}
+  .cal-grid .cal-day{min-height:70px;}   /* -30 % de alto: se recorta el espacio en blanco, los textos no cambian */
+  .cal-grid .cal-day.win,.cal-grid .cal-day.loss,.cal-grid .cal-day.neu{padding-top:5px;}
+  .cal-grid .cal-swc{padding-top:5px;}
+  .cal-grid .cal-day.win:not(.sw-bg),.cal-grid .cal-day.loss:not(.sw-bg),.cal-grid .cal-day.neu:not(.sw-bg){padding-bottom:12px;}
+  .cal-grid .cal-day .cal-num{font-size:11px;}
+  .cal-grid .cal-day.be .cal-num{font-size:13px;}
+  .cal-grid .cal-day .cal-pnl{font-size:15px;margin-top:3px;white-space:nowrap;}
+  .cal-grid .cal-day .cal-trades,.cal-grid .cal-day .cal-sw{font-size:10px;line-height:1.1;margin-top:2px;white-space:nowrap;}
+  .cal-grid .cal-day .cal-mini{margin-top:3px;padding:2px 9px;}
+  .cal-day .cal-mini .mi-t{font-size:7px;}
+  .cal-day .cal-mini .mi-r{font-size:12px;white-space:nowrap;}
+  .cal-day .cal-mini .mi-n{font-size:8px;}
+  .cal-grid .cal-day.win::before,.cal-grid .cal-day.loss::before,.cal-grid .cal-day.neu::before{bottom:6px;}
+}
+/* ══ CALENDARIO · móvil: la barra del swing es continua entre casillas (vacía, parcial o llena) ══
+   Causa: la regla móvil de la barra (left/right:6px en .win/.loss/.neu) ganaba a la que la deja pegada
+   al borde interior del bloque, y dejaba un hueco en cada unión. */
+@media(max-width:700px){
+  .cal-grid .cal-day.sw-bg.sw-jl::before{left:0;}
+  .cal-grid .cal-day.sw-bg.sw-jr::before{right:0;}
+}
+/* ══ CALENDARIO · intradía dentro de un SWING: sin «pos.», con su propia barra (mismo criterio que las barras de los días) ══ */
+.cal-day .cal-mini .mi-bar{display:block;align-self:stretch;height:4px;margin-top:3px;border-radius:3px;overflow:hidden;background:color-mix(in srgb,currentColor 15%,transparent);}
+.cal-day .cal-mini .mi-bar i{display:block;height:100%;width:var(--w,0%);border-radius:3px;background:linear-gradient(90deg,color-mix(in srgb,currentColor 12%,transparent),color-mix(in srgb,currentColor 55%,transparent) 45%,currentColor);}
+.cal-day .cal-mini.neu .mi-bar i{width:100%;background:linear-gradient(90deg,color-mix(in srgb,currentColor 12%,transparent),currentColor 40%,currentColor 60%,color-mix(in srgb,currentColor 12%,transparent));}
+@media(max-width:700px){
+  .cal-day .cal-mini .mi-bar{height:3px;margin:3px 3px 0;}
+  /* Logo del journal del intradía: arriba a la derecha, más pequeño y separado del borde; las letras dejan sitio simétrico */
+  .cal-grid .cal-day .cal-mini .mi-note{top:2px;bottom:auto;right:2px;box-sizing:border-box;width:6.3px;height:6.3px;border-radius:2px;background-size:4px 4px,auto;}
+  .cal-day .cal-mini.has-jn .mi-t,.cal-day .cal-mini.has-jn .mi-r{transform:translateX(-3px);}
+}
+@media(max-width:700px){
+  .cal-grid .cal-day{min-height:71px;}   /* -30 % de alto tomado del espacio en blanco inferior; textos intactos */
+}
+/* ══ CALENDARIO · logo del journal 15 % más pequeño (PC y móvil; tema oscuro y claro) ══ */
+.cal-grid .cal-day.has-note::after,body.light .cal-grid .cal-day.has-note::after{box-sizing:border-box;width:16.15px;height:16.15px;background-size:9.35px 9.35px,auto;}
+.cal-grid .cal-day .cal-mini .mi-note,body.light .cal-grid .cal-day .cal-mini .mi-note{box-sizing:border-box;width:12.75px;height:12.75px;background-size:7.65px 7.65px,auto;}
+@media(max-width:700px){
+  .cal-grid .cal-day.has-note::after,body.light .cal-grid .cal-day.has-note::after{width:11.05px;height:11.05px;background-size:5.95px 5.95px,auto;}
+  .cal-grid .cal-day .cal-mini .mi-note,body.light .cal-grid .cal-day .cal-mini .mi-note{width:5.35px;height:5.35px;background-size:3.4px 3.4px,auto;}
+}
+/* ══ CALENDARIO · resultado + posiciones centrados entre el número del día y la parte superior de la barra ══
+   La zona de contenido termina justo donde empieza la barra (padding-bottom = bottom + alto de la barra) y el grupo
+   [$ + pos.] se centra con márgenes automáticos. No afecta al intradía dentro del swing (ni a casillas con mini o chips). */
+.cal-grid .cal-day.win .cal-pnl,.cal-grid .cal-day.loss .cal-pnl,.cal-grid .cal-day.neu .cal-pnl{margin-top:auto;}
+.cal-grid .cal-day.win .cal-trades,.cal-grid .cal-day.loss .cal-trades,.cal-grid .cal-day.neu .cal-trades{margin-bottom:auto;}
+.cal-grid .cal-swc:not(:has(.cal-mini,.cal-intra)) .sw-body{flex:1 1 auto;align-self:stretch;}
+.cal-grid .cal-swc:not(:has(.cal-mini,.cal-intra)) .sw-body .cal-pnl{margin-top:auto;}
+.cal-grid .cal-swc:not(:has(.cal-mini,.cal-intra)) .sw-body .cal-sw{margin-bottom:auto;}
+@media(min-width:701px){
+  .cal-grid .cal-day.win:not(.sw-bg),.cal-grid .cal-day.loss:not(.sw-bg),.cal-grid .cal-day.neu:not(.sw-bg){padding-bottom:10px;}   /* barra: bottom 6 + alto 4 */
+  .cal-grid .cal-swc{padding-top:6px;}   /* = padding de las casillas normales + 1px de borde: el número queda a la misma altura */
+  .cal-grid .cal-swc:not(:has(.cal-mini,.cal-intra)){padding-bottom:11px;}   /* barra (10) + borde de la capa swing (1) */
+}
+@media(max-width:700px){
+  .cal-grid .cal-day.win:not(.sw-bg),.cal-grid .cal-day.loss:not(.sw-bg),.cal-grid .cal-day.neu:not(.sw-bg){padding-bottom:8px;}   /* barra: bottom 5 + alto 3 */
+  .cal-grid .cal-swc{padding-top:7px;}
+  .cal-grid .cal-swc:not(:has(.cal-mini,.cal-intra)){padding-bottom:9px;}
+}
+/* ══ Distribución Win / Loss · la barra de cada tarjeta retrocede al apagar la opción y avanza al encenderla ══ */
+@property --p{syntax:'<percentage>';inherits:true;initial-value:0%;}
+.wl-chip{transition:border-color .2s,opacity .2s,filter .2s,--p .65s cubic-bezier(.65,0,.35,1);}
+.wl-chip.off{--p:0% !important;}
+
+/* ═════════════════════════════════════════════════════════════════════════════
+   JOURNAL · REDISEÑO 2.0 — solo estilo + agrupación de bloques. Misma paleta, mismas
+   tarjetas (--r-card, --shadow-card), mismos títulos (Clash Display) y misma lógica.
+   Encabezado editorial · resumen en tarjetas KPI · bloques numerados · pie fijo.
+   ═════════════════════════════════════════════════════════════════════════════ */
+#jmodalBox{--jp:26px;width:min(920px,96vw);max-height:92vh;padding:22px var(--jp) 0;border-radius:22px;counter-reset:jsec;
+  border:1px solid rgba(var(--c-rgb),.2);
+  background:radial-gradient(90% 38% at 0% 0%,rgba(var(--c-rgb),.075),transparent 66%),var(--s1);
+  box-shadow:0 40px 100px -30px rgba(0,0,0,.92),0 0 0 1px rgba(255,255,255,.02) inset;}
+#jmodalBox::before{left:var(--jp);right:var(--jp);opacity:.7;}
+
+/* Encabezado */
+#jmodalBox .jeyebrow{display:flex;align-items:center;gap:9px;margin:0 0 6px;font-family:var(--font-mono);font-weight:600;font-size:9.5px;line-height:1;letter-spacing:2.2px;text-transform:uppercase;color:var(--cyan);}
+#jmodalBox .jeyebrow::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--cyan);box-shadow:0 0 9px var(--cyan);}
+#jmodalBox .jmodal-date{font-size:20px;font-weight:600;letter-spacing:-.4px;line-height:1.15;padding:0 48px 11px 0;margin:0 0 12px;border-bottom:1px solid var(--b1);}
+#jmodalBox .jmodal-date::before{display:none;}
+#jmodalBox .jmodal-close{top:16px;right:var(--jp);width:32px;height:32px;border-radius:11px;font-size:14px;}
+
+/* Resumen del día: UNA sola tarjeta con divisiones y línea de color por celda (igual que la barra del calendario) */
+#jmodalBox .jmodal-stats{display:flex;flex-wrap:wrap;gap:0;margin:0 0 12px;padding:0;overflow:hidden;
+  border:1px solid var(--b2);border-radius:10px;
+  background:linear-gradient(180deg,rgba(255,255,255,.025),transparent),var(--s2);box-shadow:0 1px 0 rgba(255,255,255,.03) inset;}
+#jmodalBox .jmodal-stats>.jstat{flex:1 1 105px;min-width:0;padding:12px 14px 11px;gap:5px;border:0;border-radius:0;background:transparent;
+  box-shadow:1px 0 0 var(--b1),0 1px 0 var(--b1);transform:none;}
+#jmodalBox .jmodal-stats>.jstat:hover{background:rgba(255,255,255,.025);transform:none;}
+#jmodalBox .jmodal-stats>.jstat:first-child{flex:1.6 1 150px;}
+#jmodalBox .jmodal-stats>.jstat .jstat-l{font-size:9.5px;font-weight:500;letter-spacing:1px;}
+#jmodalBox .jmodal-stats>.jstat .jstat-v{font-size:15px;}
+#jmodalBox .jmodal-stats>.jstat:first-child .jstat-v{font-size:21px;letter-spacing:-.4px;}
+#jmodalBox .jstat{padding:12px 14px 11px;gap:5px;border-radius:var(--r-card);}
+
+/* Bloques numerados (01 · 02 · 03) */
+#jmodalBox .jsec{counter-increment:jsec;position:relative;margin:0 0 12px;padding:13px 16px 15px;border:1px solid var(--b1);border-radius:var(--r-card);box-shadow:var(--shadow-card);
+  background:linear-gradient(180deg,rgba(255,255,255,.022),rgba(255,255,255,0) 60%),var(--s2);}
+#jmodalBox .jsec>.jtag-label,#jmodalBox .jsec>.jnote-label,#jmodalBox .jsec>.jimg-label{margin:0 0 10px;gap:11px;font-family:var(--font-head);font-weight:600;font-size:11px;letter-spacing:1.6px;text-transform:uppercase;color:var(--text);}
+#jmodalBox .jsec>.jtag-label::before,#jmodalBox .jsec>.jnote-label::before,#jmodalBox .jsec>.jimg-label::before{
+  content:counter(jsec,decimal-leading-zero);width:auto;height:auto;padding:4px 7px;border-radius:7px;box-shadow:none;
+  font-family:var(--font-mono);font-weight:700;font-size:9.5px;line-height:1;letter-spacing:1px;color:var(--cyan);
+  background:rgba(var(--c-rgb),.09);border:1px solid rgba(var(--c-rgb),.35);}
+
+/* ¿Cómo ejecutaste hoy? → selector segmentado */
+#jmodalBox .jtags{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:0;}
+#jmodalBox .jtag{display:flex;align-items:center;justify-content:center;text-align:center;min-height:38px;padding:8px 10px;border-radius:10px;
+  font-size:12px;line-height:1.35;font-weight:600;letter-spacing:.2px;color:var(--muted);background:var(--s1);border:1px solid var(--b1);}
+#jmodalBox .jtag:hover{color:var(--text);border-color:rgba(var(--c-rgb),.55);}
+#jmodalBox .jtag.sel-ok{color:var(--green);border-color:rgba(var(--g-rgb),.6);background:linear-gradient(180deg,rgba(var(--g-rgb),.17),rgba(var(--g-rgb),.04)),var(--s1);box-shadow:0 0 0 1px rgba(var(--g-rgb),.22),0 12px 26px -16px rgba(var(--g-rgb),.8);}
+#jmodalBox .jtag.sel-warn{color:var(--warn);border-color:rgba(var(--w-rgb),.6);background:linear-gradient(180deg,rgba(var(--w-rgb),.17),rgba(var(--w-rgb),.04)),var(--s1);box-shadow:0 0 0 1px rgba(var(--w-rgb),.22),0 12px 26px -16px rgba(var(--w-rgb),.8);}
+#jmodalBox .jtag.sel-bad{color:var(--red);border-color:rgba(var(--r-rgb),.6);background:linear-gradient(180deg,rgba(var(--r-rgb),.17),rgba(var(--r-rgb),.04)),var(--s1);box-shadow:0 0 0 1px rgba(var(--r-rgb),.22),0 12px 26px -16px rgba(var(--r-rgb),.8);}
+#jmodalBox .jtag.sel-lesson{color:var(--purple);border-color:rgba(var(--p-rgb),.6);background:linear-gradient(180deg,rgba(var(--p-rgb),.17),rgba(var(--p-rgb),.04)),var(--s1);box-shadow:0 0 0 1px rgba(var(--p-rgb),.22),0 12px 26px -16px rgba(var(--p-rgb),.8);}
+
+/* ¿Cómo ejecutaste hoy? compacto: título y opciones en una sola línea (PC) */
+@media(min-width:701px){
+  #jmodalBox .jsec:has(>.jtags){display:flex;align-items:center;gap:16px;padding:9px 12px 9px 16px;}
+  #jmodalBox .jsec:has(>.jtags)>.jtag-label{flex:none;margin:0;white-space:nowrap;}
+  #jmodalBox .jsec:has(>.jtags)>.jtag-label::after{display:none;}
+  #jmodalBox .jsec:has(>.jtags)>.jtags{flex:1 1 auto;min-width:0;gap:6px;}
+  #jmodalBox .jsec:has(>.jtags) .jtag{min-height:32px;padding:5px 8px;font-size:11.5px;border-radius:9px;}
+}
+@media(max-width:700px){
+  #jmodalBox .jsec:has(>.jtags){padding:9px 10px 10px;}
+  #jmodalBox .jsec:has(>.jtags)>.jtag-label{margin-bottom:8px;}
+  #jmodalBox .jsec:has(>.jtags) .jtags{gap:6px;}
+  #jmodalBox .jsec:has(>.jtags) .jtag{min-height:34px;padding:6px 6px;}
+}
+
+/* Notas (textarea y capa pintada comparten medidas exactas) */
+#jmodalBox .jnote-wrap{border-radius:12px;background:var(--s1);}
+#jmodalBox .jnote-wrap::before,#jmodalBox .jnote-wrap::after{display:none;}
+#jmodalBox textarea.jnote,#jmodalBox .jnote-bd{padding:16px 18px;border-radius:12px;font-size:13px;line-height:1.7;}
+#jmodalBox textarea.jnote{min-height:150px;}
+#jmodalBox .jnote-wrap:focus-within{box-shadow:0 0 0 3px rgba(var(--c-rgb),.14);}
+
+/* Capturas */
+#jmodalBox .jimg-actions{gap:10px;}
+#jmodalBox .jimg-add{display:inline-flex;align-items:center;gap:8px;padding:9px 16px;border-radius:12px;font-size:12px;
+  background:var(--s1);border:1px dashed rgba(var(--c-rgb),.5);box-shadow:none;}
+#jmodalBox .jimg-add:hover{background:rgba(var(--c-rgb),.08);border-style:solid;border-color:rgba(var(--c-rgb),.75);box-shadow:0 10px 24px -14px rgba(var(--c-rgb),.9);}
+#jmodalBox .jimg-add.rec{background:linear-gradient(180deg,rgba(var(--r-rgb),.2),rgba(var(--r-rgb),.06));border:1px solid rgba(var(--r-rgb),.55);}
+#jmodalBox .jtip-pc{margin-top:10px !important;font-size:10px !important;letter-spacing:.3px;}
+#jmodalBox .jimg-msg:empty,#jmodalBox #jimgLegacy:empty,#jmodalBox .jimg-grid:empty{display:none;}
+#jmodalBox .jimg-grid{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:30px 12px;margin-top:30px;}
+#jmodalBox .jimg-item{border-radius:12px;background:var(--s1);transition:border-color .2s,transform .2s var(--ease),box-shadow .2s;}
+#jmodalBox .jimg-item:hover{border-color:rgba(var(--c-rgb),.5);transform:translateY(-2px);box-shadow:0 14px 28px -16px rgba(0,0,0,.8);}
+#jmodalBox .jimg-item img{border-radius:11px;}
+#jmodalBox .jimg-lbl{background:var(--s1);}
+#jmodalBox .jimg-item .jimg-x{top:6px;right:6px;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);}
+
+/* PC: la cámara no hace falta (solo móvil/táctil) */
+@media(min-width:701px) and (hover:hover) and (pointer:fine){#jimgCamBtn{display:none !important;}}
+
+/* Actividad SWING dentro del journal */
+#jmodalBox .jsw-act{padding:12px 14px;border-radius:var(--r-card);margin:0 0 12px;}
+
+/* Pie fijo con acciones */
+#jmodalBox .jbtn-row{position:sticky;bottom:0;z-index:4;gap:12px;align-items:center;margin:4px calc(var(--jp) * -1) 0;
+  padding:12px var(--jp) calc(12px + env(safe-area-inset-bottom,0px));border-top:1px solid var(--b1);
+  background:color-mix(in srgb,var(--s1) 90%,transparent);backdrop-filter:blur(12px) saturate(1.1);-webkit-backdrop-filter:blur(12px) saturate(1.1);}
+#jmodalBox .jbtn-save{padding:12px 28px;border-radius:12px;font-size:12.5px;font-weight:700;letter-spacing:.4px;color:#001018;
+  background:linear-gradient(135deg,var(--cyan),color-mix(in srgb,var(--cyan) 55%,var(--green)));box-shadow:0 10px 26px -12px rgba(var(--c-rgb),.9);}
+#jmodalBox .jbtn-save:hover{transform:translateY(-1px);box-shadow:0 14px 30px -12px rgba(var(--c-rgb),1);}
+#jmodalBox .jbtn-del{padding:12px 18px;border-radius:12px;background:transparent;border:1px solid rgba(var(--r-rgb),.35);}
+#jmodalBox .jbtn-del:hover{background:rgba(var(--r-rgb),.12);border-color:rgba(var(--r-rgb),.65);}
+
+/* Tema claro */
+body.light #jmodalBox{box-shadow:0 30px 70px -26px rgba(10,40,80,.4);}
+body.light #jmodalBox .jbtn-save{color:#fff;}
+body.light #jmodalBox .jsec{background:var(--s2);}
+body.light #jmodalBox .jbtn-row{background:color-mix(in srgb,var(--s1) 92%,transparent);}
+
+/* Móvil */
+@media(max-width:600px){
+  #jmodalBox{--jp:16px;max-height:94vh;border-radius:18px;}
+  #jmodalBox .jmodal-date{font-size:17px;padding:0 42px 10px 0;margin-bottom:10px;}
+  #jmodalBox .jmodal-close{top:12px;width:34px;height:34px;}
+  #jmodalBox .jmodal-stats{margin-bottom:14px;}
+  #jmodalBox .jmodal-stats>.jstat{flex:1 1 96px;padding:10px 10px 9px;}
+  #jmodalBox .jmodal-stats>.jstat:first-child{flex:1.5 1 130px;}
+  #jmodalBox .jmodal-stats>.jstat .jstat-l{font-size:8.5px;letter-spacing:.6px;}
+  #jmodalBox .jmodal-stats>.jstat .jstat-v{font-size:13px;}
+  #jmodalBox .jmodal-stats>.jstat:first-child .jstat-v{font-size:18px;}
+  #jmodalBox .jsec{padding:11px 12px 13px;margin-bottom:10px;border-radius:12px;}
+  #jmodalBox .jtags{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;}
+  #jmodalBox .jtag{min-height:38px;padding:8px 8px;font-size:11.5px;}
+  #jmodalBox textarea.jnote,#jmodalBox .jnote-bd{padding:13px 14px;}
+  #jmodalBox .jimg-grid{grid-template-columns:repeat(auto-fill,minmax(120px,1fr));}
+  #jmodalBox .jbtn-row{flex-direction:row;gap:10px;}
+  #jmodalBox .jbtn-save{flex:1.5;width:auto;padding:12px 14px;}
+  #jmodalBox .jbtn-del{flex:1;width:auto;margin-right:0;padding:12px 8px;white-space:nowrap;font-size:11.5px;}
+}
+
+/* ═════════════════════════════════════════════════════════════════════════════
+   DESGLOSE DEL TRADE (Actividad de la sesión) — solo estilo + estructura de tarjetas.
+   Cada Trade es una tarjeta: encabezado con datos rotulados, resultado destacado y
+   eventos en columnas alineadas. En móvil cada evento pasa a dos líneas (sin scroll lateral).
+   ═════════════════════════════════════════════════════════════════════════════ */
+/* Resumen de la actividad: misma barra única con divisiones que el resto */
+.jsw-act .jsw-grid{display:flex;flex-wrap:wrap;gap:0;margin:6px 0 16px;overflow:hidden;border:1px solid var(--b2);border-radius:10px;
+  background:linear-gradient(180deg,rgba(255,255,255,.025),transparent),var(--s1);}
+#jmodalBox .jsw-act .jsw-grid>.jstat{flex:1 1 118px;min-width:0;padding:10px 13px 9px;gap:4px;border:0;border-radius:0;background:transparent;box-shadow:1px 0 0 var(--b1),0 1px 0 var(--b1);transform:none;}
+#jmodalBox .jsw-act .jsw-grid>.jstat:hover{background:rgba(255,255,255,.025);transform:none;}
+.jsw-act .jsw-grid .jstat-l{font-size:9px;font-weight:500;letter-spacing:1px;}
+
+/* Tabla → tarjetas */
+.jsw-trades{display:block;width:100%;margin:0;border-collapse:separate;border-spacing:0;font-size:12px;
+  --jc:62px 104px minmax(118px,1.5fr) repeat(5,minmax(56px,1fr));}
+.jsw-trades thead{display:none;}   /* los rótulos ahora van dentro de cada encabezado */
+.jsw-trades tbody.jsw-trg{display:block;--ta:var(--cyan);--ta-rgb:var(--c-rgb);margin:0 0 12px;overflow:hidden;
+  border:1px solid var(--b2);border-radius:12px;box-shadow:var(--shadow-card);
+  background:linear-gradient(180deg,rgba(255,255,255,.02),transparent 45%),var(--s1);}
+.jsw-trades tbody.jsw-trg:last-child{margin-bottom:0;}
+.jsw-trg:has(.jsw-res[style*="var(--green)"]){--ta:var(--green);--ta-rgb:var(--g-rgb);}
+.jsw-trg:has(.jsw-res[style*="var(--red)"]){--ta:var(--red);--ta-rgb:var(--r-rgb);}
+.jsw-trades tr{display:grid;grid-template-columns:var(--jc);column-gap:10px;align-items:center;padding:0 18px;border-bottom:1px solid var(--b1);}
+.jsw-trades tbody tr:last-child{border-bottom:0;}
+.jsw-trades td{padding:10px 0;border:0;min-width:0;white-space:nowrap;font-variant-numeric:tabular-nums lining-nums;}
+.jsw-trades td:nth-child(n+4){text-align:right;}
+
+/* Encabezado del Trade */
+.jsw-trades tr.jsw-trh{display:block;padding:0;cursor:pointer;box-shadow:inset 3px 0 0 var(--ta);
+  background:linear-gradient(90deg,rgba(var(--ta-rgb),.15),rgba(var(--ta-rgb),.03) 70%);transition:background .2s;}
+.jsw-trades tr.jsw-trh:hover{background:linear-gradient(90deg,rgba(var(--ta-rgb),.21),rgba(var(--ta-rgb),.05) 70%);}
+.jsw-trades tr.jsw-trh.col{border-bottom-color:transparent;}
+.jsw-trades .jsw-trh td{display:block;padding:14px 18px 14px 21px;border:0;background:none;text-align:left;white-space:normal;}
+.jsw-th{display:flex;flex-wrap:wrap;align-items:flex-end;gap:12px 30px;}
+.jsw-th .jsw-f{width:auto;min-width:0;white-space:nowrap;font-size:12.5px;}
+.jsw-th .jsw-f1{display:inline-flex;align-items:center;gap:9px;align-self:center;font-family:var(--font-head);font-size:16px;letter-spacing:-.2px;}
+.jsw-th .jsw-chev{margin:0;font-size:12px;}
+.jsw-th .jsw-fx{align-self:center;}
+.jsw-th .jsw-fx:empty{display:none;}
+.jsw-th .jsw-fx .jsw-trtag{margin:0;padding:4px 12px;font-size:10.5px;border-radius:999px;}
+.jsw-th [data-l]::before{content:attr(data-l);display:block;margin-bottom:5px;font-family:var(--font-head);font-weight:500;font-size:8.5px;letter-spacing:1.3px;text-transform:uppercase;color:var(--muted);}
+.jsw-th .jsw-f2{font-family:var(--font-head);font-weight:600;font-size:13.5px;letter-spacing:.2px;}
+.jsw-th .jsw-f3.buy{color:var(--green);}
+.jsw-th .jsw-f3.sell{color:var(--red);}
+.jsw-th .jsw-res{margin-left:auto;text-align:right;font-family:var(--font-head);font-weight:700;font-size:21px;line-height:1;letter-spacing:-.5px;text-shadow:0 0 18px color-mix(in srgb,currentColor 35%,transparent);}
+.jsw-trades .jsw-trpick{margin:12px 0 0;}
+
+/* Títulos de columnas */
+.jsw-trades tr.jsw-colh{background:rgba(255,255,255,.02);}
+.jsw-trades tr.jsw-colh td{padding:8px 0;font-family:var(--font-head);font-weight:500;font-size:8.5px;letter-spacing:1.3px;text-transform:uppercase;color:var(--muted);}
+
+/* Eventos */
+.jsw-trades tbody tr:not(.jsw-trh):not(.jsw-colh){transition:background .15s;}
+.jsw-trades tbody tr:not(.jsw-trh):not(.jsw-colh):hover{background:rgba(255,255,255,.03);}
+.jsw-trades tbody tr:not(.jsw-trh):hover td{background:transparent;}
+.jsw-trades tr:not(.jsw-trh):not(.jsw-colh) td:first-child{color:var(--muted);}
+.jsw-trades tr:not(.jsw-trh):not(.jsw-colh) td:nth-child(6){font-weight:600;}
+.jsw-trades tr:has(.jsw-tag.OPEN),.jsw-trades tr:has(.jsw-tag.ADD){box-shadow:inset 2px 0 0 hsla(170,85%,52%,.6);}
+.jsw-trades tr:has(.jsw-tag.PARTIAL){box-shadow:inset 2px 0 0 hsla(62,55%,55%,.65);}
+.jsw-trades tr:has(.jsw-tag.CLOSE){box-shadow:inset 2px 0 0 hsla(0,70%,64%,.6);}
+.jsw-trades .jsw-tag{--tg:hsl(170,85%,52%);display:inline-flex;align-items:center;gap:7px;padding:3px 11px 3px 9px;border-radius:999px;
+  font-family:var(--font-head);font-weight:600;font-size:10px;letter-spacing:.6px;color:var(--text);
+  background:color-mix(in srgb,var(--tg) 15%,transparent);border:1px solid color-mix(in srgb,var(--tg) 42%,transparent);}
+.jsw-trades .jsw-tag::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--tg);box-shadow:0 0 6px var(--tg);}
+.jsw-trades .jsw-tag.PARTIAL{--tg:hsl(62,55%,55%);}
+.jsw-trades .jsw-tag.CLOSE{--tg:hsl(0,70%,64%);}
+
+/* Tema claro */
+body.light .jsw-trades tbody.jsw-trg{background:var(--s1);}
+body.light .jsw-trades tr.jsw-colh,body.light .jsw-trades tbody tr:not(.jsw-trh):not(.jsw-colh):hover{background:rgba(0,40,80,.03);}
+
+/* Móvil / pantallas estrechas: cada evento en dos líneas */
+@media(max-width:860px){
+  #jmodalBox .jsw-act .jsw-grid>.jstat{flex:1 1 30%;padding:9px 10px 8px;}
+  .jsw-trades tr.jsw-colh{display:none !important;}
+  .jsw-trades tr:not(.jsw-trh){display:flex;flex-wrap:wrap;align-items:center;gap:0 10px;padding:10px 14px;}
+  .jsw-trades tr:not(.jsw-trh) td{padding:0;text-align:left;}
+  .jsw-trades td:nth-child(1){order:1;flex:0 0 auto;min-width:40px;}
+  .jsw-trades td:nth-child(2){order:2;flex:0 0 auto;}
+  .jsw-trades td:nth-child(3){order:3;flex:1 1 auto;}
+  .jsw-trades tr:not(.jsw-trh) td:nth-child(6){order:4;margin-left:auto;font-size:14px;font-weight:700;text-align:right;}
+  .jsw-trades tr:not(.jsw-trh)::after{content:'';order:5;flex:0 0 100%;height:9px;}
+  .jsw-trades td:nth-child(4){order:6;}.jsw-trades td:nth-child(5){order:7;}.jsw-trades td:nth-child(7){order:8;}.jsw-trades td:nth-child(8){order:9;}
+  .jsw-trades td:nth-child(4),.jsw-trades td:nth-child(5),.jsw-trades td:nth-child(7),.jsw-trades td:nth-child(8){flex:1 1 20%;font-size:11.5px;}
+  .jsw-trades td:nth-child(4)::before,.jsw-trades td:nth-child(5)::before,.jsw-trades td:nth-child(7)::before,.jsw-trades td:nth-child(8)::before{
+    content:attr(data-l);display:block;margin-bottom:2px;font-family:var(--font-head);font-weight:500;font-size:8px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);}
+  .jsw-trades .jsw-trh td{padding:12px 14px 12px 17px;}
+  .jsw-th{gap:10px 20px;}
+  .jsw-th>*{order:3;}
+  .jsw-th .jsw-f1{order:0;flex:1 1 auto;font-size:15px;}
+  .jsw-th .jsw-res{order:1;margin-left:0;font-size:19px;}
+  .jsw-th .jsw-res::before{display:none;}
+  .jsw-th .jsw-fx{order:2;flex:0 0 100%;}
+  .jsw-th .jsw-f{font-size:12px;}
+}
 </style>
 </head>
 <body>
@@ -1052,75 +1987,29 @@ input.jimglink:focus{border-color:var(--cyan);}
     <span>%</span>
   </div>
 
+  <!-- ═══ 01 · RESUMEN DE RENDIMIENTO ═══ -->
+  <div class="sec-group" id="sec-resumen"><span class="sg-num">01</span><div class="sg-txt"><div class="sg-title">Resumen de rendimiento</div></div></div>
+
   <!-- KPI ROW 1 -->
-  <div class="sec-label">Resumen de Cuenta</div>
   <div class="kpi-grid" id="kpi1"></div>
 
-  <!-- NIVEL CAMPAÑA -->
-  <div class="sec-label purple">Campañas (scaling in)</div>
-  <div class="kpi-grid" id="kpiC"></div>
-  <div id="campNote" style="font-size:10px;color:var(--muted);line-height:1.6;margin:-6px 0 18px;"></div>
-
-  <!-- CICLOS SWING (unidad estadística propia: 1 ciclo finalizado = 1 unidad) -->
-  <div class="sec-label purple">Ciclos SWING</div>
-  <div class="kpi-grid" id="kpiS"></div>
-  <div id="swNote" style="font-size:10px;color:var(--muted);line-height:1.6;margin:-6px 0 18px;"></div>
-
-  <!-- CALENDAR -->
-  <div class="cal-wrap">
-    <div class="cal-header">
-      <div class="chart-title">Calendario de P&L — Resultado Neto por Día</div>
-      <div class="cal-nav">
-        <button class="cal-nav-btn" id="calPrevBtn" onclick="calNavMonth(-1)" title="Mes anterior">&#8249;</button>
-        <span class="cal-month-label" id="calMonthLabel">—</span>
-        <button class="cal-nav-btn" id="calNextBtn" onclick="calNavMonth(1)" title="Mes siguiente">&#8250;</button>
-      </div>
-    </div>
-    <div class="cal-consistency" id="calConsistency"></div>
-    <div class="cal-days-hdr">
-      <span>Dom</span><span>Lun</span><span>Mar</span><span>Mié</span><span>Jue</span><span>Vie</span><span>Sáb</span>
-    </div>
-    <div class="cal-grid" id="calGrid"></div>
-    <div style="display:flex;justify-content:flex-end;margin-top:14px;"><button class="jbtn-summary" onclick="openAiSummary('month')">📊 Resumen del Mes con IA</button></div>
-  </div>
-
-  <!-- KPI ROW 2 -->
-  <div class="sec-label green">Performance & Estadísticas</div>
-  <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:0 0 10px;font-size:11px;color:var(--muted);">
-    <label for="pxMode">MAE/MFE en puntos de precio — calidad incluida:</label>
-    <select id="pxMode" onchange="pxModeChanged(this.value)" style="background:var(--s2);border:1px solid var(--b2);color:var(--text);padding:5px 8px;border-radius:8px;font-family:var(--font-mono);font-size:11px;">
-      <option value="complete">Solo completas</option>
-      <option value="approx">Completas + aproximadas (M1)</option>
-      <option value="all">Incluir parciales (cota inferior)</option>
-    </select>
-  </div>
-  <div class="kpi-grid" id="kpi2"></div>
+  <!-- ═══ 02 · EVOLUCIÓN Y RIESGO ═══ -->
+  <div class="sec-group" id="sec-evolucion"><span class="sg-num">02</span><div class="sg-txt"><div class="sg-title">Evolución y riesgo</div></div></div>
 
   <!-- EQUITY CURVE -->
   <div class="charts-2" style="margin-bottom:16px;">
     <div class="chart-box span2">
       <div class="chart-title">Curva de Resultado Realizado Acumulado</div>
+      <div class="sumbar sumbar-top" id="eqSumBar"></div>
       <canvas id="equityChart"></canvas>
     </div>
   </div>
 
-  <!-- DRAWDOWN + PROGRESS BARS -->
+  <!-- DRAWDOWN + DAY + MONTHLY -->
   <div class="charts-2" style="margin-bottom:16px;">
-    <div class="chart-box">
+    <div class="chart-box dd-box">
       <div class="chart-title">Drawdown — Resultados Realizados</div>
-      <canvas id="ddChart"></canvas>
-    </div>
-    <div class="chart-box">
-      <div class="chart-title">Métricas Clave — Progreso</div>
-      <div id="progBars" style="margin-top:8px;"></div>
-    </div>
-  </div>
-
-  <!-- WIN/LOSS + DAY + MONTHLY -->
-  <div class="charts-2" style="margin-bottom:16px;">
-    <div class="chart-box">
-      <div class="chart-title">Distribución Win / Loss</div>
-      <canvas id="wlChart"></canvas>
+      <div class="dd-fill"><canvas id="ddChart"></canvas></div>
     </div>
     <div class="chart-box">
       <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:14px;">
@@ -1132,13 +2021,36 @@ input.jimglink:focus{border-color:var(--cyan);}
             <button class="cal-nav-btn" id="weekNextBtn" onclick="weekNav(1)" title="Semana siguiente">&#8250;</button>
           </div>
         </div>
-        <div style="display:flex;gap:12px;font-size:10px;color:var(--muted);flex-wrap:wrap;">
+        <div class="sumbar" id="weekSumBar"></div>
+        <div class="sum-old" style="display:flex;gap:12px;font-size:10px;color:var(--muted);flex-wrap:wrap;flex:1 1 auto;">
           <span id="weekBestDay"></span>
           <span id="weekWorstDay"></span>
+          <span id="weekNetPct" style="margin-left:auto;"></span>
         </div>
       </div>
       <canvas id="dayChart"></canvas>
     </div>
+  </div>
+
+  <!-- ═══ 03 · CALENDARIO Y PERIODOS ═══ -->
+  <div class="sec-group" id="sec-periodos"><span class="sg-num">03</span><div class="sg-txt"><div class="sg-title">Calendario y periodos</div></div></div>
+
+  <!-- CALENDAR -->
+  <div class="cal-wrap">
+    <div class="cal-header">
+      <div class="chart-title">Calendario de P&L — Resultado Neto por Día</div>
+      <div class="cal-nav">
+        <button class="cal-nav-btn" id="calPrevBtn" onclick="calNavMonth(-1)" title="Mes anterior">&#8249;</button>
+        <span class="cal-month-label" id="calMonthLabel">—</span>
+        <button class="cal-nav-btn" id="calNextBtn" onclick="calNavMonth(1)" title="Mes siguiente">&#8250;</button>
+      </div>
+    </div>
+    <div class="sumbar sb-many sumbar-top" id="calConsistency"></div>
+    <div class="cal-days-hdr">
+      <span>Dom</span><span>Lun</span><span>Mar</span><span>Mié</span><span>Jue</span><span>Vie</span><span>Sáb</span>
+    </div>
+    <div class="cal-grid" id="calGrid"></div>
+    <div style="display:flex;justify-content:flex-end;margin-top:14px;"><button class="jbtn-summary" onclick="openAiSummary('month')">📊 Resumen del Mes con IA</button></div>
   </div>
 
   <!-- MONTHLY BAR + MEJOR / PEOR SÍMBOLO (lado a lado) -->
@@ -1153,10 +2065,12 @@ input.jimglink:focus{border-color:var(--cyan);}
           <button class="cal-nav-btn" id="monthNextBtn" onclick="monthNavYear(1)" title="Año siguiente">&#8250;</button>
         </div>
       </div>
-      <div style="display:flex;gap:12px;font-size:10px;color:var(--muted);flex-wrap:wrap;">
+      <div class="sumbar" id="monthSumBar"></div>
+      <div class="sum-old" style="display:flex;gap:12px;font-size:10px;color:var(--muted);flex-wrap:wrap;flex:1 1 auto;">
         <span id="monthlyWinCount" style="color:var(--green);"></span>
         <span id="monthlyLossCount" style="color:var(--red);"></span>
         <span id="monthlyBestMonth"></span>
+        <span id="monthlyNetPct" style="margin-left:auto;"></span>
       </div>
     </div>
     <canvas id="monthlyChart" style="max-height:220px;"></canvas>
@@ -1179,13 +2093,60 @@ input.jimglink:focus{border-color:var(--cyan);}
   </div>
   </div>
 
+  <!-- ═══ 04 · CALIDAD DEL SISTEMA ═══ -->
+  <div class="sec-group" id="sec-calidad"><span class="sg-num">04</span><div class="sg-txt"><div class="sg-title">Calidad del sistema</div></div></div>
+
+  <!-- WIN/LOSS + PROGRESS BARS (misma altura en PC) -->
+  <div class="charts-2" style="margin-bottom:16px;">
+    <div class="chart-box wl-box">
+      <div class="chart-title">Distribución Win / Loss</div>
+      <div class="sumbar sumbar-top" id="wlSumBar"></div>
+      <div class="wl-legend" id="wlLegend"></div>
+      <div class="wl-fill"><canvas id="wlChart"></canvas></div>
+    </div>
+    <div class="chart-box">
+      <div class="chart-title">Métricas Clave — Progreso</div>
+      <div id="progBars" style="margin-top:8px;"></div>
+    </div>
+  </div>
+
   <!-- RACHA ACTUAL + MAX RACHAS -->
   <div class="sec-label purple">Rachas de Días Operativos</div>
-  <div class="streak-row" id="streakRow"></div>
+  <div id="streakRow"></div>
+
+  <!-- ═══ 05 · ESTRATEGIA ═══ -->
+  <div class="sec-group" id="sec-estrategia"><span class="sg-num">05</span><div class="sg-txt"><div class="sg-title">Estrategia</div></div></div>
+
+  <!-- NIVEL CAMPAÑA -->
+  <div class="sec-label purple">Campañas (scaling in)</div>
+  <div class="kpi-grid" id="kpiC"></div>
+
+  <!-- CICLOS SWING (unidad estadística propia: 1 ciclo finalizado = 1 unidad) -->
+  <div class="sec-label purple">Ciclos SWING</div>
+  <div class="kpi-grid" id="kpiS"></div>
+
+  <!-- ═══ 06 · ESTADÍSTICAS DETALLADAS ═══ -->
+  <div class="sec-group" id="sec-estadisticas"><span class="sg-num">06</span><div class="sg-txt"><div class="sg-title">Estadísticas detalladas</div></div></div>
+
+  <!-- KPI ROW 2 -->
+  <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:0 0 10px;font-size:11px;color:var(--muted);">
+    <label for="pxMode">MAE/MFE en puntos de precio — calidad incluida:</label>
+    <select id="pxMode" onchange="pxModeChanged(this.value)" style="background:var(--s2);border:1px solid var(--b2);color:var(--text);padding:5px 8px;border-radius:8px;font-family:var(--font-mono);font-size:11px;">
+      <option value="complete">Solo completas</option>
+      <option value="approx">Completas + aproximadas (M1)</option>
+      <option value="all">Incluir parciales (cota inferior)</option>
+    </select>
+  </div>
+  <div class="kpi-grid" id="kpi2"></div>
+
+  <!-- ═══ 07 · ANÁLISIS DEL COACH ═══ -->
+  <div class="sec-group" id="sec-coach"><span class="sg-num">07</span><div class="sg-txt"><div class="sg-title">Análisis del Coach</div></div></div>
 
   <!-- COACH -->
-  <div class="sec-label red">Análisis del Coach</div>
   <div class="coach-grid" id="coachGrid"></div>
+
+  <!-- ═══ 08 · PLANIFICACIÓN Y CRECIMIENTO ═══ -->
+  <div class="sec-group" id="sec-planificacion"><span class="sg-num">08</span><div class="sg-txt"><div class="sg-title">Planificación y crecimiento</div></div></div>
 
   <!-- RISK SCALING -->
   <div class="sec-label" style="margin-top:8px;">📈 Risk Scaling — Hoja de Ruta</div>
@@ -1234,6 +2195,8 @@ input.jimglink:focus{border-color:var(--cyan);}
       </div>
     </div>
 
+    <div class="sumbar sb-many sumbar-top" id="wdSumBar"></div>
+
     <div id="wdNotice"></div>
     <div id="wdCycleNav"></div>
     <div id="wdOld" style="display:none;"></div>
@@ -1274,6 +2237,7 @@ input.jimglink:focus{border-color:var(--cyan);}
       <div style="font-family:var(--font-head);font-size:14px;font-weight:600;">Proyección basada en Expectancy actual</div>
       <div style="font-size:11px;color:var(--muted);">Estimado con la expectancy por posición y el ritmo histórico de posiciones</div>
     </div>
+    <div class="sumbar sumbar-top" id="roiSumBar"></div>
     <div class="roi-cards" id="roiCards"></div>
     <div style="font-size:10px;color:var(--muted);line-height:1.6;" id="roiNote">—</div>
   </div>
@@ -1288,9 +2252,11 @@ input.jimglink:focus{border-color:var(--cyan);}
   <div class="jmodal-overlay" id="jmodalOverlay">
     <div class="jmodal" id="jmodalBox">
       <button class="jmodal-close" onclick="closeJournal()">✕</button>
+      <div class="jeyebrow">Journal de trading</div>
       <div class="jmodal-date" id="jmodalDate">—</div>
       <div class="jmodal-stats" id="jmodalStats"></div>
       <div id="jswingAct" style="display:none"></div>
+      <div class="jsec">
       <div class="jtag-label">¿Cómo ejecutaste hoy?</div>
       <div class="jtags">
         <div class="jtag" data-tag="ok" onclick="selectTag(this)">✅ Ejecuté bien</div>
@@ -1298,8 +2264,12 @@ input.jimglink:focus{border-color:var(--cyan);}
         <div class="jtag" data-tag="bad" onclick="selectTag(this)">❌ Cometí error</div>
         <div class="jtag" data-tag="lesson" onclick="selectTag(this)">📚 Lección clave</div>
       </div>
+      </div>
+      <div class="jsec">
       <div class="jnote-label">Notas de la sesión</div>
       <div class="jnote-wrap"><div class="jnote-bd" id="jnoteBd" aria-hidden="true"></div><textarea class="jnote" id="jnoteText" oninput="autoGrowNote()" placeholder="Describe qué viste en el mercado, por qué entraste, cómo escalaste, qué salió bien o mal..."></textarea></div>
+      </div>
+      <div class="jsec">
       <div class="jimg-label">Capturas (opcional)</div>
       <div class="jimg-actions">
         <button class="jimg-add" id="jimgAddBtn" type="button" onclick="document.getElementById('jimgFile').click()">🖼️ Subir imagen</button>
@@ -1313,6 +2283,7 @@ input.jimglink:focus{border-color:var(--cyan);}
       <div class="jimg-msg" id="jimgMsg"></div>
       <div class="jimg-grid" id="jimgGrid"></div>
       <div id="jimgLegacy" style="margin-top:8px;font-size:10px;color:var(--muted);"></div>
+      </div>
       <div class="jbtn-row">
         <button class="jbtn-del" id="jbtnDel" onclick="deleteJournal()">🗑️ Eliminar journal</button>
         <button class="jbtn-save" onclick="saveJournal()">💾 Guardar</button>
@@ -2086,6 +3057,7 @@ function calcMetrics(days, trades, balance, extra) {
     o.mae=av(r,t=>t.pxMae); o.mfe=av(r,t=>t.pxMfe);
     o.wn=w.length; o.wmae=av(w,t=>t.pxMae); o.wmfe=av(w,t=>t.pxMfe); o.ln=l.length; o.lmae=av(l,t=>t.pxMae); o.lmfe=av(l,t=>t.pxMfe); delete o.rows; });
   const symMap={}; T.forEach(s=>{ symMap[s.sym]=(symMap[s.sym]||0)+s.netPnl; });
+  const symStat={}; T.forEach(s=>{ const o=symStat[s.sym]||(symStat[s.sym]={n:0,w:0,l:0}); o.n++; if(s.netPnl>0)o.w++; else if(s.netPnl<0)o.l++; });
   const dayWins=D.filter(d=>dayClass(d.netPnl)==='win').length, dayLosses=D.filter(d=>dayClass(d.netPnl)==='loss').length;
   // Métricas por campaña: ganadoras vs perdedoras, rachas y mejores grupos (símbolo / dirección / hora de inicio).
   let CX=null;
@@ -2106,7 +3078,7 @@ function calcMetrics(days, trades, balance, extra) {
     avgR:rs.length?_sum(rs.map(t=>t.r))/rs.length:null,rN:rs.length,
     pxCount,pxSym,pxMode,pxN:pxUse.length,
     comms:_sum(T.map(t=>Math.abs(t.comm))),swaps:_sum(T.map(t=>t.swap||0)),
-    avgDur:_sum(T.map(t=>t.durMin))/n,avgEntries:_sum(T.map(t=>t.entries))/n,avgMaxVol:_sum(T.map(t=>t.maxVol))/n,tpd:n/span,symMap,
+    avgDur:_sum(T.map(t=>t.durMin))/n,avgEntries:_sum(T.map(t=>t.entries))/n,avgMaxVol:_sum(T.map(t=>t.maxVol))/n,tpd:n/span,symMap,symStat,
     // campaña
     C,CX,cN:camps.length,scaledN:camps.filter(c=>c.scaled).length,
     cAvgPos:camps.length?_sum(camps.map(c=>c.positions))/camps.length:null,
@@ -2283,9 +3255,9 @@ function renderIntraActivity(day,calcOnly){   // calcOnly=true: devuelve la list
   const rowOf=e=>{
     const lbl={OPEN:'Apertura',ADD:'Adición',PARTIAL:'Parcial',CLOSE:'Cierre'}[e.kind]||e.kind;
     const c=fmt$(e.comm), n=c.charAt(0)==='-';
-    return `<tr><td>${_swHM(e.t)}</td><td><span class="jsw-tag ${e.kind}">${lbl}</span></td><td>${tk(e.pid)}</td>`+
-      `<td>${e.vol.toFixed(2)}</td><td>${fx(e.price,2)}</td><td style="color:${e.entry==='IN'?'var(--muted)':_swSign(e.profit+e.swap)}">${e.entry==='IN'?'—':fmt$(e.profit+e.swap)}</td>`+
-      `<td style="color:var(--muted)"><span style="display:inline-block;width:1ch;">${n?'-':''}</span>${n?c.slice(1):c}</td><td>${e.rest.toFixed(2)}</td></tr>`;
+    return `<tr><td data-l="Hora">${_swHM(e.t)}</td><td data-l="Evento"><span class="jsw-tag ${e.kind}">${lbl}</span></td><td data-l="Posición">${tk(e.pid)}</td>`+
+      `<td data-l="Lotes">${e.vol.toFixed(2)}</td><td data-l="Precio">${fx(e.price,2)}</td><td data-l="Resultado" style="color:${e.entry==='IN'?'var(--muted)':_swSign(e.profit+e.swap)}">${e.entry==='IN'?'—':fmt$(e.profit+e.swap)}</td>`+
+      `<td data-l="Comis." style="color:var(--muted)"><span style="display:inline-block;width:1ch;">${n?'-':''}</span>${n?c.slice(1):c}</td><td data-l="Resta pos.">${e.rest.toFixed(2)}</td></tr>`;
   };
   // ── Trades de la sesión (cadenas): MISMA regla de continuidad que los ciclos SWING, escrita aparte (el motor SWING no se toca).
   // Mientras haya ≥1 posición del Trade abierta, toda posición nueva del mismo símbolo y dirección se incorpora; al cerrarse todas,
@@ -2324,7 +3296,7 @@ function renderIntraActivity(day,calcOnly){   // calcOnly=true: devuelve la list
     const cnet=r2(es.reduce((a,e)=>a+e.profit+e.comm+e.swap,0));
     const fin=c.done&&es.length?_swHM(es[es.length-1].t):'en curso';
     info.push({n:i+1,sym:c.sym,side:c.side,pos:c.pids.length,t0:es.length?_swHM(es[0].t):'—',fin,net:cnet});
-    return `<tr class="jsw-trh" data-trade="${i+1}"><td colspan="8"><span class="jsw-f jsw-f1"><span class="jsw-chev">▾</span><b style="color:var(--cyan)">Trade ${i+1}</b></span><span class="jsw-f jsw-fx"></span><span class="jsw-f jsw-f2">${_swEsc(c.sym)}</span><span class="jsw-f jsw-f3">${c.side==='BUY'?'Compra':c.side==='SELL'?'Venta':'—'}</span><span class="jsw-f jsw-f4">${c.pids.length} posici${c.pids.length===1?'ón':'ones'}</span><span class="jsw-f jsw-f5">${es.length?_swHM(es[0].t):'—'} → ${fin}</span><b style="color:${_swSign(cnet)}">${fmt$(cnet)}</b></td></tr>`+`<tr class="jsw-colh" data-tr="${i+1}"><td>Hora</td><td>Evento</td><td>Posición</td><td>Lotes</td><td>Precio</td><td>Resultado</td><td>Comis.</td><td>Resta pos.</td></tr>`+es.map(e=>rowOf(e).replace('<tr>','<tr data-tr="'+(i+1)+'">')).join('');
+    return `<tbody class="jsw-trg"><tr class="jsw-trh" data-trade="${i+1}"><td colspan="8"><div class="jsw-th"><span class="jsw-f jsw-f1"><span class="jsw-chev">▾</span><b style="color:var(--cyan)">Trade ${i+1}</b></span><span class="jsw-f jsw-fx"></span><span class="jsw-f jsw-f2" data-l="Símbolo">${_swEsc(c.sym)}</span><span class="jsw-f jsw-f3 ${c.side==='BUY'?'buy':c.side==='SELL'?'sell':''}" data-l="Dirección">${c.side==='BUY'?'Compra':c.side==='SELL'?'Venta':'—'}</span><span class="jsw-f jsw-f4" data-l="Posiciones">${c.pids.length} posici${c.pids.length===1?'ón':'ones'}</span><span class="jsw-f jsw-f5" data-l="Apertura → Cierre">${es.length?_swHM(es[0].t):'—'} → ${fin}</span><b class="jsw-res" data-l="Resultado" style="color:${_swSign(cnet)}">${fmt$(cnet)}</b></div></td></tr>`+`<tr class="jsw-colh" data-tr="${i+1}"><td>Hora</td><td>Evento</td><td>Posición</td><td>Lotes</td><td>Precio</td><td>Resultado</td><td>Comis.</td><td>Resta pos.</td></tr>`+es.map(e=>rowOf(e).replace('<tr>','<tr data-tr="'+(i+1)+'">')).join('')+`</tbody>`;
   }).join('');
   if(calcOnly) return info;
   box.style.display='';
@@ -2333,12 +3305,8 @@ function renderIntraActivity(day,calcOnly){   // calcOnly=true: devuelve la list
       stat('Realizado de la sesión',fmt$(net),_swSign(net))+stat('Ganancias realizadas',fmt$(gains),'var(--green)')+stat('Pérdidas realizadas',fmt$(losses),'var(--red)')+
       stat('Comisiones',fmt$(comm),'var(--muted)')+stat('Swap',fmt$(swap),'var(--muted)')+
       stat('Vol. abierto',volIn.toFixed(2))+stat('Vol. cerrado',volOut.toFixed(2))+
-      `<div class="jstat"><div style="display:grid;grid-template-columns:auto auto auto;column-gap:6px;justify-items:center;align-items:baseline;">`+
-        `<div class="jstat-l">Abiertas</div><div class="jstat-l">/</div><div class="jstat-l">Cerradas</div>`+
-        `<div class="jstat-v" style="font-size:12px">${nOpened}</div><div class="jstat-v" style="font-size:12px">/</div><div class="jstat-v" style="font-size:12px">${nClosed}</div>`+
-        (nPart?`<div class="jstat-l" style="grid-column:1/4;margin-top:2px;">${nPart} parcial(es)</div>`:'')+
-      `</div></div>`+
-    `</div><div style="overflow-x:auto"><table class="jsw-tbl"><thead><tr><th colspan="8"><span class="jsw-f jsw-f1">Trade</span><span class="jsw-f jsw-fx">¿Cómo ejecutaste?</span><span class="jsw-f jsw-f2">Símbolo</span><span class="jsw-f jsw-f3">Dirección</span><span class="jsw-f jsw-f4">Posiciones</span><span class="jsw-f jsw-f5">Apertura → Cierre</span>Resultado</th></tr></thead><tbody>${rows}</tbody></table></div></details>`;
+      stat('Abiertas',String(nOpened))+stat('Cerradas',String(nClosed)+(nPart?` <span style="font-size:10px;font-weight:500;color:var(--muted)">· ${nPart} parcial${nPart>1?'es':''}</span>`:''))+
+    `</div><div style="overflow-x:auto"><table class="jsw-tbl jsw-trades"><thead><tr><th colspan="8"><span class="jsw-f jsw-f1">Trade</span><span class="jsw-f jsw-fx">¿Cómo ejecutaste?</span><span class="jsw-f jsw-f2">Símbolo</span><span class="jsw-f jsw-f3">Dirección</span><span class="jsw-f jsw-f4">Posiciones</span><span class="jsw-f jsw-f5">Apertura → Cierre</span>Resultado</th></tr></thead>${rows}</table></div></details>`;
   const det=box.querySelector('details');
   if(det) det.addEventListener('toggle',()=>{
     const st=document.getElementById('jmodalStats'); if(st) st.style.display=det.open?'none':'';
@@ -2459,6 +3427,7 @@ function renderAll(data) {
   renderKPIs(m, acc);
   renderLevelKPIs(m);
   renderStreaks(m);
+  _lastM = m;
   renderCharts(m, sessions);
   renderSymbols(m);
   renderCalendar(sessions);
@@ -2735,38 +3704,63 @@ function renderLevelKPIs(m) {
         tip:'Lo máximo que fue en contra y a favor cada idea completa, en dinero. Si el MFE es muy superior a lo que cierras, devuelves ganancia.'},
     ]);
   }
-  document.getElementById('campNote').textContent='Campaña = posiciones del mismo símbolo y sentido abiertas al mismo tiempo (scaling in).';
   renderSwingKPIs(m);
 }
 
 // ── STREAKS (días operativos) ──────────────────────────────────────────────────
 function renderStreaks(m) {
+  const el=document.getElementById('streakRow'); if(!el) return;
   const S=m.streaks, cur=S.current;
-  const curCls = cur.type==='win'?'current-win':cur.type==='loss'?'current-loss':'current-neutral';
-  const curIcon = cur.type==='win'?'🔥':cur.type==='loss'?'❄️':'—';
-  const curLabel = cur.type==='win'?'Racha Actual: Días Ganadores':cur.type==='loss'?'Racha Actual: Días Perdedores':'Sin racha activa';
-  const curColor = cur.type==='win'?'pos':cur.type==='loss'?'neg':'neu';
-  const rng=r=>r?`${r.start}${r.end!==r.start?' → '+r.end:''}`:'';
   const unit=n=>n===1?'día':'días';
-  const rec=(r,col,ttl,sub)=>`
-      <div>
-        <div class="streak-label" style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:4px;">${ttl}</div>
-        <div style="font-size:28px;font-weight:700;color:${col};">${r?r.count+' '+unit(r.count):'—'}</div>
-        <div style="font-size:10px;color:var(--muted);margin-top:4px;">${r?`${sub} · ${fmt$(r.net)} neto<br>${rng(r)}`:'Sin registro'}</div>
-      </div>`;
-  document.getElementById('streakRow').innerHTML = `
-    <div class="streak-card ${curCls}">
-      <div class="streak-icon">${curIcon}</div>
-      <div class="streak-info">
-        <div class="streak-label">${curLabel}</div>
-        <div class="streak-val ${curColor}">${cur.count} ${unit(cur.count)}</div>
-        <div class="streak-sub">${cur.count?`${fmt$(cur.net)} neto acumulado · ${rng(cur)}`:'Último día operado Break Even o sin datos'}<br>Días operativos consecutivos según su resultado neto</div>
-      </div>
-    </div>
-    <div class="streak-card" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
-      ${rec(S.bestWin,'var(--green)','🔥 Récord de días ganadores','Consecutivos')}
-      ${rec(S.bestLoss,'var(--red)','❄️ Récord de días perdedores','Consecutivos')}
-    </div>`;
+  const rng=r=>r?`${r.start}${r.end!==r.start?' → '+r.end:''}`:'';
+  const curCol = cur.type==='win'?'var(--green)':cur.type==='loss'?'var(--red)':'var(--muted)';
+  const curIco = cur.type==='win'?'🔥':cur.type==='loss'?'❄️':'';
+  const curVal = cur.count
+    ? `<span style="color:${curCol}"><span class="sb-ico">${curIco}</span>${cur.count} ${unit(cur.count)}<small>${fmt$(cur.net)}</small></span>`
+    : `<span style="color:var(--muted)">—<small>sin racha activa</small></span>`;
+  const rec=(r,col)=>r?`<span style="color:${col}">${r.count} ${unit(r.count)}<small>${fmt$(r.net)}</small></span>`:'<span style="color:var(--muted)">—<small>sin registro</small></span>';
+  const chips=[];
+  if(cur.count) chips.push(`<span class="sb-chip ${cur.type==='win'?'g':cur.type==='loss'?'r':'c'}"><em>Actual</em>${rng(cur)}</span>`);
+  if(S.bestWin) chips.push(`<span class="sb-chip g"><em>Mejor</em>${rng(S.bestWin)}</span>`);
+  if(S.bestLoss) chips.push(`<span class="sb-chip r"><em>Peor</em>${rng(S.bestLoss)}</span>`);
+  el.innerHTML = `<div class="sumbar">`
+    + _sbCell(cur.type==='win'?'Racha actual · ganadora':cur.type==='loss'?'Racha actual · perdedora':'Racha actual', curVal)
+    + _sbCell('Mejor racha ganadora', rec(S.bestWin,'var(--green)'))
+    + _sbCell('Peor racha perdedora', rec(S.bestLoss,'var(--red)'))
+    + `</div><div class="sb-chips"><span class="lead">Días operativos consecutivos según su resultado neto</span>${chips.join('')}</div>`;
+}
+
+// ── BARRAS DE RESUMEN: curva acumulada / drawdown y distribución win-loss ───────
+function renderChartBars(m){
+  const col=v=>v>=0?'var(--green)':'var(--red)';
+  const eqEl=document.getElementById('eqSumBar');
+  if(eqEl){
+    const eq=m.equity||[], pts=m.ddPoints||[];
+    if(!eq.length) eqEl.innerHTML='';
+    else {
+      const last=eq[eq.length-1], cd=pts.length?pts[pts.length-1]:null;
+      const cdv=cd?cd.dd:0, cdp=(cd&&cd.pct!=null)?'<small>('+cd.pct.toFixed(2)+'%)</small>':'';
+      const mxp=m.maxDDPct!=null?'<small>('+m.maxDDPct.toFixed(2)+'%)</small>':'';
+      eqEl.innerHTML =
+        _sbCell('Resultado acumulado','<span style="color:'+col(last)+'">'+fmt$(last)+'</span>')
+       +_sbCell('Pico máximo','<span style="color:'+(m.peak>0?'var(--green)':'var(--text)')+'">'+fmt$(m.peak||0)+'</span>')
+       +_sbCell('Drawdown actual',cdv>0?'<span style="color:var(--red)">'+fmt$(-cdv)+cdp+'</span>':'<span style="color:var(--green)">'+fmt$(0)+'<small>en el pico</small></span>')
+       +_sbCell('Drawdown máximo',m.maxDD>0?'<span style="color:var(--red)">'+fmt$(-m.maxDD)+mxp+'</span>':'<span style="color:var(--muted)">'+fmt$(0)+'</span>');
+    }
+  }
+  const wlEl=document.getElementById('wlSumBar');
+  if(wlEl){
+    const D=m.D;
+    if(!D) wlEl.innerHTML='';
+    else {
+      const wr=D.winPct, pf=D.pf;
+      wlEl.innerHTML =
+        _sbCell('Ganados','<span style="color:var(--green)">'+m.dayWins+'<small>días</small></span>')
+       +_sbCell('Perdidos','<span style="color:var(--red)">'+m.dayLosses+'<small>días</small></span>')
+       +_sbCell('Win rate',wr==null?'<span style="color:var(--muted)">N/D</span>':'<span style="color:'+(wr>=50?'var(--green)':'var(--red)')+'">'+wr.toFixed(1)+'%</span>')
+       +_sbCell('Profit factor',pf==null?'<span style="color:var(--muted)">N/D</span>':'<span style="color:'+(pf>=1?'var(--green)':'var(--red)')+'">'+pf.toFixed(2)+'</span>');
+    }
+  }
 }
 
 // ── SYMBOLS ────────────────────────────────────────────────────────────────────
@@ -2774,23 +3768,85 @@ function renderSymbols(m) {
   const syms = Object.entries(m.symMap).sort((a,b)=>b[1]-a[1]);
   const best = syms.filter(([,v])=>v>0).slice(0,5);
   const worst = syms.filter(([,v])=>v<0).sort((a,b)=>a[1]-b[1]).slice(0,5);
-  document.getElementById('symBest').innerHTML = best.length
-    ? best.map(([s,v])=>`<div class="sym-item"><span class="sym-name">${s}</span><span class="sym-pnl pos">${fmt$(v)}</span></div>`).join('')
-    : '<div style="color:var(--muted);font-size:12px;">Sin datos</div>';
-  document.getElementById('symWorst').innerHTML = worst.length
-    ? worst.map(([s,v])=>`<div class="sym-item"><span class="sym-name">${s}</span><span class="sym-pnl neg">${fmt$(v)}</span></div>`).join('')
-    : '<div style="color:var(--muted);font-size:12px;">Sin datos</div>';
+  const SS = m.symStat || {};
+  const head = '<div class="sym-head"><span>Símbolo</span><span>Neto</span><span>Ops</span><span>Win %</span></div>';
+  const mx = Math.max(1e-9, ...syms.map(([,v])=>Math.abs(v)));
+  const row = ([s,v],cls) => {
+    const o = SS[s] || {n:0,w:0,l:0};
+    const wr = o.n ? Math.round(o.w/o.n*100)+'%' : 'N/D';
+    return `<div class="sym-item"><span class="sym-name">${s}</span><span class="sym-pnl ${cls}">${fmt$(v)}</span><span class="sym-ops">${o.n}</span><span class="sym-wr">${wr}</span><i class="sym-bar ${cls}" style="width:${Math.max(4,Math.abs(v)/mx*100).toFixed(1)}%"></i></div>`;
+  };
+  const none = '<div style="color:var(--muted);font-size:12px;">Sin datos</div>';
+  document.getElementById('symBest').innerHTML = best.length ? head + best.map(x=>row(x,'pos')).join('') : none;
+  document.getElementById('symWorst').innerHTML = worst.length ? head + worst.map(x=>row(x,'neg')).join('') : none;
 }
 
 // ── CHARTS ─────────────────────────────────────────────────────────────────────
+try{
+  // Tooltips futuristas (solo estilo): vidrio oscuro, borde cian, tipografía del sitio. Los colores se leen al dibujar → siguen al tema claro/oscuro.
+  const _tl=()=>document.body.classList.contains('light');
+  Object.assign(Chart.defaults.plugins.tooltip,{cornerRadius:12,padding:{top:11,bottom:11,left:15,right:15},boxPadding:5,caretSize:6,caretPadding:9,
+    backgroundColor:()=>_tl()?'rgba(255,255,255,0.98)':'rgba(6,10,15,0.95)',
+    borderColor:()=>_tl()?'rgba(0,119,170,0.55)':'rgba(0,229,255,0.5)',borderWidth:1,
+    titleColor:()=>_tl()?'#0077aa':'#00e5ff',bodyColor:()=>_tl()?'#0a1a2a':'#ddeeff',
+    titleFont:{family:'Clash Display, Inter, sans-serif',size:11,weight:'700'},bodyFont:{family:'ZeroPlain, Inter, IBM Plex Mono',size:11},
+    titleMarginBottom:8,bodySpacing:5,usePointStyle:true});
+  // Resplandor y esquinas HUD detrás/encima de todo tooltip de canvas
+  const _rr=(c,x,y,w,h,r)=>{ c.beginPath(); if(c.roundRect) c.roundRect(x,y,w,h,r); else c.rect(x,y,w,h); };
+  Chart.register({id:'tlTipFx',
+    beforeTooltipDraw(chart,args){ const t=args.tooltip; if(!t||!(t.opacity>0)||!t.options||t.options.enabled===false||!t.width) return;
+      const c=chart.ctx, k=chart.currentDevicePixelRatio||1; c.save(); c.globalAlpha=t.opacity;
+      c.shadowColor=_tl()?'rgba(0,119,170,0.4)':'rgba(0,229,255,0.42)'; c.shadowBlur=26; c.shadowOffsetX=20000; c.fillStyle='#000';
+      _rr(c,t.x-20000/k,t.y,t.width,t.height,12); c.fill(); c.restore(); },
+    afterTooltipDraw(chart,args){ const t=args.tooltip; if(!t||!(t.opacity>0)||!t.options||t.options.enabled===false||!t.width) return;
+      const c=chart.ctx, L=7, x0=t.x, y0=t.y, x1=t.x+t.width, y1=t.y+t.height; c.save(); c.globalAlpha=t.opacity;
+      c.strokeStyle=_tl()?'#0077aa':'#00e5ff'; c.lineWidth=1.8; c.lineCap='round'; c.shadowColor=c.strokeStyle; c.shadowBlur=6;
+      c.beginPath(); c.moveTo(x0+1,y0+L+1); c.lineTo(x0+1,y0+1); c.lineTo(x0+L+1,y0+1);
+      c.moveTo(x1-1,y1-L-1); c.lineTo(x1-1,y1-1); c.lineTo(x1-L-1,y1-1); c.stroke(); c.restore(); }});
+}catch(e){}
+
+// Barras con degradado: nacen tenues en el 0 y terminan al 100 % del color en la punta (verde: cian→verde · rojo: púrpura→rojo).
+const tlBarGrad=(ctx)=>{
+  const ch=ctx.chart, v=ctx.parsed&&ctx.parsed.y, pos=!(v<0);
+  const solid=pos?'rgba(0,255,136,0.85)':'rgba(255,51,85,0.85)';
+  try{
+    const sc=ch.scales&&ch.scales.y; if(!ch.chartArea||!sc||v==null) return solid;
+    const y0=sc.getPixelForValue(0), y1=sc.getPixelForValue(v); if(!isFinite(y0)||!isFinite(y1)||Math.abs(y1-y0)<1) return solid;
+    const g=ch.ctx.createLinearGradient(0,y0,0,y1);
+    if(pos){ g.addColorStop(0,'rgba(0,229,255,0.10)'); g.addColorStop(0.55,'rgba(0,255,136,0.45)'); g.addColorStop(1,'rgba(0,255,136,1)'); }
+    else { g.addColorStop(0,'rgba(181,123,255,0.10)'); g.addColorStop(0.55,'rgba(255,51,85,0.45)'); g.addColorStop(1,'rgba(255,51,85,1)'); }
+    return g;
+  }catch(e){ return solid; }
+};
+// Resplandor bajo cada barra + línea de remate brillante en la punta
+const tlBarFx={id:'tlBarFx',
+  beforeDatasetsDraw(chart){ const m=chart.getDatasetMeta(0), ds=chart.data.datasets[0], c=chart.ctx, k=chart.currentDevicePixelRatio||1;
+    m.data.forEach((b,i)=>{ const v=ds.data[i]; if(v==null||!isFinite(b.y)||!isFinite(b.base)||Math.abs(b.y-b.base)<1) return;
+      c.save(); c.shadowColor=v>=0?'rgba(0,255,136,0.5)':'rgba(255,51,85,0.5)'; c.shadowBlur=20; c.shadowOffsetX=20000; c.fillStyle='#000';
+      c.beginPath(); c.rect(b.x-b.width/2-20000/k,Math.min(b.y,b.base),b.width,Math.abs(b.y-b.base)); c.fill(); c.restore(); }); },
+  afterDatasetsDraw(chart){ const m=chart.getDatasetMeta(0), ds=chart.data.datasets[0], c=chart.ctx;
+    m.data.forEach((b,i)=>{ const v=ds.data[i]; if(v==null||!isFinite(b.y)||!isFinite(b.base)||Math.abs(b.y-b.base)<1) return;
+      const col=v>=0?'#00ff88':'#ff3355', yy=b.y+(v>=0?1:-1), r=Math.min(5,b.width/2);
+      c.save(); c.strokeStyle=col; c.lineWidth=2; c.lineCap='round'; c.shadowColor=col; c.shadowBlur=9;
+      c.beginPath(); c.moveTo(b.x-b.width/2+r,yy); c.lineTo(b.x+b.width/2-r,yy); c.stroke(); c.restore(); }); }};
+// Propuesta 2 · barras tipo "carril": barra sólida y fina dentro de un carril tenue (mismo lenguaje que las barras de progreso de Métricas Clave).
+const _solidRGB=pos=>{ const L=document.body.classList.contains('light'); return pos?(L?'0,153,85':'0,255,136'):(L?'204,17,51':'255,51,85'); };
+const tlBarSolid=c=>{ const ch=c.chart, v=c.parsed&&c.parsed.y, rgb=_solidRGB(!(v<0)), solid='rgba('+rgb+',0.85)';
+  try{ const sc=ch.scales&&ch.scales.y; if(!ch.chartArea||!sc||v==null) return solid;
+    const y0=sc.getPixelForValue(0), y1=sc.getPixelForValue(v); if(!isFinite(y0)||!isFinite(y1)||Math.abs(y1-y0)<1) return solid;
+    const g=ch.ctx.createLinearGradient(0,y0,0,y1); g.addColorStop(0,'rgba('+rgb+',0.08)'); g.addColorStop(1,'rgba('+rgb+',0.95)'); return g;
+  }catch(e){ return solid; } };
+const tlLblClr=()=>document.body.classList.contains('light')?'#3a5a7a':'#c0d4e0';
+// Sin cuadrícula horizontal (los carriles hacen de guía); solo la línea del 0
+const tlZeroOnly=()=>{ const L=document.body.classList.contains('light'); const z=L?'rgba(58,90,122,0.55)':'rgba(192,212,224,0.28)'; return {color:c=>(c.tick&&c.tick.value===0)?z:'rgba(0,0,0,0)',drawTicks:false}; };
 const cOpts=(cb)=>{
   const isLight = document.body.classList.contains('light');
   const tickColor = isLight ? '#3a5a7a' : '#c0d4e0';
-  const gridColor = isLight ? 'rgba(150,180,210,0.45)' : 'rgba(22,32,48,0.6)';
+  const gridColor = isLight ? 'rgba(150,180,210,0.38)' : 'rgba(30,45,61,0.5)';
   return {responsive:true,plugins:{legend:{display:false}},
     scales:{
-      x:{ticks:{color:tickColor,font:{size:9,family:'ZeroPlain, Inter, IBM Plex Mono'},maxTicksLimit:12},grid:{color:gridColor}},
-      y:{ticks:{color:tickColor,font:{size:9,family:'ZeroPlain, Inter, IBM Plex Mono'},callback:cb||undefined},grid:{color:gridColor}}
+      x:{ticks:{color:tickColor,font:{size:9,family:'ZeroPlain, Inter, IBM Plex Mono'},maxTicksLimit:12,padding:8},grid:{color:gridColor,drawTicks:false,tickBorderDash:[2,4]},border:{display:false,dash:[2,4]}},
+      y:{ticks:{color:tickColor,font:{size:9,family:'ZeroPlain, Inter, IBM Plex Mono'},callback:cb||undefined,padding:8},grid:{color:gridColor,drawTicks:false},border:{display:false,dash:[2,4]}}
     }};
 };
 const cOptsEdge=(cb)=>{ const o=cOpts(cb); o.scales.x.offset=true; o.scales.x.grid={...o.scales.x.grid,offset:false}; return o; };   // margen de medio paso a cada lado: el primer y el último punto quedan COMPLETOS dentro del recuadro
@@ -2810,7 +3866,7 @@ const rwMobAspect=(id)=>{
 const chartTip = ({chart, tooltip}) => {
   let el = chart.$tipEl;
   if(!el){
-    el = document.createElement('div');
+    el = document.createElement('div'); el.className = 'ct-tip';
     el.style.cssText = 'position:absolute;z-index:200;pointer-events:none;display:none;white-space:nowrap;border-width:1px;border-style:solid;border-radius:6px;line-height:1.4;';
     el.innerHTML = '<div class="ct-txt"></div><div class="ct-caret" style="position:absolute;bottom:-6px;width:10px;height:10px;transform:rotate(45deg);border-style:solid;border-width:0 1px 1px 0;"></div>';
     document.body.appendChild(el); chart.$tipEl = el;
@@ -2901,7 +3957,7 @@ function rwEnsureUI(){
     const cv=document.getElementById(id); if(!cv||cv.dataset.rw) return; cv.dataset.rw='1';
     const bar=document.createElement('div'); bar.className='rw-bar';
     bar.innerHTML='<div class="rw-seg" role="group" aria-label="Rango visible"><button type="button" data-m="30" title="Últimas 30 sesiones operadas">30S</button><button type="button" data-m="90" title="Últimas 90 sesiones operadas">90S</button><button type="button" data-m="all">Todo</button></div><span class="rw-info"></span><button type="button" class="rw-last" hidden>Ir al último día ⏭</button>';
-    cv.parentElement.insertBefore(bar,cv);
+    const anc=cv.closest('.dd-fill')||cv; anc.parentElement.insertBefore(bar,anc);
     bar.addEventListener('click',ev=>{
       const b=ev.target.closest('button'); if(!b) return;
       if(b.dataset.m) rwSetMode(b.dataset.m); else if(b.classList.contains('rw-last')){ RW.end=RW.n-1; rwApply(); }
@@ -2934,7 +3990,7 @@ function rwEnsureUI(){
     // Barra de desplazamiento (justo debajo de las fechas). Ambas barras mueven la misma ventana → gráficas sincronizadas.
     const sb=document.createElement('div'); sb.className='rw-sb'; sb.setAttribute('role','scrollbar'); sb.setAttribute('aria-label','Desplazar rango visible');
     sb.innerHTML='<button type="button" class="rw-sb-arrow" data-d="-1" aria-label="Atrás">◀</button><div class="rw-sb-track"><div class="rw-sb-thumb"></div></div><button type="button" class="rw-sb-arrow" data-d="1" aria-label="Adelante">▶</button>';
-    cv.insertAdjacentElement('afterend',sb);
+    anc.insertAdjacentElement('afterend',sb);
     const th=sb.querySelector('.rw-sb-thumb'), tr=sb.querySelector('.rw-sb-track');
     let sd=null;
     th.addEventListener('pointerdown',e=>{
@@ -3032,6 +4088,7 @@ const tlSync = key => ({id:'tlSync_'+key, afterEvent(chart,args){
 }});
 
 function renderCharts(m, sessions) {
+  renderChartBars(m);
   // EQUITY
   dc('eq');
   // Build per-point daily gain data (difference between consecutive equity points)
@@ -3053,11 +4110,26 @@ function renderCharts(m, sessions) {
   }};
   // Curva realizada en blanco (en tema claro se mantiene el cian original: blanco sobre fondo claro no se vería).
   const eqLine=document.body.classList.contains('light')?'#00e5ff':'rgba(255,255,255,0.8)';
+  // Trazo con inicio desvanecido (mismo concepto que barras y círculo): transparente al comenzar → color pleno. Sin sombra.
+  const tlFadeLine=(col)=>(c)=>{ const ch=c.chart, a=ch.chartArea; if(!a||!(a.right>a.left)) return col;
+    try{ const g=ch.ctx.createLinearGradient(a.left,0,a.right,0); const m=col.match(/^rgba\((\d+),\s*(\d+),\s*(\d+),\s*([\d.]+)\)$/);
+      if(m){ g.addColorStop(0,'rgba('+m[1]+','+m[2]+','+m[3]+',0.05)'); g.addColorStop(.2,'rgba('+m[1]+','+m[2]+','+m[3]+','+m[4]+')'); g.addColorStop(1,col); return g; }
+      g.addColorStop(0,'rgba(0,229,255,0.05)'); g.addColorStop(.2,col); g.addColorStop(1,col); return g;
+    }catch(e){ return col; } };
+  // Relleno con degradado: verde sobre la línea de 0 (más intenso junto a la curva) y rojo bajo ella. Mismo estilo que el Drawdown.
+  const eqFill=(c)=>{ const ch=c.chart, a=ch.chartArea, y=ch.scales&&ch.scales.y;
+    if(!a||!y) return 'rgba(0,255,136,0.14)';
+    const h=a.bottom-a.top; if(!(h>0)) return 'rgba(0,255,136,0.14)';
+    const z=Math.max(0,Math.min(1,(y.getPixelForValue(0)-a.top)/h));
+    const g=ch.ctx.createLinearGradient(0,a.top,0,a.bottom);
+    g.addColorStop(0,'rgba(0,255,136,0.32)'); g.addColorStop(z,'rgba(0,255,136,0.02)');
+    g.addColorStop(z,'rgba(255,51,85,0.02)'); g.addColorStop(1,'rgba(255,51,85,0.32)');
+    return g; };
   charts['eq']=new Chart(document.getElementById('equityChart'),{
     type:'line',
     data:{labels: equityLabels,
       datasets:[
-        {label:'Realizado acum.',data:[...m.equity],borderColor:eqLine,backgroundColor:'rgba(0,255,136,0.14)',borderWidth:2,tension:.4,fill:{target:'origin',above:'rgba(0,255,136,0.14)',below:'rgba(255,51,85,0.14)'},pointRadius:2.2,pointHoverRadius:6,pointBackgroundColor:eqLine,pointBorderColor:eqLine},
+        {label:'Realizado acum.',data:[...m.equity],borderColor:tlFadeLine(eqLine),backgroundColor:eqFill,borderWidth:2,tension:.4,fill:'origin',pointRadius:2.2,pointHoverRadius:6,pointBackgroundColor:eqLine,pointBorderColor:eqLine},
       ]
     },
     options:{
@@ -3111,9 +4183,9 @@ function renderCharts(m, sessions) {
   charts['dd']=new Chart(document.getElementById('ddChart'),{
     type:'line',
     data:{labels:ddPts.map(q=>{const d=new Date(q.date+'T12:00:00');return (d.getMonth()+1)+'/'+d.getDate();}),
-      datasets:[{label:'Drawdown',data:ddPts.map(q=>-q.dd),borderColor:'rgba(255,51,85,0.8)',backgroundColor:'rgba(255,51,85,0.14)',borderWidth:2,tension:0,fill:true,
+      datasets:[{label:'Drawdown',data:ddPts.map(q=>-q.dd),borderColor:tlFadeLine('rgba(255,51,85,0.8)'),backgroundColor:(c)=>{const ch=c.chart,a=ch.chartArea; if(!a) return 'rgba(255,51,85,0.14)'; const g=ch.ctx.createLinearGradient(0,a.top,0,a.bottom); g.addColorStop(0,'rgba(255,51,85,0.02)'); g.addColorStop(1,'rgba(255,51,85,0.32)'); return g;},borderWidth:2,tension:0,fill:true,
         pointRadius:2.2,pointHoverRadius:6,pointHitRadius:14,pointBackgroundColor:'rgba(255,51,85,0.9)'}]},
-    options:{...cOptsEdge(v=>'$'+mny(v,0)),responsive:true,...rwMobAspect('ddChart'),
+    options:{...cOptsEdge(v=>'$'+mny(v,0)),responsive:true,...rwMobAspect('ddChart'),maintainAspectRatio:window.innerWidth<=900,
       animation:false,events:['mousemove','mouseout','click','touchstart','touchmove'],
       interaction:{mode:'nearest',axis:'x',intersect:false},
       plugins:{legend:{display:false},tooltip:{
@@ -3153,7 +4225,7 @@ function renderCharts(m, sessions) {
      rec:'Positiva = en promedio cada día operado dejó ganancia neta en este periodo. Con pocos días es solo descriptiva.'},
   ];
   document.getElementById('progBars').innerHTML=progs.map(p=>`
-    <div class="prog-row">
+    <div class="prog-row pr-${p.c}">
       <div class="prog-labels">
         <span style="display:flex;align-items:center;">
           <span class="metric-info">
@@ -3165,7 +4237,7 @@ function renderCharts(m, sessions) {
             </span>
           </span>${p.l}
         </span>
-        <span>${p.fv(p.v)}</span>
+        <span class="prog-val">${p.fv(p.v)}</span>
       </div>
       <div class="prog-bar"><div class="prog-fill ${p.c}" style="width:${Math.min(100,(p.v/p.max)*100)}%"></div></div>
     </div>`).join('');
@@ -3184,7 +4256,7 @@ function renderCharts(m, sessions) {
     beforeLayout(chart) {
       if(chart.canvas.id !== 'wlChart') return;
       const mob = window.innerWidth <= 600 && WL_MOBILE_MODE === 'outside';
-      chart.options.layout.padding = mob ? {top:22,bottom:22,left:46,right:46} : 0;
+      chart.options.layout.padding = mob ? {top:22,bottom:22,left:46,right:46} : (window.innerWidth <= 600 ? 10 : 14);
     },
     afterDraw(chart) {
       if(chart.canvas.id !== 'wlChart') return;
@@ -3201,7 +4273,7 @@ function renderCharts(m, sessions) {
         const cx = arc.x, cy = arc.y;
         const midAngle = (arc.startAngle + arc.endAngle) / 2;
         ctx.save();
-        ctx.fillStyle = lblColor;
+        ctx.fillStyle = '#ffffff'; ctx.shadowColor = 'rgba(0,0,0,0.6)'; ctx.shadowBlur = 4;   // sobre el degradado neón, letra blanca con sombra suave
         if(mob && WL_MOBILE_MODE === 'outside') {
           // MÓVIL · fuera del color, junto a su porción
           ctx.font = 'bold 11px ' + FF;
@@ -3225,7 +4297,7 @@ function renderCharts(m, sessions) {
         } else {
           // PC · dentro del color (igual que antes)
           const r = (arc.innerRadius + arc.outerRadius) / 2;
-          ctx.font = 'bold 12px ' + FF;
+          ctx.font = 'bold 11px ' + FF;
           ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
           ctx.fillText(pcts[i] + '%', cx + Math.cos(midAngle) * r, cy + Math.sin(midAngle) * r);
         }
@@ -3233,20 +4305,78 @@ function renderCharts(m, sessions) {
       });
     }
   };
+  // Propuesta 2 · anillos concéntricos (afuera→adentro: Ganadores, Perdedores, Break Even), cada uno sobre su carril tenue; total de días al centro.
+  const wlLight = document.body.classList.contains('light');
+  const WLC = wlLight ? ['0,153,85','204,17,51','204,119,0'] : ['0,255,136','255,51,85','255,204,0'];
+  const wlRingPlugin = {
+    id:'wlRing',
+    afterDatasetsDraw(chart) {
+      if(chart.canvas.id !== 'wlChart') return;
+      const a0 = chart.getDatasetMeta(0).data[0]; if(!a0) return;
+      const cx = a0.x, cy = a0.y, R1 = a0.outerRadius, ctx = chart.ctx, TAU = Math.PI * 2;
+      if(!isFinite(cx) || !isFinite(cy) || !(R1 > 0)) return;
+      const t = Math.max(6, Math.min(22, R1 * 0.085)), gap = t * 0.55, counts = [m.dayWins, m.dayLosses, m.dayBE];
+      ctx.save(); ctx.lineCap = 'butt'; ctx.lineWidth = t;
+      counts.forEach((n, k) => {
+        const rk = R1 - t / 2 - k * (t + gap);
+        ctx.strokeStyle = wlLight ? 'rgba(10,40,80,0.07)' : 'rgba(255,255,255,0.05)';
+        ctx.beginPath(); ctx.arc(cx, cy, rk, 0, TAU); ctx.stroke();
+        const P = chart._wlP ? chart._wlP[k] : (chart.getDataVisibility(k) ? 1 : 0);   // progreso del barrido (animado al activar / desactivar)
+        if(!n || !wlTotal || !(P > 0.002)) return;
+        const s0 = -Math.PI / 2; let e0 = s0 + TAU * Math.min(n / wlTotal, 1);
+        if(e0 - s0 < t / rk) e0 = s0 + t / rk;   // porción muy pequeña: queda visible como un punto
+        e0 = s0 + (e0 - s0) * P;   // al apagar, la línea retrocede hacia el inicio (reversa); al encender, avanza en sentido normal
+        // Arco con inicio desvanecido (degradado cónico transparente → color) y punta final redondeada
+        const fr = (e0 - s0) / TAU, col = c => 'rgba(' + WLC[k] + ',' + c + ')';
+        if(ctx.createConicGradient){
+          const g = ctx.createConicGradient(s0, cx, cy);
+          g.addColorStop(0, col(0)); g.addColorStop(Math.max(.001, fr * .35), col(.35)); g.addColorStop(Math.max(.002, fr), col(.9)); g.addColorStop(1, col(.9));
+          ctx.strokeStyle = g; ctx.lineCap = 'butt';
+          ctx.beginPath(); ctx.arc(cx, cy, rk, s0, e0); ctx.stroke();
+          ctx.fillStyle = col(.9); ctx.beginPath(); ctx.arc(cx + rk * Math.cos(e0), cy + rk * Math.sin(e0), t / 2, 0, TAU); ctx.fill();
+        } else {
+          ctx.lineCap = 'round'; ctx.strokeStyle = col(.9);
+          ctx.beginPath(); ctx.arc(cx, cy, rk, s0, e0); ctx.stroke();
+        }
+      });
+      const free = R1 - 3 * t - 2 * gap - gap;
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      const big = Math.max(16, Math.min(46, free * 0.5));
+      ctx.font = '700 ' + big + 'px "Clash Display","Inter",sans-serif'; ctx.fillStyle = wlLight ? '#0a1a2a' : '#ddeeff';
+      ctx.fillText(String(wlTotal), cx, cy - big * 0.12);
+      ctx.font = '600 ' + Math.max(8, Math.min(12, free * 0.2)) + 'px "Inter","IBM Plex Mono",monospace'; ctx.fillStyle = wlLight ? '#3a5a7a' : '#c0d4e0';
+      try { ctx.letterSpacing = '2px'; } catch(e) {}
+      ctx.fillText('DÍAS', cx, cy + big * 0.62); ctx.restore();
+    }
+  };
   charts['wl']=new Chart(document.getElementById('wlChart'),{
     type:'doughnut',
     data:{labels:[`Ganadores ${wlPctWin}% (${m.dayWins})`,`Perdedores ${wlPctLoss}% (${m.dayLosses})`,`Break Even ${wlPctBE}% (${m.dayBE})`],
       datasets:[{data:[m.dayWins,m.dayLosses,m.dayBE],
-        backgroundColor:['rgba(0,255,136,0.75)','rgba(255,51,85,0.75)','rgba(255,204,0,0.75)'],borderWidth:0,hoverBorderWidth:0}]},
+        backgroundColor:['rgba(0,0,0,0)','rgba(0,0,0,0)','rgba(0,0,0,0)'],hoverBackgroundColor:['rgba(0,0,0,0)','rgba(0,0,0,0)','rgba(0,0,0,0)'],borderWidth:0,hoverBorderWidth:0}]},
     options:{
-      responsive:true,
-      plugins:{
-        legend:{labels:{color: document.body.classList.contains('light') ? '#0a1a2a' : '#c0d4e0',font:{size:11,family:'ZeroPlain, Inter, IBM Plex Mono'}}}
-      },
+      responsive:true, maintainAspectRatio:window.innerWidth<=900, cutout:'40%', events:[], layout:{padding:10},
+      plugins:{ legend:{display:false}, tooltip:{enabled:false} },   // los datos van en las tarjetas de abajo
       animation:{duration:600}
     },
-    plugins:[doughnutLabelPlugin]
+    plugins:[wlRingPlugin]
   });
+  { // Leyenda HUD: mismos datos que las etiquetas del gráfico; al pulsar oculta/muestra la porción (igual que la leyenda anterior)
+    const lg = document.getElementById('wlLegend');
+    if(lg) {
+      const items = [['win','Ganadores',wlPctWin,m.dayWins],['loss','Perdedores',wlPctLoss,m.dayLosses],['be','Break Even',wlPctBE,m.dayBE]];
+      lg.innerHTML = items.map((it,i) => `<button type="button" class="wl-chip ${it[0]}" data-i="${i}" style="--p:${it[2]}%"><i class="wl-dot"></i><span class="wl-name">${it[1]}</span><span class="wl-pct">${it[2]}%</span><span class="wl-cnt"><b>${it[3]}</b> día${it[3]===1?'':'s'}</span></button>`).join('');
+      lg.querySelectorAll('.wl-chip').forEach(b => b.onclick = () => { const ch = charts['wl']; if(!ch) return; const i = +b.dataset.i;
+        ch.toggleDataVisibility(i); ch.update('none');
+        const on = ch.getDataVisibility(i); b.classList.toggle('off', !on);
+        // Anillo: barrido animado (apagar = hacia atrás, encender = hacia adelante)
+        const P = ch._wlP || (ch._wlP = [1,1,1]), R = ch._wlRaf || (ch._wlRaf = []), from = P[i], to = on ? 1 : 0, t0 = performance.now(), D = 650;
+        cancelAnimationFrame(R[i]);
+        const step = now => { if(!ch.ctx || !ch.canvas) return; const u = Math.min(1, (now - t0) / D), e = u < .5 ? 4*u*u*u : 1 - Math.pow(-2*u + 2, 3) / 2;
+          P[i] = from + (to - from) * e; ch.draw(); if(u < 1) R[i] = requestAnimationFrame(step); };
+        R[i] = requestAnimationFrame(step); });
+    }
+  }
 
   _weekDays = sessions;
   renderWeekly();
@@ -3313,6 +4443,7 @@ function _tipDismissOutside(){
     const ch=charts[k]; if(!ch||e.target===ch.canvas) return;
     if(ch.tooltip&&ch.tooltip.getActiveElements().length){ ch.tooltip.setActiveElements([],{x:0,y:0}); ch.setActiveElements([]); ch.update('none'); } }); });
 }
+function _sbCell(l,v){ return '<div class="sb-cell"><span class="sb-lbl">'+l+'</span><span class="sb-val">'+v+'</span></div>'; }
 function renderWeekly(){
   _tipDismissOutside();
   const curStart=_wkStartOf(todayStr());
@@ -3341,6 +4472,30 @@ function renderWeekly(){
     } else if(ops.length===1){ bd.innerHTML='Único día operado: '+fmtDay(ops[0]); wd.innerHTML=''; }
     else { bd.innerHTML=''; wd.innerHTML=''; }
   }
+  { const sb=document.getElementById('weekSumBar');
+    if(sb){
+      const col=v=>v>=0?'var(--green)':'var(--red)', sg=v=>(v>=0?'+':'-')+'$'+mny(Math.abs(v));
+      const cell=(l,o)=>_sbCell(l,'<span style="color:'+col(o.v)+'">'+o.n+' · '+sg(o.v)+'</span>');
+      let h='';
+      if(ops.length>=2){
+        const best=ops.reduce((a,b)=>b.v>a.v?b:a), worst=ops.reduce((a,b)=>b.v<a.v?b:a);
+        h=cell('Mejor día',best)+cell('Peor día',worst);
+        const dbs=(typeof _lastM!=='undefined'&&_lastM&&_lastM.dayBase)?_lastM.dayBase:null;
+        const ps=dbs?wkIdx.map((i,k)=>weekVals[k]===null?null:(dbs[wkDates[i]]||{}).pct).filter(p=>p!=null&&isFinite(p)):[];
+        const nd=ops.reduce((a,o)=>a+o.v,0), np2=ps.reduce((a,b)=>a+b,0);
+        h+=_sbCell('Neto semana','<span style="color:'+col(nd)+'">'+sg(nd)+(ps.length?'<small>('+(np2>=0?'+':'')+np2.toFixed(2)+'%)</small>':'')+'</span>');
+      } else if(ops.length===1) h=cell('Único día operado',ops[0]);
+      sb.innerHTML=h;
+    } }
+  const np=document.getElementById('weekNetPct');
+  if(np){
+    const dbs=(typeof _lastM!=='undefined'&&_lastM&&_lastM.dayBase)?_lastM.dayBase:null;
+    const ps=dbs?wkIdx.map((i,k)=>weekVals[k]===null?null:(dbs[wkDates[i]]||{}).pct).filter(p=>p!=null&&isFinite(p)):[];
+    if(ops.length>=2&&ps.length){
+      const net=ps.reduce((a,b)=>a+b,0);
+      np.innerHTML='Rendimiento neto: <span style="color:'+(net>=0?'var(--green)':'var(--red)')+'">'+(net>=0?'+':'')+net.toFixed(2)+'%</span>';
+    } else np.innerHTML='';
+  }
   const noDataPlugin={id:'noData',afterDatasetsDraw(chart){
     const {ctx,scales:{x,y}}=chart; ctx.save(); ctx.fillStyle=document.body.classList.contains('light')?'#3a5a7a':'#c0d4e0';
     ctx.font='12px "ZeroPlain", "Inter", "IBM Plex Mono"'; ctx.textAlign='center'; ctx.textBaseline='middle';
@@ -3354,14 +4509,14 @@ function renderWeekly(){
     meta.data.forEach((bar,i)=>{ const v=weekVals[i]; if(v===null) return;
       const q=(typeof _lastM!=='undefined'&&_lastM&&_lastM.dayBase)?_lastM.dayBase[wkDates[wkIdx[i]]]:null;
       const txt=(q&&q.pct!=null)?(q.pct>=0?'+':'')+q.pct.toFixed(2)+'%':'N/D';
-      ctx.fillStyle=v>=0?'#00ff88':'#ff3355';
+      ctx.fillStyle=tlLblClr();
       if(v>=0){ ctx.textBaseline='bottom'; ctx.fillText(txt,bar.x,bar.y-4); } else { ctx.textBaseline='top'; ctx.fillText(txt,bar.x,bar.y+4); } });
     ctx.restore(); }};
   dc('day');
   charts['day']=new Chart(document.getElementById('dayChart'),{
     type:'bar',
     data:{labels:wkIdx.map(i=>WK_DAY_NAMES[i]+' '+wkDates[i].slice(8)),
-      datasets:[{data:weekVals,backgroundColor:weekVals.map(v=>v>=0?'rgba(0,255,136,0.75)':'rgba(255,51,85,0.75)'),borderColor:weekVals.map(v=>v>=0?'#00ff88':'#ff3355'),borderWidth:1,borderRadius:6,barPercentage:0.45}]},
+      datasets:[{data:weekVals,backgroundColor:tlBarSolid,borderWidth:0,borderRadius:20,borderSkipped:'start',barPercentage:0.34}]},
     options:{...cOpts(v=>'$'+mny(v,0)),responsive:true,events:['click'],layout:{padding:{top:16,bottom:4}},plugins:{legend:{display:false},
         tooltip:{mode:'nearest',intersect:true,callbacks:{title:c=>c[0].label+'\u2003\u2003',label:c=>{
           if(c.parsed.y===null) return ' Sin operaciones';
@@ -3369,7 +4524,7 @@ function renderWeekly(){
           const sd=v=>(v>=0?'+':'-')+'$'+mny(Math.abs(v));
           if(q&&q.pct!=null) return [` Neto: ${sd(c.parsed.y)}`,` Rendimiento: ${q.pct>=0?'+':''}${q.pct.toFixed(2)}%`,` Capital inicial: ${fmt$(q.base)}`];
           return [` Neto: ${sd(c.parsed.y)}`,' Rendimiento: N/D']; }}}},
-      scales:{x:{...cOpts().scales.x,grid:{display:false}},y:{...cOpts(v=>'$'+mny(v,0)).scales.y,grace:'14%'}},animation:{duration:600}},
+      scales:{x:{...cOpts().scales.x,grid:{display:false}},y:{...cOpts(v=>'$'+mny(v,0)).scales.y,grace:'14%',grid:tlZeroOnly()}},animation:{duration:600}},
     plugins:[noDataPlugin,dayPctPlugin,tipCloseXPlugin]
   });
 }
@@ -3412,6 +4567,25 @@ function renderMonthly(){
   const winM=vals.filter(v=>v>0).length, lossM=vals.filter(v=>v<0).length;
   const bm=document.getElementById('monthlyBestMonth');
   if(bm){ if(vals.length){ const bi=vals.indexOf(Math.max(...vals)); bm.innerHTML=`Mejor: <span style="color:${vals[bi]>=0?'var(--green)':'var(--red)'}">${labels[bi]} (${vals[bi]>=0?'+':'-'}$${mny(Math.abs(vals[bi]))})</span>`; } else bm.innerHTML=''; }
+  const mn=document.getElementById('monthlyNetPct');
+  if(mn){
+    if(vals.length>=2){
+      const net=vals.reduce((a,b)=>a+b,0);
+      mn.innerHTML='Rendimiento neto: <span style="color:'+(net>=0?'var(--green)':'var(--red)')+'">'+(net>=0?'+':'-')+'$'+mny(Math.abs(net))+'</span>';
+    } else mn.innerHTML='';
+  }
+  { const sb=document.getElementById('monthSumBar');
+    if(sb){
+      let h='';
+      if(vals.length){
+        const bi=vals.indexOf(Math.max(...vals)), net=vals.reduce((a,b)=>a+b,0), col=v=>v>=0?'var(--green)':'var(--red)';
+        h=_sbCell('Meses verdes','<span style="color:var(--green)">'+winM+' de '+vals.length+'</span>')
+         +_sbCell('Meses rojos','<span style="color:var(--red)">'+lossM+' de '+vals.length+'</span>')
+         +_sbCell('Mejor mes','<span style="color:'+col(vals[bi])+'">'+labels[bi]+' · '+(vals[bi]>=0?'+':'-')+'$'+mny(Math.abs(vals[bi]))+'</span>');
+        if(vals.length>=2) h+=_sbCell('Neto del año','<span style="color:'+col(net)+'">'+(net>=0?'+':'-')+'$'+mny(Math.abs(net))+'</span>');
+      }
+      sb.innerHTML=h;
+    } }
   const wm=document.getElementById('monthlyWinCount'); if(wm) wm.textContent=vals.length?`✅ ${winM} mes${winM!==1?'es':''}`:'';
   const lm=document.getElementById('monthlyLossCount'); if(lm) lm.textContent=vals.length?`❌ ${lossM} mes${lossM!==1?'es':''}`:'';
   const cv=document.getElementById('monthlyChart'), em=document.getElementById('monthlyEmpty');
@@ -3426,14 +4600,14 @@ function renderMonthly(){
     ctx.font='600 10px "ZeroPlain", "Inter", "IBM Plex Mono"'; ctx.textAlign='center';
     meta.data.forEach((bar,i)=>{ const q=(typeof _lastM!=='undefined'&&_lastM&&_lastM.monthRet)?_lastM.monthRet[keys[i]]:null;
       const v=vals[i], txt=(q&&q.pct!=null)?(q.pct>=0?'+':'')+q.pct.toFixed(2)+'%':'N/D';
-      ctx.fillStyle=v>=0?'#00ff88':'#ff3355';
+      ctx.fillStyle=tlLblClr();
       if(v>=0){ ctx.textBaseline='bottom'; ctx.fillText(txt,bar.x,bar.y-4); } else { ctx.textBaseline='top'; ctx.fillText(txt,bar.x,bar.y+4); } });
     ctx.restore(); }};
   charts['monthly']=new Chart(cv,{
     type:'bar',
     data:{labels,datasets:[{label:'P&L Mensual',data:vals,
-      backgroundColor:vals.map(v=>v>=0?'rgba(0,255,136,0.75)':'rgba(255,51,85,0.75)'),
-      borderColor:vals.map(v=>v>=0?'#00ff88':'#ff3355'),borderWidth:1,borderRadius:5,borderSkipped:false,maxBarThickness:36,barPercentage:0.5,categoryPercentage:0.8}]},
+      backgroundColor:tlBarSolid,
+      borderWidth:0,borderRadius:20,borderSkipped:'start',maxBarThickness:22,barPercentage:0.45,categoryPercentage:0.8}]},
     options:{responsive:true,events:['click'],
       layout:{padding:{top:16,bottom:4}},
       plugins:{legend:{display:false},tooltip:{mode:'nearest',intersect:true,callbacks:{label:c=>{
@@ -3445,7 +4619,7 @@ function renderMonthly(){
           else L.push(' Rendimiento: N/D');
           return L; },title:c=>c[0].label+'\u2003\u2003'}}},
       scales:{x:{ticks:{color:tick,font:{size:10,family:'ZeroPlain, Inter, IBM Plex Mono'}},grid:{display:false}},
-        y:{grace:'14%',ticks:{color:tick,font:{size:9,family:'ZeroPlain, Inter, IBM Plex Mono'},callback:v=>(v>=0?'+':'')+' $'+mny(v,0)},grid:{color:isLight?'rgba(150,180,210,0.45)':'rgba(22,32,48,0.6)'},border:{dash:[4,4]}}},
+        y:{grace:'14%',ticks:{color:tick,font:{size:9,family:'ZeroPlain, Inter, IBM Plex Mono'},callback:v=>(v>=0?'+':'')+' $'+mny(v,0)},grid:tlZeroOnly(),border:{display:false}}},
       animation:{duration:700}},
     plugins:[pctPlugin,tipCloseXPlugin]
   });
@@ -3562,32 +4736,21 @@ function _renderCalendarForMonth(sessions, year, month) {
   const consEl = document.getElementById('calConsistency');
   if(consEl) {
     const consColor = consistencyPct == null ? 'var(--muted)' : consistencyPct >= 60 ? 'var(--green)' : consistencyPct >= 40 ? 'var(--warn)' : 'var(--red)';
-    consEl.innerHTML = `
-      <div class="cal-cons-item">
-        <div class="cal-cons-l">Días Operados</div>
-        <div class="cal-cons-v" style="color:var(--cyan)">${tradingDays} / ${bizDays}</div>
-      </div>
-      <div class="cal-cons-item">
-        <div class="cal-cons-l">Días Verdes</div>
-        <div class="cal-cons-v" style="color:var(--green)">${greenDays}</div>
-      </div>
-      <div class="cal-cons-item">
-        <div class="cal-cons-l">Días Rojos</div>
-        <div class="cal-cons-v" style="color:var(--red)">${redDays}</div>
-      </div>
-      <div class="cal-cons-item">
-        <div class="cal-cons-l">Break Even</div>
-        <div class="cal-cons-v" style="color:#ffcc00">${neutralDays}</div>
-      </div>
-      <div class="cal-cons-item">
-        <div class="cal-cons-l">Consistencia</div>
-        <div class="cal-cons-v" style="color:${consColor}">${consistencyPct==null?'N/D':consistencyPct+'%'}</div>
-      </div>
-      <div class="cal-cons-item">
-        <div class="cal-cons-l">P&L del Mes</div>
-        <div class="cal-cons-v" style="color:${monthPnl>=0?'var(--green)':'var(--red)'}">${fmt$(monthPnl)}</div>
-      </div>
-    `;
+    const sg = v => (v>=0?'+':'-')+_curSym+mny(Math.abs(v));
+    const cc = v => v>=0?'var(--green)':'var(--red)';
+    const MS = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+    const dl = u => { const d = new Date(u.date+'T12:00:00'); return d.getDate()+' '+MS[d.getMonth()]; };
+    const bestU = monthUnits.length ? monthUnits.reduce((a,b)=>b.netPnl>a.netPnl?b:a) : null;
+    const worstU = monthUnits.length>=2 ? monthUnits.reduce((a,b)=>b.netPnl<a.netPnl?b:a) : null;
+    const dayCell = u => u ? '<span style="color:'+cc(u.netPnl)+'">'+sg(u.netPnl)+'<small>'+dl(u)+'</small></span>' : '<span style="color:var(--muted)">—</span>';
+    consEl.innerHTML =
+      _sbCell('Días operados','<span style="color:var(--cyan)">'+tradingDays+' / '+bizDays+'</span>'+(neutralDays?'<small>'+neutralDays+' BE</small>':''))
+     +_sbCell('Días verdes','<span style="color:var(--green)">'+greenDays+'</span>')
+     +_sbCell('Días rojos','<span style="color:var(--red)">'+redDays+'</span>')
+     +_sbCell('Mejor día',dayCell(bestU))
+     +_sbCell('Peor día',dayCell(worstU))
+     +_sbCell('Consistencia','<span style="color:'+consColor+'">'+(consistencyPct==null?'N/D':consistencyPct+'%')+'</span>')
+     +_sbCell('Neto del mes','<span style="color:'+(monthPnl>=0?'var(--green)':'var(--red)')+'">'+fmt$(monthPnl)+'</span>');
   }
 
   // Render the month grid
@@ -3606,6 +4769,19 @@ function _renderCalendarForMonth(sessions, year, month) {
   }
   const swToday = (swMap[today] || [])[0];                       // SWING que cubre hoy
   const hlOn = !!swToday && dayPnl[today] === undefined;         // hoy sin actividad intradía → marco sobre todo el bloque
+  const heatMax = Math.max(0, ...Object.keys(dayPnl).filter(k=>k.startsWith(prefix)).map(k=>Math.abs(dayPnl[k])));
+  // Barra inferior de cada casilla: ganadores vs MEJOR día del mes; perdedores vs límite diario (riesgo por trade de Risk Scaling × 2)
+  window._calLastSessions = sessions;
+  const monthPnls = Object.keys(dayPnl).filter(k=>k.startsWith(prefix)).map(k=>dayPnl[k]);
+  const maxWin = Math.max(0, ...monthPnls), maxLoss = Math.max(0, ...monthPnls.map(v=>-v));
+  const dailyRisk = (window._riskNow || 0) * 2;
+  const barFrac = v => {
+    const c = dayClass(v);
+    if(c==='win')  return maxWin>0 ? Math.max(.06, Math.min(1, v/maxWin)) : .06;
+    if(c==='loss'){ const lim = dailyRisk>0 ? dailyRisk : maxLoss; return lim>0 ? Math.max(.06, Math.min(1, -v/lim)) : .06; }
+    return .12;   // break even: marca corta fija
+  };
+  let swRunIdx = 0;
   // Fill leading empty cells
   for(let i = 0; i < firstDay.getDay(); i++) cal.innerHTML += '<div class="cal-day empty"></div>';
   // Fill days of month
@@ -3619,13 +4795,16 @@ function _renderCalendarForMonth(sessions, year, month) {
       const sw = swc[0], col = d.getDay();
       const prevK = ymd(new Date(d.getFullYear(), d.getMonth(), d.getDate()-1)), nextK = ymd(new Date(d.getFullYear(), d.getMonth(), d.getDate()+1));
       const jl = col>0 && (swMap[prevK]||[])[0] === sw, jr = col<6 && (swMap[nextK]||[])[0] === sw;
+      swRunIdx = jl ? swRunIdx+1 : 0;
+      let swFwd = 0; { let c2 = col, d2 = new Date(d); while(c2<6){ d2.setDate(d2.getDate()+1); if((swMap[ymd(d2)]||[])[0] !== sw) break; swFwd++; c2++; } }
       const first = !swShown.has(sw.id); if(first) swShown.add(sw.id);          // el resultado se muestra UNA sola vez por bloque
       const net = sw.realized.net, act = sw.state === 'active';
       const swCls = dayClass(net)==='win' ? 'win' : dayClass(net)==='loss' ? 'loss' : 'neu';   // color = resultado REALIZADO (nunca el flotante)
+      const swFill = Math.round(Math.max(0, Math.min(1, barFrac(net) * (swRunIdx + 1 + swFwd) - swRunIdx)) * 100);
       const fmtS = v => { const a=Math.abs(v); return a>=1000 ? (v>=0?'+':'-')+'$'+(a/1000).toFixed(1)+'k' : (v>=0?'+':'')+fmt$(v); };
       let inner = first ? `<div class="cal-pnl">${fmtS(net)}</div><div class="cal-sw"><span>${sw.counts.total} pos.</span><span class="sw-sep"> · </span><span>SWING${act?' ●':''}</span></div>` : '';
       const chips = swc.slice(1).map(c=>`<span class="cal-intra" onclick="event.stopPropagation();openSwingJournal('${c.id}')">+SWING</span>`).join('');
-      const miniHtml = (pnl !== undefined ? `<div title="INTRADÍA ${k}: ${fmt$(pnl)} neto del día · ${cnt} posiciones — Click para el journal intradía" class="cal-mini ${dayClass(pnl)==='win'?'win':dayClass(pnl)==='loss'?'loss':'neu'} ${k === today ? 'today-marker' : ''} ${journalHas(k)?'has-jn':''}" onclick="event.stopPropagation();openJournal('${k}', _intraDays.find(s=>s.date==='${k}'))"><span class="mi-t">intradía</span><span class="mi-r">${fmtS(pnl)}</span><span class="mi-n">${cnt} pos.</span>${journalHas(k)?'<span class="mi-note">📝</span>':''}</div>` : '');
+      const miniHtml = (pnl !== undefined ? `<div title="INTRADÍA ${k}: ${fmt$(pnl)} neto del día · ${cnt} posiciones — Click para el journal intradía" class="cal-mini ${dayClass(pnl)==='win'?'win':dayClass(pnl)==='loss'?'loss':'neu'} ${k === today ? 'today-marker' : ''} ${journalHas(k)?'has-jn':''}" onclick="event.stopPropagation();openJournal('${k}', _intraDays.find(s=>s.date==='${k}'))"><span class="mi-t">intradía</span><span class="mi-r">${fmtS(pnl)}</span><span class="mi-bar" style="--w:${Math.round(barFrac(pnl)*100)}%"><i></i></span>${journalHas(k)?'<span class="mi-note">📝</span>':''}</div>` : '');
       const noteCls = (first && journalHas(sw.id)) ? 'has-note' : '';
       // Número del día: si el intradía de ese día coincide con el resultado del SWING se queda de ese color; si no coincide, blanco
       const intraCls = pnl !== undefined ? (dayClass(pnl)==='win'?'win':dayClass(pnl)==='loss'?'loss':'neu') : null;
@@ -3634,13 +4813,15 @@ function _renderCalendarForMonth(sessions, year, month) {
       const inHl = hlOn && sw === swToday && k >= sw.startDay && k <= today;
       const hl = inHl ? 'sw-hl' + ((col>0 && k > sw.startDay) ? '' : ' sw-hl-l') + ((col<6 && k < today) ? '' : ' sw-hl-r') : '';
       cal.innerHTML += `<div data-cyc="${sw.id}" class="cal-day cal-swc ${jl?'sw-wjl':''} ${noteCls?'sw-note':''}" onclick="openSwingJournal('${sw.id}')" title="${sw.id}: ${fmt$(net)} realizado · ${sw.counts.total} posiciones · ${sw.startDay} → ${act?'en curso':sw.endDay} — Click para el journal SWING">
-        <div class="cal-day swing sw-bg ${swCls} ${jl?'sw-jl':''} ${jr?'sw-jr':''} ${act?'sw-active':''} ${noteCls} ${hl}"></div>
+        <div class="cal-day swing sw-bg ${swCls} ${jl?'sw-jl':''} ${jr?'sw-jr':''} ${act?'sw-active':''} ${noteCls} ${hl}" style="--w:${swFill}%"></div>
         <div class="sw-body ${swCls}"><div class="cal-num"${numCol?` style="color:${numCol}"`:''}>${d.getDate()}</div>${inner}${chips}</div>${miniHtml}</div>`;
       continue;
     }
     const cls = pnl === undefined ? (isWeekend ? 'empty' : 'be') : dayClass(pnl)==='win' ? 'win' : dayClass(pnl)==='loss' ? 'loss' : 'neu';
     const hasNote = journalHas(k) ? 'has-note' : '';
     const isToday = k === today ? 'today-marker' : '';
+    const rel = (pnl !== undefined && heatMax > 0) ? Math.abs(pnl)/heatMax : 0;
+    const heat = pnl === undefined ? '' : (rel > .66 ? 'h3' : rel > .33 ? 'h2' : 'h1');   // intensidad del color según el monto del día
     let inner = '';
     if(pnl !== undefined){
       const abs = Math.abs(pnl);
@@ -3648,9 +4829,9 @@ function _renderCalendarForMonth(sessions, year, month) {
       inner = `<div class="cal-pnl">${str}</div><div class="cal-trades">${cnt} pos.</div>`;
     }
     const clickable = pnl !== undefined
-      ? `onclick="openJournal('${k}', _intraDays.find(s=>s.date==='${k}'))" style="cursor:pointer;"`
+      ? `onclick="openJournal('${k}', _intraDays.find(s=>s.date==='${k}'))" style="cursor:pointer;--w:${Math.round(barFrac(pnl)*100)}%"`
       : '';
-    cal.innerHTML += `<div class="cal-day ${cls} ${hasNote} ${isToday}" ${clickable} title="${k}: ${pnl!==undefined?fmt$(pnl)+' neto del día · '+cnt+' posiciones — Click para journal':'Sin operaciones'}">
+    cal.innerHTML += `<div class="cal-day ${cls} ${heat} ${hasNote} ${isToday}" ${clickable} title="${k}: ${pnl!==undefined?fmt$(pnl)+' neto del día · '+cnt+' posiciones — Click para journal':'Sin operaciones'}">
       <div class="cal-num">${d.getDate()}</div>${inner}</div>`;
   }
   fitCalendarAmounts();
@@ -3780,6 +4961,7 @@ function renderRiskScaling(balanceOverride) {
   const braking = activeIdx === 0 && balance < brakeLimit;
   const riskNow = braking ? +(curr.riskAmt / 2).toFixed(2) : curr.riskAmt;
   const riskPctNow = braking ? +(riskPct / 2).toFixed(2) : riskPct;
+  if(window._riskNow !== riskNow){ window._riskNow = riskNow; try{ if(window._calLastSessions) renderCalendar(window._calLastSessions); }catch(_){} }
   const floorTxt = activeIdx === 0
     ? (braking
         ? `🛑 <strong>Freno de drawdown activo:</strong> tu balance está más de ${brakePct}% por debajo de $${mny(curr.target)}. Reduce el riesgo a la mitad (<strong>$${mny(riskNow)}/trade</strong>) hasta recuperar $${mny(brakeLimit)}.`
@@ -3932,6 +5114,7 @@ function wdInitControls() {
   st.add(new Option('Ninguno aún', 7));
 }
 
+function wdBar(cells){ const el=document.getElementById('wdSumBar'); if(el) el.innerHTML=cells.map(c=>_sbCell(c[0],c[1])).join(''); }
 function renderWithdrawPlan(alerts) {
   const wrap = document.getElementById('wdSection'); if(!wrap) return;
   wdInitControls();
@@ -4028,6 +5211,16 @@ function renderWithdrawPlan(alerts) {
       : '<div class="wd-mini" style="margin:0;">Aún no hay retiros registrados.</div>';
     document.getElementById('wdHistory').innerHTML = `<div class="wd-hist-title">Historial de retiros</div>${hist}` +
       (_wd.claimed.length ? `<div class="wd-hist-foot"><span>Total retirado: <strong style="color:var(--green)">${wdF(tot)}</strong>${_wd.claimed.some(c => c.prev) ? ' <span style="color:var(--muted)">(sin contar los ya cobrados antes)</span>' : ''}</span><button class="wd-btn sec danger" onclick="wdUndo()">Deshacer último</button></div>` : '');
+    { const totRet = _wd.claimed.filter(c => !c.prev).reduce((t, c) => t + c.amt, 0);
+      wdBar(viewing ? [] : [
+        ['Depósito base', wdF(deposit)],
+        ['Balance actual', balance > 0 ? wdF(balance) : 'N/D'],
+        ['Nivel actual', '<span style="color:var(--cyan)">' + (curIdx + 1) + '<small>de ' + levels.length + '</small></span>'],
+        granted.length ? ['Retiro disponible', '<span style="color:var(--green)">' + wdF(sum) + '</span>']
+          : next ? ['Próximo retiro', wdF(next.w) + '<small>en ' + wdF(next.trigger) + '</small>']
+          : ['Próximo retiro', '<span style="color:var(--muted)">—</span>'],
+        ['Total retirado', '<span style="color:var(--green)">' + wdF(totRet) + '</span>']
+      ]); }
   } else {
     const gt = levels[goal-1].target;
     achieved = balance > 0 && balance >= gt;
@@ -4038,6 +5231,14 @@ function renderWithdrawPlan(alerts) {
       ${balance <= 0 ? '<div class="wd-box info">Aún no hay balance de la cuenta.</div>'
         : achieved ? `<div class="wd-box ok"><strong>🎯 Objetivo alcanzado.</strong> Tu balance (${wdF(balance)}) llegó al Nivel ${goal}. Al volver a Conservador, los niveles que subiste durante la recuperación no generarán retiro (puedes cambiarlo en “Retiros cuentan desde”).</div>`
         : `<div class="wd-box info">Te faltan <strong>${wdF(gt - balance)}</strong> para llegar al Nivel ${goal}. No se habilita ningún retiro en este modo.</div>`}`;
+    wdBar(viewing ? [] : [
+      ['Depósito base', wdF(deposit)],
+      ['Balance actual', balance > 0 ? wdF(balance) : 'N/D'],
+      ['Nivel actual', '<span style="color:var(--cyan)">' + (curIdx + 1) + '<small>de ' + levels.length + '</small></span>'],
+      ['Objetivo', 'Nivel ' + goal + '<small>' + wdF(gt) + '</small>'],
+      achieved ? ['Estado', '<span style="color:var(--green)">🎯 Alcanzado</span>']
+        : ['Faltan', balance > 0 ? '<span style="color:var(--warn)">' + wdF(gt - balance) + '</span>' : 'N/D']
+    ]);
   }
 
   // ── Avisos: solo datos reales, balance > 0, y solo cuando llegan datos (no al teclear en Risk Scaling)
@@ -5728,6 +6929,12 @@ function renderROIProjection(m, sessions, balance) {
   }
   document.getElementById('roiCards').innerHTML = roiCard(30,p30)+roiCard(60,p60)+roiCard(90,p90);
   const spd = m.tpd.toFixed(2);
+  { const rb=document.getElementById('roiSumBar');
+    if(rb) rb.innerHTML =
+      _sbCell('Base realizada','<span style="color:'+(lastEquity>=0?'var(--green)':'var(--red)')+'">'+fmt$(lastEquity)+'</span>')
+     +_sbCell('Balance de cuenta',base>0?fmt$(base):'<span style="color:var(--muted)">N/D</span>')
+     +_sbCell('Expectancy / posición','<span style="color:'+(m.exp>=0?'var(--green)':'var(--red)')+'">'+(m.exp>=0?'+':'')+fmt$(m.exp)+'</span>')
+     +_sbCell('Ritmo','<span style="color:var(--cyan)">'+spd+'<small>pos/día</small></span>'); }
   const expSign = m.exp >= 0 ? '+' : '';
   document.getElementById('roiNote').innerHTML =
     `Base: <strong style="color:var(--cyan)">$${mny(lastEquity)}</strong> resultado realizado acumulado (no es el equity de la cuenta) · ${base>0?'el % se calcula sobre el balance actual de la cuenta':'sin balance: no se calcula el %'} · ` +
