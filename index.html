@@ -1142,7 +1142,7 @@ button:focus-visible,select:focus-visible{outline:2px solid rgba(0,229,255,.75);
 /* ── 4 · Movimiento: entrada escalonada (solo la primera vez que aparece cada bloque) ── */
 @keyframes tlRise{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:none;}}
 @media(prefers-reduced-motion:no-preference){
-  #dashboard.on>.acc-bar,#dashboard.on>.dd-config-row,#dashboard.on>.sec-label,#dashboard.on>.sec-group,#dashboard.on>.kpi-grid,#dashboard.on>.cal-wrap,
+  #dashboard.on>.acc-bar,#dashboard.on>.dd-pair,#dashboard.on>.sec-label,#dashboard.on>.sec-group,#dashboard.on>.kpi-grid,#dashboard.on>.cal-wrap,
   #dashboard.on>.charts-2,#dashboard.on>#streakRow,#dashboard.on>.coach-grid,#dashboard.on>.risk-wrap,#dashboard.on>.wd-wrap,
   #dashboard.on>.roi-wrap,#dashboard.on>.export-row{animation:tlRise .55s var(--ease) backwards;}
   #dashboard.on>:nth-child(3){animation-delay:.04s}#dashboard.on>:nth-child(4){animation-delay:.08s}#dashboard.on>:nth-child(5){animation-delay:.12s}
@@ -2594,6 +2594,12 @@ body.light .risk-prog-bar,body.light .wd-prog-bar{background:repeating-linear-gr
 .tl-secnav{position:sticky;top:calc(var(--tl-nav-top,0px) + env(safe-area-inset-top,0px));z-index:150;display:flex;gap:8px;overflow-x:auto;
   padding:10px 2px 12px;margin:0 0 4px;background:linear-gradient(180deg,var(--bg) 72%,transparent);scrollbar-width:none;-webkit-overflow-scrolling:touch;}
 .tl-secnav::-webkit-scrollbar{display:none;}
+.tl-secnav{transition:opacity .22s ease,visibility 0s linear 0s;}
+/* Con el menú, el journal u otra pestaña abierta, el navegador de secciones se oculta (queda «por debajo») y reaparece al cerrarla */
+html.tl-layer-open .tl-secnav{opacity:0;visibility:hidden;pointer-events:none;transition:opacity .15s ease,visibility 0s linear .15s;}
+/* Journal abierto: la página de fondo no se desplaza; el scroll es solo del journal */
+html.tl-jlock,html.tl-jlock body{overflow:hidden;}
+#jmodalOverlay .jmodal{overscroll-behavior:contain;}
 .tl-chip{position:relative;flex:none;min-height:34px;padding:0 14px;border-radius:999px;border:1px solid var(--b2);background:var(--s2);color:var(--muted);
   font-family:var(--font-head);font-size:12px;font-weight:500;letter-spacing:.3px;cursor:pointer;display:inline-flex;align-items:center;gap:7px;
   transition:color .2s,border-color .2s,background .2s;}
@@ -2636,6 +2642,14 @@ body.light .risk-prog-bar,body.light .wd-prog-bar{background:repeating-linear-gr
 /* 4 · Medidor del límite diario de drawdown (siempre visible) */
 .dd-meter{margin:0 0 18px;padding:12px 16px;border:1px solid var(--b2);border-radius:12px;background:var(--s1);}
 .dd-meter[hidden]{display:none;}
+/* PC: «Alerta de drawdown diario» a la izquierda y «Límite diario consumido» a su derecha (móvil sin cambios: una debajo de otra) */
+@media(min-width:601px){
+  .dd-pair{display:flex;align-items:stretch;gap:16px;margin-bottom:18px;}
+  .dd-pair>.dd-config-row,.dd-pair>.dd-meter{margin:0;min-width:0;flex:1 1 0;}
+  .dd-pair>.dd-meter{display:flex;flex-direction:column;justify-content:center;padding:12px 18px;border-radius:16px;}
+  .dd-pair>.dd-meter[hidden]{display:none;}
+  .dd-pair>.dd-meter .ddm-top{margin-bottom:10px;}
+}
 .ddm-top{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:8px;font-size:11px;color:var(--muted);}
 .ddm-top b{color:var(--text);font-weight:700;}
 .ddm-bar{position:relative;height:8px;border-radius:99px;background:var(--s3);overflow:hidden;}
@@ -2790,7 +2804,7 @@ body.light .th-dot{box-shadow:0 0 0 4px rgba(10,40,80,.10);}
   .dd-alert-icon .tl-i{animation:none;}
 }
 @media(prefers-reduced-motion:no-preference){
-  #dashboard.on>.tl-hero,#dashboard.on>.dd-meter,#dashboard.on>.tl-secnav{animation:tlRise .55s var(--ease,ease) backwards;}
+  #dashboard.on>.tl-hero,#dashboard.on>.dd-pair,#dashboard.on>.tl-secnav{animation:tlRise .55s var(--ease,ease) backwards;}
 }
 </style>
 </head>
@@ -2912,7 +2926,8 @@ body.light .th-dot{box-shadow:0 0 0 4px rgba(10,40,80,.10);}
   <!-- ACCOUNT BAR -->
   <div class="acc-bar" id="accBar"></div>
 
-  <!-- DD CONFIG ROW -->
+  <!-- DD CONFIG ROW + MEDIDOR (en PC van lado a lado) -->
+  <div class="dd-pair">
   <div class="dd-config-row">
     <div class="dd-cfg-ico" id="ddCfgIco"><svg class="tl-i" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></svg></div>
     <div class="dd-cfg-txt">
@@ -2934,6 +2949,8 @@ body.light .th-dot{box-shadow:0 0 0 4px rgba(10,40,80,.10);}
     <div class="ddm-top"><span>Límite diario consumido · <b id="ddmPct">0 %</b></span><span id="ddmAmt">—</span></div>
     <div class="ddm-bar" id="ddmBar" role="progressbar" aria-label="Límite diario de drawdown consumido" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div class="ddm-fill" id="ddmFill"></div><span class="ddm-tick" aria-hidden="true"></span></div>
   </div>
+
+  </div><!-- /dd-pair -->
 
   <!-- NAVEGADOR DE SECCIONES -->
   <nav class="tl-secnav" id="tlSecNav" aria-label="Secciones">
@@ -5414,9 +5431,16 @@ let _weekDays = [];
 let _weekStart = null; // null = semana actual (sigue al calendario real); 'YYYY-MM-DD' (domingo) = semana consultada
 const WK_DAY_NAMES=['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
 function _wkStartOf(dateStr){ const d=new Date(dateStr+'T12:00:00'); d.setDate(d.getDate()-d.getDay()); return ymd(d); }
-function _wkActive(){ const cur=_wkStartOf(todayStr()); return [...new Set(_weekDays.map(d=>_wkStartOf(d.date)).filter(w=>w<=cur))].sort(); }
+// «Semana actual»: la sesión NY avanza de día a las 17:00, así que el sábado a las 17:00 la fecha de sesión ya es domingo.
+// Ese domingo (hasta las 17:00 NY del domingo, cuando abre la sesión del lunes) todavía es la semana que cerró; la nueva empieza solo entonces.
+function _wkCurStart(){ const d=new Date(todayStr()+'T12:00:00'); if(d.getDay()===0) d.setDate(d.getDate()-1); return _wkStartOf(ymd(d)); }
+// Desde el cierre del viernes (17:00 NY: la sesión pasa a sábado) hasta el domingo 17:00 NY esa semana se llama «Cerrada».
+function _wkClosed(){ const g=new Date(todayStr()+'T12:00:00').getDay(); return g===6||g===0; }
+let _wkLastCur=null;
+setInterval(()=>{ try{ const c=_wkCurStart()+(_wkClosed()?'|c':''); if(_wkLastCur===null){ _wkLastCur=c; return; } if(c!==_wkLastCur){ _wkLastCur=c; if(typeof renderWeekly==='function'&&document.getElementById('weekLabel')) renderWeekly(); } }catch(_){} },30000);
+function _wkActive(){ const cur=_wkCurStart(); return [...new Set(_weekDays.map(d=>_wkStartOf(d.date)).filter(w=>w<=cur))].sort(); }
 function weekNav(delta){
-  const curStart=_wkStartOf(todayStr()), viewStart=_weekStart??curStart, weeks=_wkActive();
+  const curStart=_wkCurStart(), viewStart=_weekStart??curStart, weeks=_wkActive();
   let target=null;
   if(delta<0) target=[...weeks].reverse().find(w=>w<viewStart)??null;          // semana anterior con actividad
   else if(viewStart<curStart) target=weeks.find(w=>w>viewStart&&w<curStart)??curStart;   // siguiente con actividad o la actual; nunca futuro
@@ -5467,7 +5491,7 @@ function _tipDismissOutside(){
 function _sbCell(l,v){ return '<div class="sb-cell"><span class="sb-lbl">'+l+'</span><span class="sb-val">'+v+'</span></div>'; }
 function renderWeekly(){
   _tipDismissOutside();
-  const curStart=_wkStartOf(todayStr());
+  const curStart=_wkCurStart();
   if(_weekStart!=null && _weekStart>=curStart) _weekStart=null;
   const viewStart=_weekStart??curStart, isCur=_weekStart==null;
   const wkDates=[...Array(7)].map((_,i)=>{const d=new Date(viewStart+'T12:00:00'); d.setDate(d.getDate()+i); return ymd(d);});
@@ -5476,7 +5500,7 @@ function renderWeekly(){
   const wkIdx=[0,1,2,3,4,5,6].filter(i=>(i>=1&&i<=5)||byDate[wkDates[i]]!==undefined);
   const weekVals=wkIdx.map(i=>byDate[wkDates[i]]===undefined?null:byDate[wkDates[i]]);
   const fd=d=>d.slice(5).split('-').reverse().join('/');
-  const wkT=document.getElementById('dayChartTitle'); if(wkT) wkT.textContent=isCur?'P&L por Día — Semana Actual':'P&L por Día — Semana';
+  const wkT=document.getElementById('dayChartTitle'); if(wkT) wkT.textContent=isCur?(_wkClosed()?'P&L por Día — Semana Cerrada':'P&L por Día — Semana Actual'):'P&L por Día — Semana';
   const wl=document.getElementById('weekLabel'); if(wl) wl.textContent=fd(wkDates[wkIdx[0]])+' – '+fd(wkDates[wkIdx[wkIdx.length-1]]);
   const weeks=_wkActive(), canPrev=weeks.some(w=>w<viewStart), canNext=viewStart<curStart;
   const pb=document.getElementById('weekPrevBtn'), nb=document.getElementById('weekNextBtn');
@@ -8038,7 +8062,7 @@ document.addEventListener('keydown', e => {
 });
 
 // ── DAILY DRAWDOWN ALERT ───────────────────────────────────────────────────────
-// Mide (a) pérdida REALIZADA hoy y (b) caída de equity vs balance de inicio de día (incl. flotante).
+// Mide la pérdida REALIZADA hoy vs el límite (sin equity: la EA lo envía solo por eventos, no en tiempo real).
 // No es drawdown desde el máximo intradía de equity. Día = fecha del servidor del bróker.
 function checkDailyDrawdown(sessionsArg, balanceArg) {
   const acc=_lastAcc||{}; const balance=(acc.balance)||balanceArg||_lastBalance||0;
@@ -8049,11 +8073,11 @@ function checkDailyDrawdown(sessionsArg, balanceArg) {
   const base=balance-balanceMoveToday(); // balance al inicio de la sesión NY: balance actual menos lo que se movió hoy (deals + depósitos/retiros)
   const limit=base*limitPct/100;
   const realLoss=realized<0?-realized:0;
-  const eqLoss=acc.equity!=null?Math.max(0,base-acc.equity):null;
-  const used=eqLoss!=null?eqLoss:realLoss;
-  if(typeof tlDdMeter==='function') tlDdMeter(used,limit,base,limitPct,eqLoss!=null);   // medidor siempre visible (solo lectura de lo ya calculado)
+  // Solo pérdida REALIZADA: la EA envía el equity únicamente por eventos (no en tiempo real), así que no se usa para el límite diario.
+  const used=realLoss;
+  if(typeof tlDdMeter==='function') tlDdMeter(used,limit,base,limitPct,false);   // medidor siempre visible (solo lectura de lo ya calculado)
   if(base>0&&used>=limit){
-    sub.innerHTML=`Pérdida del día (${eqLoss!=null?'último equity recibido vs balance de inicio, incl. flotante; la EA lo envía solo por eventos':'solo realizada'}): <strong style="color:var(--red)">-$${mny(used)} (${(used/base*100).toFixed(2)}%)</strong> · Realizada: -$${mny(realLoss)} · Límite: <strong>${limitPct}% = $${mny(limit)}</strong>`;
+    sub.innerHTML=`Pérdida realizada del día: <strong style="color:var(--red)">-$${mny(used)} (${(used/base*100).toFixed(2)}%)</strong> · Límite: <strong>${limitPct}% = $${mny(limit)}</strong>`;
     banner.classList.add('show');
   } else { banner.classList.remove('show'); }
 }
@@ -8497,7 +8521,7 @@ if("serviceWorker" in navigator && location.protocol.startsWith("http")){
     fill.style.width = Math.min(100,pct).toFixed(1)+'%';
     fill.className = 'ddm-fill'+(pct>=100?' danger':(pct>=70?' warn':''));
     $('ddmPct').textContent = pct.toFixed(0)+' %';
-    $('ddmAmt').textContent = fmt$(u)+' de '+fmt$(limit)+' · '+(hasEq?'incluye flotante':'solo realizado');
+    $('ddmAmt').textContent = fmt$(u)+' de '+fmt$(limit);
     var bar = $('ddmBar'); if(bar){ bar.setAttribute('aria-valuenow', Math.min(100,Math.round(pct))); }
   });
   var _cdd = (typeof checkDailyDrawdown==='function') ? checkDailyDrawdown : null;
@@ -8683,6 +8707,71 @@ if("serviceWorker" in navigator && location.protocol.startsWith("http")){
   bootOn();
   initGroups();
   initDraw();
+})();
+</script>
+<script id="tl-layers-js">
+/* Pestañas superpuestas: oculta el navegador de secciones mientras haya una abierta y encierra el scroll dentro del journal */
+(function(){
+  var root=document.documentElement, body=document.body, lockOn=false;
+  function $(id){ return document.getElementById(id); }
+  function layerOpen(){
+    var m=$('menuPop'); if(m && m.classList.contains('open')) return true;
+    if(document.querySelector('.jmodal-overlay.open')) return true;
+    return !!document.querySelector('.jimg-viewer.open');
+  }
+  function sync(){
+    root.classList.toggle('tl-layer-open', layerOpen());
+    var j=$('jmodalOverlay'), want=!!(j && j.classList.contains('open'));
+    if(want===lockOn) return;
+    lockOn=want;
+    if(want){ var sbw=window.innerWidth-root.clientWidth; root.classList.add('tl-jlock'); if(sbw>0) body.style.paddingRight=sbw+'px'; }
+    else { root.classList.remove('tl-jlock'); body.style.paddingRight=''; }
+  }
+  var mo=new MutationObserver(sync);
+  ['menuPop','jmodalOverlay','acctOverlay','sumOverlay','tlConfirm'].forEach(function(id){ var e=$(id); if(e) mo.observe(e,{attributes:true,attributeFilter:['class']}); });
+  var iv=document.querySelector('.jimg-viewer'); if(iv) mo.observe(iv,{attributes:true,attributeFilter:['class']});
+  sync();
+
+  // Menú abierto + scroll de la página (rueda o deslizar el dedo): el menú se cierra solo y el navegador de secciones reaparece
+  var menuY=0, mp=$('menuPop');
+  if(mp){
+    new MutationObserver(function(){ if(mp.classList.contains('open')) menuY=window.pageYOffset; }).observe(mp,{attributes:true,attributeFilter:['class']});
+    window.addEventListener('scroll', function(){
+      if(mp.classList.contains('open') && Math.abs(window.pageYOffset-menuY)>=8){ if(typeof closeMenu==='function') closeMenu(); else mp.classList.remove('open'); }
+    }, {passive:true});
+  }
+
+  var jo=$('jmodalOverlay'); if(!jo) return;
+  function modal(){ return jo.querySelector('.jmodal'); }
+  // Rueda del ratón: fuera de la tarjeta (fondo oscuro) también desplaza el journal; dentro lo hace el navegador sin pasar a la web
+  jo.addEventListener('wheel', function(e){
+    if(!jo.classList.contains('open')) return;
+    var m=modal(); if(!m || m.contains(e.target)) return;
+    e.preventDefault();
+    m.scrollTop += e.deltaMode===1 ? e.deltaY*16 : (e.deltaMode===2 ? e.deltaY*m.clientHeight : e.deltaY);
+  }, {passive:false});
+  // Táctil: deslizar fuera de la tarjeta cuenta como scroll del journal (con algo de inercia)
+  var ty=0, lt=0, vel=0, out=false, raf=0;
+  jo.addEventListener('touchstart', function(e){
+    cancelAnimationFrame(raf);
+    var m=modal(); out=!(m && m.contains(e.target));
+    ty=e.touches[0].clientY; lt=performance.now(); vel=0;
+  }, {passive:true});
+  jo.addEventListener('touchmove', function(e){
+    if(!out) return;
+    var m=modal(); if(!m) return;
+    e.preventDefault();
+    var y=e.touches[0].clientY, now=performance.now(), dy=ty-y;
+    vel = dy/Math.max(1, now-lt); ty=y; lt=now;
+    m.scrollTop += dy;
+  }, {passive:false});
+  function endTouch(){
+    if(!out) return; out=false;
+    var m=modal(), v=vel*16; if(!m || Math.abs(v)<1) return;
+    (function step(){ m.scrollTop += v; v*=0.95; if(Math.abs(v)>0.4) raf=requestAnimationFrame(step); })();
+  }
+  jo.addEventListener('touchend', endTouch, {passive:true});
+  jo.addEventListener('touchcancel', function(){ out=false; }, {passive:true});
 })();
 </script>
 </body>
