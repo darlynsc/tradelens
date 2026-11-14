@@ -1537,7 +1537,20 @@ select:focus{border-color:rgba(var(--c-rgb),.7) !important;box-shadow:0 0 0 3px 
 .cal-grid .cal-day.win:not(.swing):hover,.cal-grid .cal-day.loss:not(.swing):hover,.cal-grid .cal-day.neu:not(.swing):hover{
   transform:translateY(-2px) scale(1.03);border-color:rgba(var(--k),.5);box-shadow:0 10px 22px -14px rgba(var(--k),.7);
 }
-.cal-grid .cal-day .cal-mini.win,.cal-grid .cal-day .cal-mini.loss,.cal-grid .cal-day .cal-mini.neu{background:var(--s2);border-color:rgba(var(--k),.45);}
+.cal-grid .cal-day .cal-mini.win,.cal-grid .cal-day .cal-mini.loss,.cal-grid .cal-day .cal-mini.neu{background:var(--s2);border-color:var(--b2);}   /* reposo: mismo borde neutro que los días normales */
+/* Hover / toque: el borde se ilumina del color de su resultado, igual que los días normales (PC, móvil, tema oscuro y claro) */
+.cal-grid .cal-day .cal-mini.win:hover,.cal-grid .cal-day .cal-mini.loss:hover,.cal-grid .cal-day .cal-mini.neu:hover{border-color:rgba(var(--k),.5);box-shadow:0 10px 22px -14px rgba(var(--k),.7);}
+.cal-grid .cal-day .cal-mini.win.today-marker:hover,.cal-grid .cal-day .cal-mini.loss.today-marker:hover,.cal-grid .cal-day .cal-mini.neu.today-marker:hover{box-shadow:0 0 0 1px var(--cyan),0 10px 22px -14px rgba(var(--k),.7);}   /* conserva el marco azul de HOY */
+/* Bloque SWING: al pasar el mouse / tocar, TODAS las celdas del ciclo iluminan su borde del color del resultado (la capa .sw-bg es la que tiene el borde) */
+.cal-grid .cal-swc.sw-hover .sw-bg{border-color:rgba(var(--k),.5);box-shadow:0 10px 22px -14px rgba(var(--k),.7);}
+.cal-grid .cal-swc.sw-hover .sw-bg.sw-hl{box-shadow:inset 0 1px 0 var(--cyan),inset 0 -1px 0 var(--cyan),0 10px 22px -14px rgba(var(--k),.7);}   /* conserva el marco azul de HOY */
+.cal-grid .cal-swc.sw-hover .sw-bg.sw-hl.sw-hl-l{box-shadow:inset 0 1px 0 var(--cyan),inset 0 -1px 0 var(--cyan),inset 1px 0 0 var(--cyan),0 10px 22px -14px rgba(var(--k),.7);}
+.cal-grid .cal-swc.sw-hover .sw-bg.sw-hl.sw-hl-r{box-shadow:inset 0 1px 0 var(--cyan),inset 0 -1px 0 var(--cyan),inset -1px 0 0 var(--cyan),0 10px 22px -14px rgba(var(--k),.7);}
+.cal-grid .cal-swc.sw-hover .sw-bg.sw-hl.sw-hl-l.sw-hl-r{box-shadow:inset 0 0 0 1px var(--cyan),0 10px 22px -14px rgba(var(--k),.7);}
+/* Sin división entre celdas del mismo ciclo: el brillo de cada celda se corta en los lados que tocan a su vecina (solo se ve en los extremos del bloque, arriba y abajo) */
+.cal-grid .cal-day.sw-bg.sw-jl{clip-path:inset(-40px -40px -40px 0);}
+.cal-grid .cal-day.sw-bg.sw-jr{clip-path:inset(-40px 0 -40px -40px);}
+.cal-grid .cal-day.sw-bg.sw-jl.sw-jr{clip-path:inset(-40px 0 -40px 0);}
 @media(min-width:701px){.cal-grid .cal-day .cal-mini{border-radius:8px;}}
 @media(max-width:700px){
   .cal-grid .cal-day.win::before,.cal-grid .cal-day.loss::before,.cal-grid .cal-day.neu::before{left:6px;right:6px;bottom:5px;height:3px;}
@@ -1585,7 +1598,7 @@ body.light .cal-grid .cal-day .cal-mini .mi-note{
 }
 /* ══ CALENDARIO · compactación PC (~25 % menos de alto y de ancho; barra de llenado intacta) ══ */
 @media(min-width:701px){
-  .cal-days-hdr,.cal-grid{max-width:940px;}
+  .cal-days-hdr,.cal-grid{max-width:1100px;}
   .cal-grid .cal-day{min-height:70px;}   /* -30 % de alto: se recorta el espacio en blanco, los textos no cambian */
   .cal-grid .cal-day.win,.cal-grid .cal-day.loss,.cal-grid .cal-day.neu{padding-top:5px;}
   .cal-grid .cal-swc{padding-top:5px;}
