@@ -2121,6 +2121,45 @@ body.light #acctOverlay .btn-connect{color:#fff;}
   color:var(--warn);background:rgba(var(--w-rgb),.07);border:1px solid rgba(var(--w-rgb),.26);}
 .pn-hint .tl-i{font-size:16px;margin-top:1px;}
 
+/* notificaciones · estado del servidor (discreto) */
+.pn-res{display:flex;align-items:center;gap:8px;font-family:var(--font-head);font-size:12.5px;font-weight:500;color:rgb(var(--k,var(--g-rgb)));}
+.pn-res.bad{--k:var(--r-rgb);}
+.pn-res.mute{--k:128,138,155;color:var(--muted);font-family:var(--font-mono);font-weight:400;}
+.pn-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
+.pn-chip{display:inline-flex;align-items:center;gap:6px;padding:3px 9px 3px 8px;border-radius:99px;font-size:10.5px;line-height:1.5;
+  color:var(--muted);background:rgba(255,255,255,.03);border:1px solid var(--b1);}
+.pn-chip::before{content:'';width:5px;height:5px;border-radius:50%;background:rgb(var(--g-rgb));}
+.pn-chip.bad{color:var(--red);border-color:rgba(var(--r-rgb),.3);}
+.pn-chip.bad::before{background:rgb(var(--r-rgb));}
+.pn-dot{flex:none;width:7px;height:7px;border-radius:50%;background:rgb(var(--k,var(--g-rgb)));box-shadow:0 0 0 3px rgba(var(--k,var(--g-rgb)),.14);}
+.pn-dot.warn{--k:var(--w-rgb);}.pn-dot.bad{--k:var(--r-rgb);}.pn-dot.off{--k:128,138,155;box-shadow:none;opacity:.6;}
+.pn-info{margin-top:6px;padding:4px 14px 6px;border:1px solid var(--b1);border-radius:16px;background:rgba(255,255,255,.015);}
+.pn-sec{padding:12px 0;}
+.pn-sec+.pn-sec{border-top:1px solid var(--b1);}
+.pn-sh{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:0 0 4px;font-family:var(--font-head);font-size:10.5px;font-weight:500;
+  letter-spacing:.14em;text-transform:uppercase;color:var(--muted);}
+.pn-sh em{font-style:normal;font-family:var(--font-mono);letter-spacing:0;text-transform:none;font-size:10.5px;padding:1px 8px;border-radius:99px;border:1px solid var(--b1);}
+.pn-r{display:flex;align-items:center;gap:10px;padding:7px 0;font-size:12px;min-width:0;}
+.pn-r .n{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text);}
+.pn-r .t{flex:none;font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums;}
+.pn-r .e{flex-basis:100%;margin:-3px 0 0 17px;font-size:10.5px;color:var(--red);}
+.pn-r.wrap{flex-wrap:wrap;}
+.pn-tag{flex:none;font-size:10px;padding:1px 7px;border-radius:99px;color:var(--muted);border:1px solid var(--b1);font-variant-numeric:tabular-nums;}
+.pn-tag.bad{color:var(--red);border-color:rgba(var(--r-rgb),.3);}
+.pn-empty{padding:7px 0;font-size:11.5px;color:var(--muted);}
+.pn-sec.fold>summary{list-style:none;cursor:pointer;margin:0;user-select:none;-webkit-tap-highlight-color:transparent;}
+.pn-sec.fold>summary::-webkit-details-marker{display:none;}
+.pn-sec.fold>summary .tl-i{font-size:14px;transition:transform .25s var(--ease-out);}
+.pn-sec.fold[open]>summary .tl-i{transform:rotate(90deg);}
+.pn-sec.fold>summary:hover{color:var(--text);}
+.pn-dd-top{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin:8px 0 7px;font-size:12px;}
+.pn-dd-top b{font-weight:500;color:var(--text);font-variant-numeric:tabular-nums;}
+.pn-dd-top span{color:var(--muted);font-size:11px;font-variant-numeric:tabular-nums;}
+.pn-bar{height:4px;border-radius:4px;background:var(--b1);overflow:hidden;}
+.pn-bar i{display:block;height:100%;min-width:2px;border-radius:4px;background:rgb(var(--k,var(--g-rgb)));transition:width .6s var(--ease-out);}
+.pn-bar.warn i{--k:var(--w-rgb);}.pn-bar.bad i{--k:var(--r-rgb);}
+.pn-foot{margin-top:7px;font-size:10.5px;color:var(--muted);}
+
 /* móvil: el modal sube como una hoja inferior */
 @media(max-width:600px){
   .menu-pop{width:min(268px,calc(100vw - 28px));}
@@ -8345,9 +8384,14 @@ async function pushTest() {
     const r = await fetch(`${pushBase()}/push/test`, { method:'POST', headers:pushHeaders(), body:'{}' });
     let j = {}; try { j = await r.json(); } catch(_) {}
     if(r.status === 401) { sessionExpired(); return; }
-    if(e) { const dv = (j.devices || []).map(x => (x.ok ? '✅ ' : '❌ ') + tlEsc(x.label) + (x.ok ? '' : ' (' + x.status + ')')).join(' · ');
-      e.innerHTML = (r.ok && j.ok ? 'Enviada a ' + (j.sent || 0) + ' de ' + (j.total || (j.devices || []).length) + ' dispositivo(s)' : tlEsc(j.error || 'El servidor no pudo enviarla.')) + (dv ? '<br>' + dv : '');
-      e.style.color = r.ok && j.ok && !j.failed ? 'var(--green)' : 'var(--red)'; }
+    if(e) {
+      const okAll = r.ok && j.ok && !j.failed, tot = j.total || (j.devices || []).length, n = j.sent || 0;
+      const dv = (j.devices || []).map(x => '<span class="pn-chip' + (x.ok ? '' : ' bad') + '">' + tlEsc(x.label) + (x.ok ? '' : ' · ' + tlEsc(x.status)) + '</span>').join('');
+      e.style.color = '';
+      e.innerHTML = '<div class="pn-res' + (okAll ? '' : ' bad') + '"><span class="pn-dot' + (okAll ? '' : ' bad') + '"></span>' +
+        (r.ok && j.ok ? 'Enviada a ' + n + ' de ' + tot + (tot === 1 ? ' dispositivo' : ' dispositivos') : tlEsc(j.error || 'El servidor no pudo enviarla.')) + '</div>' +
+        (dv ? '<div class="pn-chips">' + dv + '</div>' : '');
+    }
     pushLoadDevices();
   } catch(err) { if(e) { e.textContent = 'No se pudo contactar al servidor.'; e.style.color = 'var(--red)'; } }
 }
@@ -8391,7 +8435,7 @@ async function pushRefreshUI() {
     ${subbed ? `<button class="btn btn-connect" onclick="pushTest()">${tlIco('send')}Enviar notificación de prueba</button>
       <button class="btn ac-ghost" onclick="pushDisable()">Desactivar en este dispositivo</button>`
       : (supported && perm !== 'denied' ? `<button class="btn btn-connect" onclick="pushEnable()">${tlIco('bell')}Activar notificaciones</button>` : '')}
-    <div id="pnDevs" class="ac-lead" style="font-size:12px;margin-top:10px"></div>
+    <div id="pnDevs" style="margin-top:12px"></div>
     ${hint}`;
   if(subbed) pushLoadDevices();
 }
@@ -8401,11 +8445,33 @@ async function pushLoadDevices() {   // dispositivos que el SERVIDOR tiene regis
     const r = await fetch(`${pushBase()}/push/devices`, { headers: pushHeaders() });
     if(r.status === 401) { sessionExpired(); return; }
     const j = await r.json(); const L = j.devices || [];
-    const ago = iso => { if(!iso) return 'nunca'; const m = Math.round((Date.now() - Date.parse(iso)) / 60000); return m < 60 ? 'hace ' + m + ' min' : m < 2880 ? 'hace ' + Math.round(m / 60) + ' h' : 'hace ' + Math.round(m / 1440) + ' d'; };
-    el.innerHTML = '<b>Dispositivos registrados en el servidor: ' + L.length + '</b>' + (L.length ? L.map(d => '<br>' + (d.failing ? '⚠️ ' : '✅ ') + tlEsc(d.label) + ' · último envío OK: ' + ago(d.lastOk) + (d.error ? ' · ' + tlEsc(d.error) : '')).join('') : '<br>Ninguno: activa las notificaciones en cada dispositivo.');
-    const lg = (j.log || []).slice(0, 5).map(x => '<br>' + (x.skipped ? '⏭️ ' : x.sent > 0 ? '📤 ' : '❌ ') + tlEsc(x.kind || x.tag) + ' · ' + ago(x.t) + ' · ' + (x.skipped ? 'omitido (duplicado reciente)' : 'enviado a ' + x.sent + (x.failed ? ', falló ' + x.failed : ''))).join('');
-    const dd = j.dd ? '<br><b>Drawdown según el servidor:</b> pérdida realizada hoy -$' + j.dd.used + ' / límite $' + j.dd.limit + ' (' + j.dd.limitPct + '%) · ' + ago(j.dd.at) : '';
-    el.innerHTML += '<br><b>Últimos avisos del servidor:</b>' + (lg || '<br>Ninguno aún.') + dd;
+    const ago = iso => { if(!iso) return 'nunca'; const m = Math.round((Date.now() - Date.parse(iso)) / 60000); return m < 1 ? 'ahora' : m < 60 ? 'hace ' + m + ' min' : m < 2880 ? 'hace ' + Math.round(m / 60) + ' h' : 'hace ' + Math.round(m / 1440) + ' d'; };
+    const KIND = { test:'Prueba', wd:'Retiro disponible', withdraw:'Retiro disponible', dd:'Drawdown diario', drawdown:'Drawdown diario', coach:'Coach' };
+    const kindName = k => KIND[String(k || '').toLowerCase()] || String(k || 'Aviso');
+    const wasOpen = !!el.querySelector('details.fold[open]');
+    const devs = L.length ? L.map(d => '<div class="pn-r' + (d.error ? ' wrap' : '') + '"><span class="pn-dot' + (d.failing ? ' warn' : '') + '"></span><span class="n">' + tlEsc(d.label) + '</span><span class="t" title="Último envío correcto">' + ago(d.lastOk) + '</span>' + (d.error ? '<span class="e">' + tlEsc(d.error) + '</span>' : '') + '</div>').join('')
+      : '<div class="pn-empty">Ninguno: activa las notificaciones en cada dispositivo.</div>';
+    const log = (j.log || []).slice(0, 5);
+    const lg = log.length ? log.map(x => {
+      const st = x.skipped ? 'off' : x.sent > 0 ? '' : 'bad';
+      const tag = x.skipped ? '<span class="pn-tag" title="Omitido: duplicado reciente">omitido</span>' : '<span class="pn-tag' + (x.failed ? ' bad' : '') + '" title="Dispositivos que lo recibieron">' + (x.sent || 0) + (x.failed ? ' · ' + x.failed + ' falló' : ' env.') + '</span>';
+      return '<div class="pn-r"><span class="pn-dot ' + st + '"></span><span class="n">' + tlEsc(kindName(x.kind || x.tag)) + '</span>' + tag + '<span class="t">' + ago(x.t) + '</span></div>';
+    }).join('') : '<div class="pn-empty">Ninguno aún.</div>';
+    let dd = '';
+    if(j.dd) {
+      const used = parseFloat(j.dd.used) || 0, lim = parseFloat(j.dd.limit) || 0, pc = lim > 0 ? Math.min(100, Math.max(0, used / lim * 100)) : 0;
+      const cls = pc >= 100 ? 'bad' : pc >= 60 ? 'warn' : '';
+      dd = '<div class="pn-sec"><div class="pn-sh"><span>Drawdown de hoy</span></div>' +
+        '<div class="pn-dd-top"><b>-$' + tlEsc(j.dd.used) + '</b><span>límite $' + tlEsc(j.dd.limit) + ' · ' + tlEsc(j.dd.limitPct) + '%</span></div>' +
+        '<div class="pn-bar ' + cls + '"><i style="width:' + pc.toFixed(1) + '%"></i></div>' +
+        '<div class="pn-foot">Pérdida realizada · actualizado ' + ago(j.dd.at) + '</div></div>';
+    }
+    el.className = ''; el.removeAttribute('style');
+    el.innerHTML = '<div class="pn-info">' +
+      '<div class="pn-sec"><div class="pn-sh"><span>Dispositivos</span><em>' + L.length + '</em></div>' + devs + '</div>' +
+      dd +
+      '<details class="pn-sec fold"' + (wasOpen ? ' open' : '') + '><summary class="pn-sh"><span>Últimos avisos</span>' + tlIco('chev') + '</summary>' + lg + '</details>' +
+      '</div>';
   } catch(_) { el.textContent = 'No se pudo consultar los dispositivos.'; }
 }
 function riskStep(id, d, min, dec) {   // botones − / + de Riesgo por Trade y Umbral de Subida (el valor sigue siendo editable escribiendo)
