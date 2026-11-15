@@ -6012,8 +6012,8 @@ function showRiskToast(title, body) {
     const txt = body.replace(/<[^>]+>/g,'');
     tlNotifyAll('TradeLens — Nuevo Nivel', txt, 'tl-coach-lvl', 'level', () => {
       if('Notification' in window && Notification.permission === 'granted') {
-        const o = { body: txt, tag:'tl-coach-lvl' };
-        if('serviceWorker' in navigator) navigator.serviceWorker.ready.then(r => r.showNotification('TradeLens — Nuevo Nivel', o)).catch(() => {});
+        const o = { body: txt, tag:'tl-coach-lvl', icon:'./icon-coach.png', badge:'./badge-96.png' };
+        if('serviceWorker' in navigator) navigator.serviceWorker.ready.then(r => r.showNotification('Nuevo nivel de Risk Scaling', o)).catch(() => {});
         else new Notification('TradeLens — Nuevo Nivel', o);
       }
     });
@@ -6433,7 +6433,7 @@ function wdNotify(title, body, dk) {
   const local = () => {
     try {
       if(!('Notification' in window) || Notification.permission !== 'granted') return;
-      const opts = { body, tag:'tl-wd' };
+      const opts = { body, tag:'tl-wd', icon:'./icon-wd.png', badge:'./badge-96.png' };
       const fallback = () => { try { new Notification(title, opts); } catch(_) {} };
       if('serviceWorker' in navigator && navigator.serviceWorker.getRegistration) {
         navigator.serviceWorker.getRegistration().then(r => { if(r && r.showNotification) r.showNotification(title, opts); else fallback(); }).catch(fallback);
