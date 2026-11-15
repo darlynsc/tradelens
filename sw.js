@@ -1,4 +1,4 @@
-const CACHE = 'tradelens-v3';
+const CACHE = 'tradelens-v4';
 const SHELL = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)));
@@ -15,21 +15,64 @@ self.addEventListener('fetch', e => {
   e.respondWith(fetch(e.request).catch(() => caches.match(e.request)));
 });
 
+// Presentación uniforme: título = evento (el nombre de la app ya lo muestra el sistema), cuerpo limpio y sin emojis sueltos.
+const EMO = /[\p{Extended_Pictographic}\uFE0F\u200D]/gu;
+const KINDS = {
+  test:  { title: 'Conexión verificada',          body: 'Tus avisos están activos en este dispositivo.' },
+  wd:    { title: 'Retiro disponible',            body: 'Ya puedes solicitar tu retiro.' },
+  dd:    { title: 'Límite de drawdown superado',  body: 'La caída de hoy superó tu límite diario.' },
+  coach: { title: 'Subiste de nivel',             body: 'Tu Risk Scaling avanzó al siguiente nivel.' }
+};
+// Ordena el texto que llega del servidor: mayúscula inicial, espacios limpios y punto final.
+function tlTidy(t) {
+  t = String(t || '').replace(/\s+/g, ' ').replace(/\s+([.,;:!?])/g, '$1').trim();
+  if (!t) return '';
+  t = t.charAt(0).toUpperCase() + t.slice(1);
+  return /[.!?…]$/.test(t) ? t : t + '.';
+}
+function tlKind(d, text) {
+  const key = ((d.tag || '') + ' ' + (d.kind || '')).toLowerCase();
+  if (/test|prueba/.test(key)) return 'test';
+  if (/\bdd\b|drawdown/.test(key)) return 'dd';
+  if (/\bwd\b|wd-|withdraw|retiro/.test(key)) return 'wd';
+  if (/coach|level|nivel|risk/.test(key)) return 'coach';
+  const t = text.toLowerCase();
+  if (/prueba/.test(t)) return 'test';
+  if (/drawdown/.test(t)) return 'dd';
+  if (/retiro|objetivo/.test(t)) return 'wd';
+  if (/coach|nivel|risk scaling/.test(t)) return 'coach';
+  return '';
+}
+function tlPolish(d) {
+  let title = String(d.title || '').replace(EMO, '').replace(/^\s*TradeLens\s*[—–·:-]*\s*/i, '').trim();
+  let body = String(d.body || '').replace(/^[\s\p{Extended_Pictographic}\uFE0F\u200D]+/u, '').replace(/\s{2,}/g, ' ').trim();
+  const kind = tlKind(d, title + ' ' + body), k = KINDS[kind];
+  if (k) {
+    const generic = !body || /prueba|funciona/i.test(body);
+    title = k.title;
+    body = (k.title === KINDS.test.title || generic) ? k.body : tlTidy(body);   // con datos reales del servidor se conservan
+  } else body = tlTidy(body);
+  return { title: title || 'TradeLens', body, kind };
+}
+
 // ── PUSH: el servidor envía el aviso y el sistema operativo despierta este service worker (app cerrada) ──
 self.addEventListener('push', e => {
   let d = {};
   try { d = e.data ? e.data.json() : {}; } catch (_) { d = { body: e.data ? e.data.text() : '' }; }
-  const title = d.title || 'TradeLens';
+  const p = tlPolish(d);
   const opts = {
-    body: d.body || '',
+    body: p.body,
     tag: d.tag || 'tradelens',
     renotify: true,
-    icon: './icon-192.png',
-    badge: './icon-192.png',
+    lang: 'es',
+    icon: p.kind ? './icon-' + p.kind + '.png' : './icon-192.png',   // imagen grande a la derecha: un icono propio por tipo de aviso
+    badge: './badge-96.png',         // logo monocromo junto al nombre de la app (solo usa el canal alfa)
+    vibrate: [90, 50, 90],
+    timestamp: Date.now(),
     data: { url: d.url || './index.html' }
   };
   // En iPhone cada push DEBE mostrar una notificación; por eso siempre se muestra.
-  e.waitUntil(self.registration.showNotification(title, opts));
+  e.waitUntil(self.registration.showNotification(p.title, opts));
 });
 
 self.addEventListener('notificationclick', e => {
