@@ -250,7 +250,8 @@ header{
 .kpi-val.pur{color:var(--purple);}
 .kpi-sub{font-size:10px;color:var(--muted);margin-top:5px;}
 .kpi-sub:empty{display:none;}
-.kpi:hover,.kpi:focus{z-index:20;}
+.kpi:hover,.kpi:focus,.kpi.tip-open{z-index:20;}
+.metric-info.open{z-index:20;}
 .kpi-tip{display:none;position:absolute;z-index:60;left:0;bottom:calc(100% + 8px);width:250px;
   background:rgba(8,13,18,0.97);border:1px solid rgba(0,229,255,0.35);border-radius:10px;padding:11px 13px;
   box-shadow:0 8px 32px rgba(0,0,0,0.7);font-size:11px;line-height:1.6;color:#c0d4e0;font-weight:400;letter-spacing:0;text-transform:none;white-space:normal;cursor:default;}
@@ -4617,14 +4618,51 @@ function kpiGrid(id,data){ document.getElementById(id).innerHTML=data.map(k=>`
       <div class="kpi-sub">${k.sub||''}</div>
       ${k.tip?`<div class="kpi-tip"><div class="kpi-tip-head"><span class="kpi-tip-title">${k.l}</span><button class="kpi-tip-x" type="button" aria-label="Cerrar">✕</button></div>${kpiHealthy(k,id)}</div>`:''}
     </div>`).join(''); }
-// El tip se abre hacia arriba y se acomoda si no cabe (borde derecho o parte alta de la pantalla).
-function placeKpiTip(card){
-  const tip=card.querySelector('.kpi-tip'); if(!tip) return;
-  const r=card.getBoundingClientRect(), w=Math.min(250,window.innerWidth-24);
-  tip.style.width=w+'px';
-  if(r.left+w>window.innerWidth-12){ tip.style.left='auto'; tip.style.right='0'; } else { tip.style.left='0'; tip.style.right='auto'; }
-  if(r.top<170){ tip.style.bottom='auto'; tip.style.top='calc(100% + 8px)'; } else { tip.style.top='auto'; tip.style.bottom='calc(100% + 8px)'; }
+// Posiciona un tooltip flotante (KPI o «i» de Métricas) dentro de la zona REALMENTE visible:
+// descuenta la barra de secciones sticky (arriba) y el borde inferior, elige arriba/abajo según el espacio
+// libre y, si ninguno alcanza, limita la altura y deja scroll interno. Nunca queda tapado por la navegación.
+function tlPlacePop(host, pop, baseW){
+  if(!host||!pop) return;
+  const vw=window.innerWidth, vh=window.innerHeight, gap=8, edge=12;
+  const nav=document.getElementById('tlSecNav');
+  const navB=(nav&&getComputedStyle(nav).visibility!=='hidden')?nav.getBoundingClientRect().bottom:0;
+  const topSafe=Math.max(navB,0)+edge, botSafe=vh-edge;
+  const r=host.getBoundingClientRect(), w=Math.min(baseW,vw-24);
+  pop.style.width=w+'px'; pop.style.maxHeight=''; pop.style.overflowY='';
+  // horizontal: pegado a la izquierda de la tarjeta; si se sale por la derecha, se alinea a la derecha
+  if(r.left+w>vw-edge){ pop.style.left='auto'; pop.style.right='0'; } else { pop.style.left='0'; pop.style.right='auto'; }
+  // vertical: espacio libre arriba y abajo de la tarjeta
+  const h=pop.offsetHeight, above=r.top-gap-topSafe, below=botSafe-(r.bottom+gap);
+  const up = above>=h ? true : below>=h ? false : above>=below;
+  const room=Math.max(up?above:below,120);
+  if(h>room){ pop.style.maxHeight=room+'px'; pop.style.overflowY='auto'; pop.style.overscrollBehavior='contain'; }
+  if(up){ pop.style.top='auto'; pop.style.bottom='calc(100% + '+gap+'px)'; }
+  else  { pop.style.bottom='auto'; pop.style.top='calc(100% + '+gap+'px)'; }
 }
+function placeKpiTip(card){ tlPlacePop(card, card.querySelector('.kpi-tip'), 250); }
+// Con un tooltip abierto: si el scroll (rueda, dedo o barra) hace que la barra de secciones o el borde inferior
+// de la pantalla lo tape, se cierra solo. Al girar/redimensionar se reubica.
+let _tlPopRaf=0;
+function tlPopCovered(pop){
+  const nav=document.getElementById('tlSecNav');
+  const topEdge=(nav&&getComputedStyle(nav).visibility!=='hidden')?nav.getBoundingClientRect().bottom:0;
+  const r=pop.getBoundingClientRect();
+  return r.top<topEdge-1 || r.bottom>window.innerHeight+1;
+}
+function tlCheckOpenPops(){
+  if(_tlPopRaf) return;
+  _tlPopRaf=requestAnimationFrame(()=>{ _tlPopRaf=0;
+    const k=document.querySelector('.kpi.tip-open');
+    if(k){ const t=k.querySelector('.kpi-tip'); if(t&&tlPopCovered(t)) k.classList.remove('tip-open'); }
+    const m=document.querySelector('.metric-info.open');
+    if(m){ const t=m.querySelector('.metric-info-popup'); if(t&&tlPopCovered(t)) m.classList.remove('open'); }
+  });
+}
+window.addEventListener('scroll',tlCheckOpenPops,{passive:true});
+window.addEventListener('resize',()=>{
+  const k=document.querySelector('.kpi.tip-open'); if(k) placeKpiTip(k);
+  const m=document.querySelector('.metric-info.open'); if(m) tlPlacePop(m, m.querySelector('.metric-info-popup'), 230);
+});
 // El tip SOLO se abre al tocar/hacer clic en la tarjeta (nunca al pasar el mouse ni al deslizar). Se cierra con la X, tocando la tarjeta de nuevo o tocando fuera.
 function clearKpiTips(except){ document.querySelectorAll('.kpi.tip-open').forEach(k=>{ if(k!==except) k.classList.remove('tip-open'); }); }
 document.addEventListener('click',e=>{
@@ -4651,7 +4689,7 @@ document.addEventListener('click',e=>{
   if(mi&&e.target.closest('.metric-info-popup')) return;               // tocar el texto no cierra
   const was=mi&&mi.classList.contains('open');
   document.querySelectorAll('.metric-info.open').forEach(k=>k.classList.remove('open')); // tocar fuera (o abrir otro) cierra
-  if(mi&&e.target.closest('.metric-info-icon')&&!was) mi.classList.add('open');
+  if(mi&&e.target.closest('.metric-info-icon')&&!was){ mi.classList.add('open'); tlPlacePop(mi, mi.querySelector('.metric-info-popup'), 230); }
 });
 const _cl=(v,g,w)=>v==null?'neu':v>=g?'pos':v>=w?'warn':'neg', _cc=(v,g,w)=>v==null?'c':v>=g?'g':v>=w?'w':'r';
 
@@ -8307,13 +8345,18 @@ async function pushTest() {
     const r = await fetch(`${pushBase()}/push/test`, { method:'POST', headers:pushHeaders(), body:'{}' });
     let j = {}; try { j = await r.json(); } catch(_) {}
     if(r.status === 401) { sessionExpired(); return; }
-    if(e) { e.textContent = r.ok && j.ok ? 'Prueba enviada: debería llegarte en unos segundos.' : (j.error || 'El servidor no pudo enviarla.'); e.style.color = r.ok && j.ok ? 'var(--green)' : 'var(--red)'; }
+    if(e) { const dv = (j.devices || []).map(x => (x.ok ? '✅ ' : '❌ ') + tlEsc(x.label) + (x.ok ? '' : ' (' + x.status + ')')).join(' · ');
+      e.innerHTML = (r.ok && j.ok ? 'Enviada a ' + (j.sent || 0) + ' de ' + (j.total || (j.devices || []).length) + ' dispositivo(s)' : tlEsc(j.error || 'El servidor no pudo enviarla.')) + (dv ? '<br>' + dv : '');
+      e.style.color = r.ok && j.ok && !j.failed ? 'var(--green)' : 'var(--red)'; }
+    pushLoadDevices();
   } catch(err) { if(e) { e.textContent = 'No se pudo contactar al servidor.'; e.style.color = 'var(--red)'; } }
 }
 // Al abrir la app con push ya activado: confirma que la suscripción sigue viva y que el servidor la tiene.
+let _pushCheckedAt = 0;
+document.addEventListener('visibilitychange', () => { if(document.visibilityState === 'visible' && Date.now() - _pushCheckedAt > 30 * 60000) { _pushChecked = false; pushAutoRefresh(); } });
 async function pushAutoRefresh() {
   if(_pushChecked || !serverToken || _isDemo || !pushOn() || !pushSupported() || Notification.permission !== 'granted') return;
-  _pushChecked = true;
+  _pushChecked = true; _pushCheckedAt = Date.now();
   try { await pushRegister(); pushSyncConfig(true); } catch(_) { _pushChecked = false; }
 }
 
@@ -8348,7 +8391,22 @@ async function pushRefreshUI() {
     ${subbed ? `<button class="btn btn-connect" onclick="pushTest()">${tlIco('send')}Enviar notificación de prueba</button>
       <button class="btn ac-ghost" onclick="pushDisable()">Desactivar en este dispositivo</button>`
       : (supported && perm !== 'denied' ? `<button class="btn btn-connect" onclick="pushEnable()">${tlIco('bell')}Activar notificaciones</button>` : '')}
+    <div id="pnDevs" class="ac-lead" style="font-size:12px;margin-top:10px"></div>
     ${hint}`;
+  if(subbed) pushLoadDevices();
+}
+async function pushLoadDevices() {   // dispositivos que el SERVIDOR tiene registrados (los únicos que reciben push)
+  const el = document.getElementById('pnDevs'); if(!el || !serverToken) return;
+  try {
+    const r = await fetch(`${pushBase()}/push/devices`, { headers: pushHeaders() });
+    if(r.status === 401) { sessionExpired(); return; }
+    const j = await r.json(); const L = j.devices || [];
+    const ago = iso => { if(!iso) return 'nunca'; const m = Math.round((Date.now() - Date.parse(iso)) / 60000); return m < 60 ? 'hace ' + m + ' min' : m < 2880 ? 'hace ' + Math.round(m / 60) + ' h' : 'hace ' + Math.round(m / 1440) + ' d'; };
+    el.innerHTML = '<b>Dispositivos registrados en el servidor: ' + L.length + '</b>' + (L.length ? L.map(d => '<br>' + (d.failing ? '⚠️ ' : '✅ ') + tlEsc(d.label) + ' · último envío OK: ' + ago(d.lastOk) + (d.error ? ' · ' + tlEsc(d.error) : '')).join('') : '<br>Ninguno: activa las notificaciones en cada dispositivo.');
+    const lg = (j.log || []).slice(0, 5).map(x => '<br>' + (x.skipped ? '⏭️ ' : x.sent > 0 ? '📤 ' : '❌ ') + tlEsc(x.kind || x.tag) + ' · ' + ago(x.t) + ' · ' + (x.skipped ? 'omitido (duplicado reciente)' : 'enviado a ' + x.sent + (x.failed ? ', falló ' + x.failed : ''))).join('');
+    const dd = j.dd ? '<br><b>Drawdown según el servidor:</b> pérdida realizada hoy -$' + j.dd.used + ' / límite $' + j.dd.limit + ' (' + j.dd.limitPct + '%) · ' + ago(j.dd.at) : '';
+    el.innerHTML += '<br><b>Últimos avisos del servidor:</b>' + (lg || '<br>Ninguno aún.') + dd;
+  } catch(_) { el.textContent = 'No se pudo consultar los dispositivos.'; }
 }
 function riskStep(id, d, min, dec) {   // botones − / + de Riesgo por Trade y Umbral de Subida (el valor sigue siendo editable escribiendo)
   const i = document.getElementById(id); if(!i) return;
