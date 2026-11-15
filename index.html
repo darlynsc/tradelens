@@ -2121,6 +2121,17 @@ body.light #acctOverlay .btn-connect{color:#fff;}
   color:var(--warn);background:rgba(var(--w-rgb),.07);border:1px solid rgba(var(--w-rgb),.26);}
 .pn-hint .tl-i{font-size:16px;margin-top:1px;}
 
+/* ayuda cuando las notificaciones están bloqueadas */
+.pn-help{margin:-4px 0 14px;padding:12px 14px;border-radius:14px;border:1px solid var(--b1);background:rgba(255,255,255,.02);}
+.pn-help h4{margin:0 0 8px;font-family:var(--font-head);font-size:10.5px;font-weight:500;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);}
+.pn-help ol{margin:0;padding:0;list-style:none;counter-reset:pn;}
+.pn-help li{counter-increment:pn;display:flex;gap:10px;align-items:flex-start;padding:5px 0;font-size:12px;line-height:1.55;color:var(--text);}
+.pn-help li::before{content:counter(pn);flex:none;width:18px;height:18px;margin-top:1px;border-radius:50%;display:grid;place-items:center;font-size:10px;color:var(--cyan);
+  background:rgba(var(--c-rgb),.1);border:1px solid rgba(var(--c-rgb),.24);}
+.pn-help li b{font-weight:500;color:var(--cyan);}
+.pn-help .alt{margin-top:8px;padding-top:8px;border-top:1px solid var(--b1);font-size:11px;line-height:1.55;color:var(--muted);}
+.pn-help-act{display:flex;flex-direction:column;gap:8px;margin-bottom:12px;}
+
 /* notificaciones · estado del servidor (discreto) */
 .pn-res{display:flex;align-items:center;gap:8px;font-family:var(--font-head);font-size:12.5px;font-weight:500;color:rgb(var(--k,var(--g-rgb)));}
 .pn-res.bad{--k:var(--r-rgb);}
@@ -8352,7 +8363,7 @@ async function pushRegister() {
   return sub;
 }
 async function pushEnable() {
-  const msg = t => { const e = document.getElementById('pushMsg'); if(e) { e.textContent = t; e.style.color = 'var(--red)'; } };
+  const msg = t => { const e = document.getElementById('pushMsg'); if(e) { e.style.opacity = ''; e.style.color = ''; e.innerHTML = '<div class="pn-res bad"><span class="pn-dot bad"></span><span>' + tlEsc(t) + '</span></div>'; pnMsgHide(10000); } };
   try {
     if(!pushSupported()) throw new Error(_pIOS ? 'Este iPhone necesita iOS 16.4 o superior y la app añadida a la pantalla de inicio.' : 'Este navegador no admite notificaciones push.');
     if(_pIOS && !_pStandalone) throw new Error('En iPhone abre TradeLens desde el icono de la pantalla de inicio (Compartir → Añadir a pantalla de inicio) y activa aquí las notificaciones.');
@@ -8378,8 +8389,14 @@ async function pushDisable() {
   pushToSW({ type:'tl-push-clear' });
   pushRefreshUI();
 }
+function pnMsgHide(ms) {   // oculta #pushMsg con fade tras `ms` ms (cancela el temporizador anterior)
+  clearTimeout(window._pnMsgT);
+  window._pnMsgT = setTimeout(() => { const m = document.getElementById('pushMsg'); if(!m) return; m.style.transition = 'opacity .4s'; m.style.opacity = '0';
+    setTimeout(() => { m.innerHTML = ''; m.style.opacity = ''; m.style.transition = ''; m.style.color = ''; }, 400); }, ms);
+}
 async function pushTest() {
-  const e = document.getElementById('pushMsg'); if(e) { e.textContent = 'Enviando prueba…'; e.style.color = 'var(--muted)'; }
+  clearTimeout(window._pnMsgT);
+  const e = document.getElementById('pushMsg'); if(e) { e.style.opacity = ''; e.textContent = 'Enviando prueba…'; e.style.color = 'var(--muted)'; }
   try {
     const r = await fetch(`${pushBase()}/push/test`, { method:'POST', headers:pushHeaders(), body:'{}' });
     let j = {}; try { j = await r.json(); } catch(_) {}
@@ -8388,12 +8405,14 @@ async function pushTest() {
       const okAll = r.ok && j.ok && !j.failed, tot = j.total || (j.devices || []).length, n = j.sent || 0;
       const dv = (j.devices || []).map(x => '<span class="pn-chip' + (x.ok ? '' : ' bad') + '">' + tlEsc(x.label) + (x.ok ? '' : ' · ' + tlEsc(x.status)) + '</span>').join('');
       e.style.color = '';
+      clearTimeout(window._pnMsgT);
       e.innerHTML = '<div class="pn-res' + (okAll ? '' : ' bad') + '"><span class="pn-dot' + (okAll ? '' : ' bad') + '"></span>' +
         (r.ok && j.ok ? 'Enviada a ' + n + ' de ' + tot + (tot === 1 ? ' dispositivo' : ' dispositivos') : tlEsc(j.error || 'El servidor no pudo enviarla.')) + '</div>' +
         (dv ? '<div class="pn-chips">' + dv + '</div>' : '');
+      pnMsgHide(okAll ? 6000 : 10000);
     }
     pushLoadDevices();
-  } catch(err) { if(e) { e.textContent = 'No se pudo contactar al servidor.'; e.style.color = 'var(--red)'; } }
+  } catch(err) { if(e) { e.style.opacity = ''; e.innerHTML = '<div class="pn-res bad"><span class="pn-dot bad"></span>No se pudo contactar al servidor.</div>'; e.style.color = ''; pnMsgHide(10000); } }
 }
 // Al abrir la app con push ya activado: confirma que la suscripción sigue viva y que el servidor la tiene.
 let _pushCheckedAt = 0;
@@ -8410,6 +8429,37 @@ function openPush() {
   acOpen();
   pushRefreshUI();
 }
+function pushBlockedHelp() {
+  const ua = navigator.userAgent || '', android = /Android/i.test(ua), ios = /iPhone|iPad|iPod/i.test(ua) || (/Macintosh/i.test(ua) && navigator.maxTouchPoints > 1);
+  const standalone = (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true;
+  let steps, alt = '';
+  const proto = location.protocol, secure = window.isSecureContext !== false;
+  const diag = '<div class="alt">Diagnóstico · sitio: <b>' + tlEsc(location.origin === 'null' ? 'archivo local' : location.origin) + '</b> · permiso del navegador: <b>' + tlEsc(Notification.permission) + '</b>' + (standalone ? ' · app instalada' : ' · navegador') + '</div>';
+  if(proto === 'file:' || !secure) {
+    return '<div class="pn-help"><h4>Por qué aparece bloqueado</h4><ol><li><span>Estás abriendo la página como <b>' + (proto === 'file:' ? 'archivo local (file://)' : 'dirección no segura (http)') + '</b>. El navegador no permite notificaciones así: siempre las marca como bloqueadas, aunque las tengas activadas en el teléfono.</span></li><li><span>Ábrela desde una dirección <b>https://</b> (tu servidor o hosting) o desde <b>localhost</b>.</span></li></ol>' + diag + '</div>';
+  }
+  if(ios) { steps = ['Abre los <b>Ajustes</b> del iPhone.', 'Entra en <b>Notificaciones</b> y busca <b>TradeLens</b>.', 'Activa <b>Permitir notificaciones</b>.'];
+    alt = 'Si no aparece en la lista, abre TradeLens desde el icono de la pantalla de inicio y vuelve a intentarlo.'; }
+  else if(android && standalone) { steps = ['Mantén pulsado el icono de <b>TradeLens</b> en tu pantalla.', 'Toca <b>Información de la app</b> y luego <b>Notificaciones</b>.', 'Activa <b>Permitir notificaciones</b>.'];
+    alt = 'También: Ajustes del teléfono → Apps → TradeLens → Notificaciones.'; }
+  else if(android) { steps = ['Toca el icono a la izquierda de la dirección (candado o ajustes).', 'Entra en <b>Permisos</b> → <b>Notificaciones</b>.', 'Elige <b>Permitir</b>.'];
+    alt = 'Si no lo ves ahí: Chrome → ⋮ → Configuración → Configuración de sitios → Notificaciones, y quita este sitio de «Bloqueados». Revisa también Ajustes del teléfono → Apps → Chrome → Notificaciones.'; }
+  else { steps = ['Haz clic en el icono a la izquierda de la dirección (candado o ajustes).', 'Busca <b>Notificaciones</b>.', 'Cámbialo a <b>Permitir</b>.']; }
+  return '<div class="pn-help"><h4>Cómo habilitarlas</h4><ol>' + steps.map(x => '<li><span>' + x + '</span></li>').join('') + '</ol>' +
+    (alt ? '<div class="alt">' + alt + '</div>' : '') + diag + '</div>' +
+    '<div class="pn-help-act"><button class="btn btn-connect" onclick="pushRecheck()">' + tlIco('check') + 'Ya las permití · comprobar</button>' +
+    '<button class="btn ac-ghost" onclick="location.reload()">Recargar la página</button></div>';
+}
+function pushRecheck() {
+  if(typeof Notification !== 'undefined' && Notification.permission !== 'denied') { pushRefreshUI(); return; }
+  const e = document.getElementById('pushMsg');
+  if(e) { e.style.color = ''; e.innerHTML = '<div class="pn-res bad"><span class="pn-dot bad"></span>Sigue bloqueado. Si ya lo cambiaste, recarga la página.</div>'; }
+}
+let _pnWatch = false;
+function pushWatchPerm() {   // si el usuario lo habilita en los ajustes, la pantalla se actualiza sola
+  if(_pnWatch || !navigator.permissions || !navigator.permissions.query) return; _pnWatch = true;
+  navigator.permissions.query({ name:'notifications' }).then(st => { st.onchange = () => pushRefreshUI(); }).catch(() => { _pnWatch = false; });
+}
 async function pushRefreshUI() {
   const body = document.getElementById('acctBody');
   if(!body || document.getElementById('acctTitle').textContent.indexOf('Notificaciones') < 0) return;
@@ -8423,6 +8473,17 @@ async function pushRefreshUI() {
   else if(subbed && perm === 'granted') { cls = 'ok'; ic = 'check-circle'; t = 'Activadas en este dispositivo'; d = ''; }
   else if(perm === 'denied') { cls = 'bad'; ic = 'ban'; t = 'Bloqueadas'; d = 'Permítelas en los ajustes del teléfono para TradeLens.'; }
   const hint = (_pIOS && !_pStandalone) ? `<div class="pn-hint">${tlIco('info')}<span>En iPhone las notificaciones solo funcionan si abres TradeLens desde el icono de la pantalla de inicio (iOS 16.4+).</span></div>` : '';
+  let deskTip = '';
+  if(subbed && !_pIOS && !/Android/i.test(navigator.userAgent)) {
+    const ua = navigator.userAgent, edge = /Edg\//.test(ua), ff = /Firefox\//.test(ua);
+    const brave = !!(navigator.brave && navigator.brave.isBrave);
+    const how = brave ? 'Brave → ☰ → Configuración. Dos ajustes: <b>1)</b> en <b>Privacidad y seguridad</b> activa <b>Usar servicios de Google para mensajería push</b> (Brave lo trae desactivado y sin él no llega ningún aviso). <b>2)</b> en <b>Sistema</b> activa <b>Seguir ejecutando aplicaciones en segundo plano cuando Brave esté cerrado</b>. Reinicia Brave y vuelve a pulsar «Activar notificaciones».'
+      : ff ? 'Firefox no entrega avisos con el navegador cerrado: déjalo abierto (la pestaña de TradeLens sí puede estar cerrada) o usa Chrome o Edge.'
+      : edge ? 'Edge → ⋯ → Configuración → <b>Sistema y rendimiento</b> → activa <b>Seguir ejecutando extensiones y aplicaciones en segundo plano cuando Microsoft Edge esté cerrado</b>.'
+      : 'Chrome → ⋮ → Configuración → <b>Sistema</b> → activa <b>Seguir ejecutando aplicaciones en segundo plano al cerrar Google Chrome</b>.';
+    deskTip = `<details class="pn-sec fold pn-info" style="padding:10px 14px"><summary class="pn-sh"><span>Avisos con el navegador cerrado</span>${tlIco('chev')}</summary>
+      <div class="pn-empty" style="line-height:1.6">En el PC los avisos llegan aunque cierres la pestaña, pero el navegador tiene que seguir ejecutándose en segundo plano (en el móvil lo hace el sistema).<br><br>${how}</div></details>`;
+  }
   body.innerHTML = `
     <p class="ac-lead">Avisos al teléfono aunque la app esté cerrada: cuando se habilita un retiro, se supera el límite de drawdown diario o subes de nivel de riesgo.</p>
     <div class="pn-state ${cls}"><span class="pn-ico">${tlIco(ic)}</span><div><b>${t}</b>${d ? `<small>${d}</small>` : ''}</div></div>
@@ -8431,13 +8492,16 @@ async function pushRefreshUI() {
       ${row('dd', 'alert', 'Drawdown diario superado', 'Si la caída del día supera tu límite.')}
       ${row('coach', 'compass', 'Avisos del Coach', 'Cuando subes de nivel de Risk Scaling.')}
     </div>` : ''}
+    ${perm === 'denied' ? pushBlockedHelp() : ''}
     <div id="pushMsg" class="ac-msg" role="status"></div>
     ${subbed ? `<button class="btn btn-connect" onclick="pushTest()">${tlIco('send')}Enviar notificación de prueba</button>
       <button class="btn ac-ghost" onclick="pushDisable()">Desactivar en este dispositivo</button>`
       : (supported && perm !== 'denied' ? `<button class="btn btn-connect" onclick="pushEnable()">${tlIco('bell')}Activar notificaciones</button>` : '')}
     <div id="pnDevs" style="margin-top:12px"></div>
+    ${deskTip}
     ${hint}`;
   if(subbed) pushLoadDevices();
+  if(perm === 'denied') pushWatchPerm();
 }
 async function pushLoadDevices() {   // dispositivos que el SERVIDOR tiene registrados (los únicos que reciben push)
   const el = document.getElementById('pnDevs'); if(!el || !serverToken) return;
@@ -8457,19 +8521,9 @@ async function pushLoadDevices() {   // dispositivos que el SERVIDOR tiene regis
       const tag = x.skipped ? '<span class="pn-tag" title="Omitido: duplicado reciente">omitido</span>' : '<span class="pn-tag' + (x.failed ? ' bad' : '') + '" title="Dispositivos que lo recibieron">' + (x.sent || 0) + (x.failed ? ' · ' + x.failed + ' falló' : ' env.') + '</span>';
       return '<div class="pn-r"><span class="pn-dot ' + st + '"></span><span class="n">' + tlEsc(kindName(x.kind || x.tag)) + '</span>' + tag + '<span class="t">' + ago(x.t) + '</span></div>';
     }).join('') : '<div class="pn-empty">Ninguno aún.</div>';
-    let dd = '';
-    if(j.dd) {
-      const used = parseFloat(j.dd.used) || 0, lim = parseFloat(j.dd.limit) || 0, pc = lim > 0 ? Math.min(100, Math.max(0, used / lim * 100)) : 0;
-      const cls = pc >= 100 ? 'bad' : pc >= 60 ? 'warn' : '';
-      dd = '<div class="pn-sec"><div class="pn-sh"><span>Drawdown de hoy</span></div>' +
-        '<div class="pn-dd-top"><b>-$' + tlEsc(j.dd.used) + '</b><span>límite $' + tlEsc(j.dd.limit) + ' · ' + tlEsc(j.dd.limitPct) + '%</span></div>' +
-        '<div class="pn-bar ' + cls + '"><i style="width:' + pc.toFixed(1) + '%"></i></div>' +
-        '<div class="pn-foot">Pérdida realizada · actualizado ' + ago(j.dd.at) + '</div></div>';
-    }
     el.className = ''; el.removeAttribute('style');
     el.innerHTML = '<div class="pn-info">' +
       '<div class="pn-sec"><div class="pn-sh"><span>Dispositivos</span><em>' + L.length + '</em></div>' + devs + '</div>' +
-      dd +
       '<details class="pn-sec fold"' + (wasOpen ? ' open' : '') + '><summary class="pn-sh"><span>Últimos avisos</span>' + tlIco('chev') + '</summary>' + lg + '</details>' +
       '</div>';
   } catch(_) { el.textContent = 'No se pudo consultar los dispositivos.'; }
