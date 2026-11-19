@@ -1141,15 +1141,14 @@ header::after{content:'';position:absolute;left:0;right:0;bottom:0;height:1px;ba
 button:focus-visible,select:focus-visible{outline:2px solid rgba(0,229,255,.75);outline-offset:2px;}
 
 /* ── 4 · Movimiento: entrada escalonada (solo la primera vez que aparece cada bloque) ── */
-@keyframes tlRise{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:none;}}
+@keyframes tlRise{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:none;}}
 @media(prefers-reduced-motion:no-preference){
   #dashboard.on>.acc-bar,#dashboard.on>.dd-pair,#dashboard.on>.sec-label,#dashboard.on>.sec-group,#dashboard.on>.kpi-grid,#dashboard.on>.cal-wrap,
   #dashboard.on>.charts-2,#dashboard.on>#streakRow,#dashboard.on>.coach-grid,#dashboard.on>.risk-wrap,#dashboard.on>.wd-wrap,
-  #dashboard.on>.roi-wrap,#dashboard.on>.export-row{animation:tlRise .55s var(--ease) backwards;}
-  #dashboard.on>:nth-child(3){animation-delay:.04s}#dashboard.on>:nth-child(4){animation-delay:.08s}#dashboard.on>:nth-child(5){animation-delay:.12s}
-  #dashboard.on>:nth-child(6){animation-delay:.16s}#dashboard.on>:nth-child(7){animation-delay:.2s}#dashboard.on>:nth-child(8){animation-delay:.24s}
-  #dashboard.on>:nth-child(9){animation-delay:.28s}#dashboard.on>:nth-child(10){animation-delay:.32s}#dashboard.on>:nth-child(11){animation-delay:.36s}
-  #dashboard.on>:nth-child(12){animation-delay:.4s}#dashboard.on>:nth-child(n+13){animation-delay:.44s}
+  #dashboard.on>.roi-wrap,#dashboard.on>.export-row{animation:tlRise .34s var(--ease) backwards;}
+  /* retardo escalonado solo en los primeros bloques (los que se ven al abrir); el resto sin espera: antes el último tardaba ~1 s en aparecer */
+  #dashboard.on>:nth-child(3){animation-delay:.03s}#dashboard.on>:nth-child(4){animation-delay:.06s}#dashboard.on>:nth-child(5){animation-delay:.09s}
+  #dashboard.on>:nth-child(6){animation-delay:.12s}#dashboard.on>:nth-child(n+7){animation-delay:.14s}
 }
 @media(prefers-reduced-motion:reduce){*{animation-duration:.01ms !important;transition-duration:.01ms !important;}}
 
@@ -2645,7 +2644,7 @@ body.light .risk-prog-bar,body.light .wd-prog-bar{background:repeating-linear-gr
 .tl-secnav{position:sticky;top:calc(var(--tl-nav-top,0px) + env(safe-area-inset-top,0px));z-index:150;display:flex;gap:8px;overflow-x:auto;
   padding:10px 2px 12px;margin:0 0 4px;background:linear-gradient(180deg,var(--bg) 72%,transparent);scrollbar-width:none;-webkit-overflow-scrolling:touch;}
 .tl-secnav::-webkit-scrollbar{display:none;}
-.tl-secnav{transition:opacity .5s cubic-bezier(.22,1,.36,1) .14s,transform .55s cubic-bezier(.16,1,.3,1) .14s,visibility 0s linear 0s;will-change:opacity,transform;}   /* entrada suave al cerrar el journal: pequeño retardo + fundido y deslizamiento desde arriba */
+.tl-secnav{transition:opacity .5s cubic-bezier(.22,1,.36,1) .14s,transform .55s cubic-bezier(.16,1,.3,1) .14s,visibility 0s linear 0s;}   /* sin will-change: mantener la barra en su propia capa de GPU rasterizaba los chips una sola vez y se veían borrosos al deslizar */   /* entrada suave al cerrar el journal: pequeño retardo + fundido y deslizamiento desde arriba */
 /* Con el journal o el visor de imagen abierto, el navegador de secciones se oculta (queda «por debajo») y reaparece al cerrarlo. El menú ☰ no lo oculta */
 html.tl-layer-open .tl-secnav{opacity:0;transform:translateY(-8px);visibility:hidden;pointer-events:none;transition:opacity .15s ease,transform .15s ease,visibility 0s linear .15s;}
 /* Journal abierto: la página de fondo no se desplaza; el scroll es solo del journal */
@@ -2657,6 +2656,7 @@ html.tl-jlock,html.tl-jlock body{overflow:hidden;}
 .tl-chip::after{content:'';position:absolute;left:0;right:0;top:-5px;bottom:-5px;}      /* zona táctil de 44 px sin engordar el chip */
 .tl-chip i{font-style:normal;font-size:10px;opacity:.6;font-family:var(--font-mono);}
 .tl-chip:hover{color:var(--text);border-color:var(--cyan);}
+.tl-secnav,.tl-chip{-webkit-font-smoothing:antialiased;text-rendering:geometricPrecision;}   /* texto nítido en todos los chips, no solo en el activo */
 .tl-chip.on{color:var(--cyan);border-color:var(--cyan);background:rgba(0,229,255,.10);}
 .tl-chip:focus-visible{outline:2px solid var(--cyan);outline-offset:2px;}
 .sec-group{scroll-margin-top:68px;}
@@ -2731,7 +2731,7 @@ body.tl-booting #connectPanel{display:none !important;}
 /* 7 · Las gráficas se «dibujan» una sola vez, al verse por primera vez */
 @keyframes tlWipe{from{clip-path:inset(0 100% 0 0);}to{clip-path:inset(0 0 0 0);}}
 .tl-pre{clip-path:inset(0 100% 0 0);}
-.tl-draw{animation:tlWipe 1s var(--ease,ease) both;}
+.tl-draw{animation:tlWipe .6s var(--ease,ease) both;}
 
 /* 8 · Avisos unificados: banner de drawdown, aviso de riesgo y aviso de retiro comparten componente */
 #tlToastStack{position:fixed;z-index:1000;top:calc(12px + env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%);width:min(440px,calc(100% - 24px));
@@ -2855,8 +2855,112 @@ body.light .th-dot{box-shadow:0 0 0 4px rgba(10,40,80,.10);}
   .dd-alert-icon .tl-i{animation:none;}
 }
 @media(prefers-reduced-motion:no-preference){
-  #dashboard.on>.tl-hero,#dashboard.on>.dd-pair,#dashboard.on>.tl-secnav{animation:tlRise .55s var(--ease,ease) backwards;}
+  #dashboard.on>.tl-hero,#dashboard.on>.dd-pair,#dashboard.on>.tl-secnav{animation:tlRise .34s var(--ease,ease) backwards;}
 }
+
+/* ═══ 17 · Accesibilidad y coherencia (auditoría) ═══════════════════════════════════════════════════════════ */
+/* A) Áreas táctiles de 44 px: el control NO cambia de aspecto; una zona invisible ampliada recibe el toque. (kpi-tip-x, metric-info-x, dd-step, rk-step, chips y menú ya la tenían.) */
+:where(.metric-info-icon,.cal-nav-btn,.theme-toggle,.rw-seg button,.wd-nav .wd-btn){position:relative;}
+.metric-info-icon::before,.theme-toggle::before,.jmodal-close::before,.jimg-item .jimg-x::before{content:'';position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%);}
+.cal-nav-btn::before{content:'';position:absolute;left:50%;top:50%;width:max(100%,38px);height:max(100%,44px);transform:translate(-50%,-50%);}
+.rw-seg button::before,.wd-nav .wd-btn::before{content:'';position:absolute;left:0;right:0;top:50%;height:max(100%,44px);transform:translateY(-50%);}   /* botones contiguos: solo crece en vertical para no pisarse */
+/* B) Tema claro: verde, ámbar y cian oscurecidos solo en su valor de TEXTO/borde (contraste ≥ 4,5). Los resplandores y rellenos neón usan --*-rgb y no cambian. */
+body.light{--cyan:#006d96;--green:#007542;--warn:#8f5a00;}
+/* C) Piso de texto: etiquetas de 8–9,5 px → 10 px; de 10–10,5 px → 11 px. El calendario (celdas densas) queda aparte. */
+.jimg-label,.jimg-item .jimg-badge,.acc-item .al,.sb-lbl,.kpi-label,.streak-info .streak-label,.sym-card-title,.prog-row .prog-labels,
+#jmodalBox .jeyebrow,.jstat-l,#jmodalBox .jmodal-stats>.jstat .jstat-l,.wd-tag,.roi-card-label,.jsw-th [data-l]::before,.jsw-trades tr.jsw-colh td,.wl-name{font-size:10px !important;}
+.logo-text p,.last-sync,.jimg-lbl,.field label,.sec-label,.kpi-sub,.metric-info-popup-body,.jsw-act>summary,.coach-label,.menu-sync{font-size:11px !important;}
+
+/* ═══ 18 · Móvil: sin barra de scroll lateral + tarjetas de nivel (Plan) ═══════════════════════════════════════ */
+@media(max-width:900px),(pointer:coarse){
+  html,body{scrollbar-width:none !important;-ms-overflow-style:none;}
+  html::-webkit-scrollbar,body::-webkit-scrollbar{display:none !important;width:0 !important;height:0 !important;background:transparent;}
+}
+@media(max-width:600px){
+  /* La franja verde/cian del nivel (inset 3px) quedaba pegada a la «N» de «Nivel»: ahora el título respira 14 px a su derecha */
+  .wd-table td:first-child{padding-left:14px;}
+}
+
+/* ═══ 19 · Panel «Calidad de datos · MAE / MFE» y tarjeta MAE/MFE en puntos de precio ═════════════════════════ */
+.px-panel{margin:0 0 14px;padding:14px 16px;border:1px solid var(--b1);border-radius:14px;background:var(--s2);display:flex;flex-direction:column;gap:12px;}
+.px-head{display:flex;align-items:center;gap:12px;min-width:0;}
+.px-ico{flex:none;width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;color:var(--cyan);background:rgba(var(--c-rgb),.10);border:1px solid rgba(var(--c-rgb),.30);}
+.px-title{font-family:var(--font-head);font-size:13px;font-weight:600;letter-spacing:.3px;color:var(--text);line-height:1.25;}
+.px-sub{margin-top:2px;font-size:11px;color:var(--muted);line-height:1.4;}
+#pxCov{display:flex;flex-direction:column;gap:10px;min-width:0;}
+#pxCov:empty{display:none;}
+.px-notes{display:flex;flex-direction:column;gap:5px;}
+.px-why{font-size:11px;line-height:1.5;color:var(--muted);padding-left:12px;position:relative;}
+.px-why::before{content:'';position:absolute;left:0;top:.55em;width:5px;height:5px;border-radius:50%;background:var(--warn);}
+.px-why.old::before{background:var(--muted);}
+.px-bar{display:flex;height:6px;border-radius:99px;overflow:hidden;background:rgba(var(--ov),.08);}
+.px-bar i{display:block;height:100%;min-width:0;}
+.px-bar .ok{background:var(--green);}
+.px-bar .ex{background:var(--warn);}
+.px-bar .old{background:var(--muted);opacity:.55;}
+.px-chips{display:flex;flex-wrap:wrap;gap:6px;}
+.px-chip{display:inline-flex;align-items:center;gap:6px;min-height:26px;padding:0 10px;border-radius:99px;border:1px solid var(--b1);background:rgba(var(--ov),.04);font-size:11px;line-height:1;color:var(--muted);white-space:nowrap;}
+.px-chip b{color:var(--text);font-weight:600;font-variant-numeric:tabular-nums;}
+.px-chip::before{content:'';flex:none;width:7px;height:7px;border-radius:50%;background:var(--muted);opacity:.7;}
+.px-chip.ok::before{background:var(--green);opacity:1;}
+.px-chip.ex::before{background:var(--warn);opacity:1;}
+.px-note{font-size:11px;line-height:1.55;color:var(--muted);}
+.px-note b{color:var(--text);font-weight:600;}
+/* tarjeta: mini tabla por símbolo. El diseño depende del ANCHO REAL de la tarjeta (data-w, lo fija pxFit), no del de la pantalla */
+#kpiPx.kpi-grid{grid-template-columns:minmax(0,1fr);}   /* una sola tarjeta a todo el ancho (las reglas móviles de .kpi-grid fuerzan 2 columnas) */
+.kpi.kpi-px{padding:16px;min-width:0;grid-column:1/-1;}
+.pxc{margin-top:2px;display:flex;flex-direction:column;gap:14px;min-width:0;overflow:hidden;}
+.pxc-sym{display:flex;flex-direction:column;gap:12px;min-width:0;}
+.pxc-sym+.pxc-sym{padding-top:14px;border-top:1px solid var(--b1);}
+.pxc-hd{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;min-width:0;}
+.pxc-name{font-family:var(--font-head);font-size:15px;font-weight:600;letter-spacing:.3px;color:var(--text);}
+.pxc-hd .r{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.pxc-n{font-size:11px;color:var(--muted);white-space:nowrap;}
+.pxc-lvl{display:inline-block;font-size:10px;font-weight:600;letter-spacing:.4px;text-transform:uppercase;line-height:1.2;padding:3px 8px;border-radius:99px;border:1px solid currentColor;white-space:nowrap;}
+.pxc-lvl.lo{color:var(--warn);}
+.pxc-lvl.mid{color:var(--cyan);}
+.pxc-lvl.hi{color:var(--green);}
+.pxc-tw{min-width:0;display:flex;flex-direction:column;gap:8px;}
+.pxc-tbl{display:grid;grid-template-columns:minmax(76px,.9fr) minmax(0,1fr) minmax(0,1fr);column-gap:0;align-items:stretch;min-width:0;}
+.pxc-tbl>.l,.pxc-tbl>.v,.pxc-tbl>.pxc-m{display:flex;flex-direction:column;justify-content:center;}
+.pxc-tbl>.v,.pxc-tbl>.pxc-m{align-items:flex-end;}
+.pxc-tbl>*{padding:9px 0;border-bottom:1px solid var(--b1);min-width:0;}
+.pxc-tbl>.h{padding:0 0 6px;font-size:10px;line-height:1.2;color:var(--muted);text-align:right;}
+.pxc-tbl>.v,.pxc-tbl>.h,.pxc-tbl>.pxc-m{padding-left:10px;}
+.pxc-tbl>.l{font-size:12px;line-height:1.2;color:var(--text);text-align:left;}
+.pxc-tbl>.l i{display:block;margin-top:3px;font-style:normal;font-size:10px;color:var(--muted);}
+.pxc-tbl>.v{text-align:right;line-height:1.15;font-variant-numeric:tabular-nums;}
+.pxc-tbl>.v b{display:block;font-size:15px;font-weight:700;}
+.pxc-tbl>.v.mae b{color:var(--red);}
+.pxc-tbl>.v.mfe b{color:var(--green);}
+.pxc-tbl>.v small{display:block;margin-top:3px;font-size:10px;color:var(--muted);}
+.pxc-tbl>.pxc-m{grid-column:2/-1;text-align:right;font-size:11px;line-height:1.35;color:var(--muted);}
+.pxc-legend{font-size:10px;line-height:1.4;color:var(--muted);}
+.pxc-stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;min-width:0;}
+.pxc-st{display:flex;flex-direction:column;padding:10px 12px;border-radius:10px;background:rgba(var(--ov),.04);border:1px solid var(--b1);min-width:0;}
+.pxc-st .k{font-size:10px;line-height:1.3;color:var(--muted);min-height:2.6em;}
+.pxc-st .v{margin-top:6px;font-size:18px;font-weight:700;line-height:1.1;color:var(--text);white-space:nowrap;font-variant-numeric:tabular-nums;}
+.pxc-st .v.na{font-size:11px;font-weight:500;line-height:1.35;color:var(--muted);white-space:normal;}
+.pxc-st .s{margin-top:5px;font-size:10px;line-height:1.3;color:var(--muted);}
+.pxc-box{padding:10px 12px;border-radius:10px;background:rgba(var(--ov),.04);border:1px solid var(--b1);font-size:12px;line-height:1.5;color:var(--muted);}
+.pxc-foot{font-size:11px;line-height:1.55;color:var(--muted);}
+/* por ancho real de la tarjeta */
+.pxc[data-w="xs"] .pxc-stats{grid-template-columns:minmax(0,1fr);}
+.pxc[data-w="xs"] .pxc-st .k{min-height:0;}
+.pxc[data-w="md"] .pxc-stats{grid-template-columns:repeat(4,minmax(0,1fr));}
+.pxc[data-w="lg"] .pxc-sym{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:14px 28px;align-items:start;}
+.pxc[data-w="lg"] .pxc-sym>.pxc-hd,.pxc[data-w="lg"] .pxc-sym>.pxc-box{grid-column:1/-1;}
+.pxc[data-w="lg"] .pxc-tbl>.l{font-size:13px;}
+.pxc[data-w="lg"] .pxc-tbl>.h{text-align:center;}
+.pxc[data-w="lg"] .pxc-tbl>.v{align-items:center;}
+.pxc[data-w="lg"] .pxc-tbl>.v b{font-size:17px;}
+/* si aun así algo desborda, pxFit compacta por pasos (tope de 2) */
+.pxc[data-tight="1"] .pxc-tbl>.v b{font-size:13px;}
+.pxc[data-tight="1"] .pxc-st .v{font-size:15px;}
+.pxc[data-tight="2"] .pxc-tbl>.v b{font-size:12px;}
+.pxc[data-tight="2"] .pxc-tbl>.l{font-size:11px;}
+.pxc[data-tight="2"] .pxc-st .v{font-size:13px;}
+.pxc[data-tight="2"] .pxc-st .s{display:none;}
 </style>
 </head>
 <body>
@@ -3157,15 +3261,20 @@ body.light .th-dot{box-shadow:0 0 0 4px rgba(10,40,80,.10);}
   <div class="sec-group" id="sec-estadisticas"><span class="sg-num">06</span><div class="sg-txt"><div class="sg-title">Estadísticas detalladas</div></div></div>
 
   <!-- KPI ROW 2 -->
-  <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:0 0 10px;font-size:11px;color:var(--muted);">
-    <label for="pxMode">MAE/MFE en puntos de precio — calidad incluida:</label>
-    <select id="pxMode" onchange="pxModeChanged(this.value)" style="background:var(--s2);border:1px solid var(--b2);color:var(--text);padding:5px 8px;border-radius:8px;font-family:var(--font-mono);font-size:11px;">
-      <option value="complete">Solo completas</option>
-      <option value="approx">Completas + aproximadas (M1)</option>
-      <option value="all">Incluir parciales (cota inferior)</option>
-    </select>
-  </div>
   <div class="kpi-grid" id="kpi2"></div>
+
+  <!-- MAE / MFE en puntos de precio: calidad de datos (cobertura) + tarjeta por símbolo -->
+  <div class="px-panel" id="pxPanel">
+    <div class="px-head">
+      <span class="px-ico" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></svg></span>
+      <div class="px-txt">
+        <div class="px-title" id="pxTitle">Calidad de datos · MAE / MFE</div>
+        <div class="px-sub">Solo se promedian mediciones completas (ticks continuos desde la apertura); el resto se cuenta aquí y no se mezcla</div>
+      </div>
+    </div>
+    <div id="pxCov" aria-live="polite"></div>
+  </div>
+  <div class="kpi-grid" id="kpiPx"></div>
 
   <!-- ═══ 07 · ANÁLISIS DEL COACH ═══ -->
   <div class="sec-group" id="sec-coach"><span class="sg-num">07</span><div class="sg-txt"><div class="sg-title">Análisis del Coach</div></div></div>
@@ -3939,10 +4048,14 @@ function buildSessions(deals, openIds, exc, pxe) {
       if(pxQ!=='UNAVAILABLE'&&pxQ!=='NONE'&&Number.isFinite(pe.mae)&&Number.isFinite(pe.mfe)&&+pe.pt>0){ const d=pxDecOf(+pe.pt); pxMae=+(+pe.mae*+pe.pt).toFixed(d); pxMfe=+(+pe.mfe*+pe.pt).toFixed(d); }   // la EA mide en puntos MT5 (SYMBOL_POINT); aquí se pasa a puntos de precio (ej. 7052 → 70.52)
       else if(pxQ!=='PENDING'){ pxQ='UNAVAILABLE'; }
     }
+    // Puntos de precio REALIZADOS (signo según dirección). Solo con UNA entrada: con varias, avgEntry es un promedio y la EA
+    // reinicia el seguimiento al cambiar el precio de entrada, así que MAE/MFE y resultado no serían comparables.
+    let pxReal=null;
+    if(entries.length===1&&exits.length&&avgEntry>0&&exitPx>0&&+pxPt>0){ pxReal=+((ref[0].type==='SELL'?avgEntry-exitPx:exitPx-avgEntry)).toFixed(pxDecOf(+pxPt)); }
     sessions.push({id:pid,date,sym,side:ref[0].type,entries:entries.length,avgEntry:+avgEntry.toFixed(5),
       exitPx:+exitPx.toFixed(5),totalVol:+totalVol.toFixed(2),maxVol:+maxVol.toFixed(2),
       durMin,grossPnl:+grossPnl.toFixed(2),comm:+comm.toFixed(2),swap:+swap.toFixed(2),netPnl:+netPnl.toFixed(2),costsKnown,
-      risk0,r:risk0?+(netPnl/risk0).toFixed(2):null,maxFloatDD,maxFloatWin,pxMae,pxMfe,pxQ,pxSrc,pxPt,startT,endT,partialHistory:!entries.length});
+      risk0,r:risk0?+(netPnl/risk0).toFixed(2):null,maxFloatDD,maxFloatWin,pxMae,pxMfe,pxReal,pxQ,pxSrc,pxPt,startT,endT,partialHistory:!entries.length});
   }
   return sessions.sort((a,b)=>a.startT-b.startT);
 }
@@ -4135,17 +4248,11 @@ function calcMetrics(days, trades, balance, extra) {
   const dates=T.map(t=>t.date).sort(); const span=Math.max(1,Math.round((Date.parse(dates[n-1])-Date.parse(dates[0]))/864e5)+1);
   const exs=T.filter(t=>t.maxFloatDD!=null), rs=T.filter(t=>t.r!=null);
   const cex=camps.filter(c=>c.mae!=null), crs=camps.filter(c=>c.r!=null);
-  // MAE/MFE en puntos: promedios SOLO por símbolo (puntos de instrumentos distintos no son comparables)
-  const pxMode=extra.pxMode||'complete';
-  const okQ=pxMode==='complete'?['COMPLETE']:pxMode==='approx'?['COMPLETE','APPROXIMATE']:['COMPLETE','APPROXIMATE','PARTIAL'];
+  // MAE/MFE en puntos: SOLO mediciones COMPLETE y SOLO por símbolo (puntos de instrumentos distintos no son comparables).
+  // Aproximadas (velas M1: rango inflado), parciales (cota inferior) y pendientes no se promedian: solo se cuentan como cobertura.
   const pxCount={COMPLETE:0,PARTIAL:0,APPROXIMATE:0,PENDING:0,UNAVAILABLE:0,NONE:0}; T.forEach(t=>{ pxCount[t.pxQ]=(pxCount[t.pxQ]||0)+1; });
-  const pxUse=T.filter(t=>okQ.includes(t.pxQ)&&t.pxMae!=null);
-  const pxSym={};
-  pxUse.forEach(t=>{ const o=pxSym[t.sym]||(pxSym[t.sym]={rows:[]}); o.rows.push(t); });
-  Object.values(pxSym).forEach(o=>{ const r=o.rows, av=(a,f)=>a.length?_sum(a.map(f))/a.length:null, w=r.filter(t=>t.netPnl>0), l=r.filter(t=>t.netPnl<0);
-    o.dec=0; o.n=r.length;   // se muestra redondeado a entero (el valor interno conserva decimales)
-    o.mae=av(r,t=>t.pxMae); o.mfe=av(r,t=>t.pxMfe);
-    o.wn=w.length; o.wmae=av(w,t=>t.pxMae); o.wmfe=av(w,t=>t.pxMfe); o.ln=l.length; o.lmae=av(l,t=>t.pxMae); o.lmfe=av(l,t=>t.pxMfe); delete o.rows; });
+  const pxUse=T.filter(t=>t.pxQ==='COMPLETE'&&t.pxMae!=null);
+  const pxSym=pxAggBySym(pxUse);
   const symMap={}; T.forEach(s=>{ symMap[s.sym]=(symMap[s.sym]||0)+s.netPnl; });
   const symStat={}; T.forEach(s=>{ const o=symStat[s.sym]||(symStat[s.sym]={n:0,w:0,l:0}); o.n++; if(s.netPnl>0)o.w++; else if(s.netPnl<0)o.l++; });
   const dayWins=D.filter(d=>dayClass(d.netPnl)==='win').length, dayLosses=D.filter(d=>dayClass(d.netPnl)==='loss').length;
@@ -4166,7 +4273,7 @@ function calcMetrics(days, trades, balance, extra) {
     grossProfit:_sum(T.filter(t=>t.grossPnl>0).map(t=>t.grossPnl)),   // ganancia bruta ANTES de comisión y swap (base del ratio de comisiones)
     avgMAE:exs.length?_sum(exs.map(t=>t.maxFloatDD))/exs.length:null,avgMFE:exs.length?_sum(exs.map(t=>t.maxFloatWin))/exs.length:null,excN:exs.length,
     avgR:rs.length?_sum(rs.map(t=>t.r))/rs.length:null,rN:rs.length,
-    pxCount,pxSym,pxMode,pxN:pxUse.length,
+    pxCount,pxSym,pxN:pxUse.length,
     comms:_sum(T.map(t=>Math.abs(t.comm))),swaps:_sum(T.map(t=>t.swap||0)),
     avgDur:_sum(T.map(t=>t.durMin))/n,avgEntries:_sum(T.map(t=>t.entries))/n,avgMaxVol:_sum(T.map(t=>t.maxVol))/n,tpd:n/span,symMap,symStat,
     // campaña
@@ -4503,8 +4610,8 @@ function renderAll(data) {
   const sessions=[...intraDays,...swp.units].sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:(a.startT-b.startT));
   const campaigns=buildCampaigns(trades,data.campaigns);       // nivel campaña (scaling in)
   _journalSessions = sessions;
-  const m=calcMetrics(sessions, trades, acc.balance, {campaigns,cashflows:data.cashflows,pxMode:_pxMode,swing:data.swing});
-  if(!m){ renderAccBar(acc,[],_isDemo); document.getElementById('kpi1').innerHTML='<div class="kpi"><div class="kpi-label">Sin operaciones cerradas</div><div class="kpi-sub">No hay datos para calcular métricas.</div></div>'; document.getElementById('kpi2').innerHTML=''; ['kpiC','streakRow','campNote'].forEach(i=>{const e=document.getElementById(i); if(e) e.innerHTML='';}); return; }
+  const m=calcMetrics(sessions, trades, acc.balance, {campaigns,cashflows:data.cashflows,swing:data.swing});
+  if(!m){ renderAccBar(acc,[],_isDemo); document.getElementById('kpi1').innerHTML='<div class="kpi"><div class="kpi-label">Sin operaciones cerradas</div><div class="kpi-sub">No hay datos para calcular métricas.</div></div>'; document.getElementById('kpi2').innerHTML=''; ['kpiC','streakRow','campNote','kpiPx','pxCov'].forEach(i=>{const e=document.getElementById(i); if(e) e.innerHTML='';}); return; }
   m.openCount=openIds.size;
   // Alcance del historial de deals que entrega la EA (envía como máximo los 2000 deals de trading más recientes).
   m.histTruncated=data.deals_truncated===true;
@@ -4532,7 +4639,7 @@ function renderAll(data) {
   _lastSessions = sessions; _lastTrades = trades; _lastBalance = balance; _lastM = m; _lastCampaigns = campaigns;
 }
 let _lastCampaigns = [];
-let _lastData = null, _pxMode = 'complete', _curSym = '$';
+let _lastData = null, _curSym = '$';
 
 // ── REALIZADO DE LA SESIÓN NY ACTUAL (corte 17:00) ─────────────────────────────
 // Se calcula desde los DEALS (no desde posiciones): lo que se cierra hoy cuenta hoy, parciales incluidos, sin importar si la
@@ -4598,7 +4705,7 @@ const KPI_HEALTHY={
  "Sharpe": "1 o más es bueno; 2 o más es muy sólido. Menos de 0.5 indica resultados inconsistentes.",
  "Mejor / Peor día": "que el mejor día supere en valor absoluto al peor, y que el peor día quede lejos de tu límite de drawdown diario.",
  "MAE / MFE medio · por posición": "MFE medio mayor que el MAE medio (1.5 a 2 veces o más) y cerrar capturando más de la mitad del MFE.",
- "MAE / MFE medio · puntos": "MFE medio mayor que el MAE medio (1.5 a 2 veces o más) y cerrar capturando más de la mitad del MFE.",
+ "MAE / MFE · puntos de precio": "MFE mediano 1.5 a 2 veces el MAE mediano o más, y capturar más de la mitad del MFE en las ganadoras.",
  "MAE / MFE medio · por campaña": "MFE medio mayor que el MAE medio (1.5 a 2 veces o más) y cerrar capturando más de la mitad del MFE.",
  "Campañas": "30 campañas o más para que el resto de métricas sea confiable.",
  "Win Rate · campañas": "entre 40 % y 60 %, siempre que tu ganancia media por campaña sea mayor que tu pérdida media. Con menos de 30 campañas todavía no es concluyente.",
@@ -4640,6 +4747,13 @@ function kpiRead(l,scope){
       case 'Volumen · ganadoras / perdedoras': if(X.volW==null||X.volL==null) return ''; return X.volL>X.volW*1.1?`Arriesgas más volumen en las perdedoras (${X.volL.toFixed(2)} vs ${X.volW.toFixed(2)}): reduce el tamaño en ideas que aún no confirman.`:`Tu volumen en perdedoras (${X.volL.toFixed(2)}) no supera al de ganadoras (${X.volW.toFixed(2)}): buen control del riesgo.`;
       case 'Mejor dirección': { const a=X.bySide||[]; if(a.length<2) return a.length?'Solo has operado una dirección: aún no hay con qué comparar.':''; const b=a[0], w=a[a.length-1], nm=k=>k==='BUY'?'compras':k==='SELL'?'ventas':k;
         return w.net<0?`Tus ${nm(b.k)} rinden ${fmt$(b.net)} y tus ${nm(w.k)} pierden ${fmt$(-w.net)}: evalúa operar solo la dirección que te funciona hasta entender por qué falla la otra.`:`Ambas direcciones son rentables (${nm(b.k)} ${fmt$(b.net)} · ${nm(w.k)} ${fmt$(w.net)}): no dependes de una sola.`; }
+      case 'MAE / MFE · puntos de precio': { const e=Object.entries(m.pxSym||{}).filter(([,o])=>o.n>=PX_MIN_N).sort((a,b)=>b[1].n-a[1].n)[0];
+        if(!e) return `Aún no hay muestra suficiente: se necesitan al menos ${PX_MIN_N} mediciones completas por símbolo.`;
+        const [sy,o]=e, f=v=>pxV(v,o.dec), out=[];
+        if(o.maeMed>0) out.push(o.mfeMed/o.maeMed<1.5?`En ${sy} tu MFE mediano (${f(o.mfeMed)} pts) no llega a 1,5 veces tu MAE mediano (${f(o.maeMed)} pts): lo que aguantas en contra no se compensa con el recorrido a favor.`:`En ${sy} tu MFE mediano (${f(o.mfeMed)} pts) supera 1,5 veces tu MAE mediano (${f(o.maeMed)} pts): hay recorrido a favor de sobra.`);
+        if(o.capW!=null) out.push(o.capW<50?`Capturas el ${o.capW.toFixed(0)} % del MFE en tus ganadoras: devuelves ${f(o.giveW)} pts por ganadora (mediana), revisa dónde sales.`:`Capturas el ${o.capW.toFixed(0)} % del MFE en tus ganadoras: salidas eficientes.`);
+        if(o.n<PX_SOLID_N) out.push(`Con n=${o.n} es una lectura orientativa (fiable desde ${PX_SOLID_N}).`);
+        return out.join(' '); }
       case 'MAE / MFE medio · por campaña': if(m.cAvgMAE==null||m.cAvgMFE==null) return ''; { const a=Math.abs(m.cAvgMAE), f=Math.abs(m.cAvgMFE); return f<a?`Tus ideas van más en contra (${fmt$(a)}) que a favor (${fmt$(f)}): revisa la calidad de las entradas.`:f<a*1.5?`MFE (${fmt$(f)}) supera al MAE (${fmt$(a)}), pero aún no llega a 1.5 veces: entradas aceptables. Busca entradas que vayan menos en contra y captura más del MFE al cerrar.`:`MFE (${fmt$(f)}) mayor que MAE (${fmt$(a)}): buenas entradas. El siguiente paso es capturar más del MFE al cerrar.`; }
     } return '';
   }
@@ -4661,11 +4775,11 @@ function kpiRead(l,scope){
 }
 
 function kpiGrid(id,data){ document.getElementById(id).innerHTML=data.map(k=>`
-    <div class="kpi ${k.c}">
+    <div class="kpi ${k.c}${k.html?' kpi-px':''}">
       <div class="kpi-icon">${k.icon}</div>
       <div class="kpi-label">${k.l}</div>
-      <div class="kpi-val ${k.cls}">${k.v}</div>
-      <div class="kpi-sub">${k.sub||''}</div>
+      ${k.html?k.html:`<div class="kpi-val ${k.cls}">${k.v}</div>
+      <div class="kpi-sub">${k.sub||''}</div>`}
       ${k.tip?`<div class="kpi-tip"><div class="kpi-tip-head"><span class="kpi-tip-title">${k.l}</span><button class="kpi-tip-x" type="button" aria-label="Cerrar">✕</button></div>${kpiHealthy(k,id)}</div>`:''}
     </div>`).join(''); }
 // Posiciona un tooltip flotante (KPI o «i» de Métricas) dentro de la zona REALMENTE visible:
@@ -4732,6 +4846,30 @@ document.addEventListener('pointerdown',e=>{
     const t = ch.tooltip; if(t && t.getActiveElements && t.getActiveElements().length){ ch.setActiveElements([]); t.setActiveElements([], {x:0, y:0}); ch.update('none'); }
   });
 });
+// Todos los tooltips (gráficas Curva / Drawdown / P&L por día / P&L mensual, tarjetas KPI y la «i» de Métricas Clave) se cierran
+// en cuanto la página se desplaza. El journal queda fuera: tiene su propio scroll y la página de fondo está bloqueada.
+(function(){
+  let ref = window.scrollY;
+  const mark = () => { ref = window.scrollY; };
+  document.addEventListener('pointerdown', mark, true);
+  document.addEventListener('click', mark, true);
+  const root = document.documentElement;
+  function closeAllTips(){
+    if(root.classList.contains('tl-jlock') || root.classList.contains('tl-layer-open')) return;
+    if(typeof charts !== 'undefined') ['eq','dd','day','monthly'].forEach(k => {
+      const ch = charts[k]; if(!ch || !ch.tooltip) return;
+      if(k==='eq' && ch.$blink!=null && typeof tlBlinkSet==='function') tlBlinkSet(ch, null);
+      const t = ch.tooltip;
+      if(t.getActiveElements && t.getActiveElements().length){ ch.setActiveElements([]); t.setActiveElements([], {x:0, y:0}); ch.update('none'); }
+    });
+    document.querySelectorAll('.kpi.tip-open').forEach(k => k.classList.remove('tip-open'));
+    document.querySelectorAll('.metric-info.open').forEach(k => k.classList.remove('open'));
+  }
+  window.addEventListener('scroll', () => {
+    if(Math.abs(window.scrollY - ref) < 4) return;   // ignora microdesplazamientos del propio toque
+    ref = window.scrollY; closeAllTips();
+  }, {passive:true});
+})();
 // Explicación de «Métricas Clave — Progreso»: se abre/cierra tocando el círculo «i»; también con la X o tocando fuera.
 document.addEventListener('click',e=>{
   const mi=e.target.closest&&e.target.closest('.metric-info');
@@ -4784,9 +4922,8 @@ function renderKPIs(m, acc) {
       tip:'Tu peor día no debería acercarse al límite de drawdown diario que configuraste.'},
     {l:'MAE / MFE medio · por posición',v:m.avgMAE==null?'N/D':`${fmt$(-m.avgMAE)} / ${fmt$(m.avgMFE)}`,cls:'neu',c:'c',icon:'↔️',sub:m.excN?`${m.excN} de ${m.n} posiciones`:'N/D',
       tip:'Lo máximo que fue en contra (MAE) y a favor (MFE) de cada posición, en dinero. Si el MFE es muy superior a lo que cierras, devuelves ganancia.'},
-    pxKpi(m),
   ];
-  kpiGrid('kpi1',g1); kpiGrid('kpi2',g2);
+  kpiGrid('kpi1',g1); kpiGrid('kpi2',g2); kpiGrid('kpiPx',[pxKpi(m)]); pxRenderPanel(m); pxFit(); pxFitBurst();
 }
 
 // Campañas (scaling in): cada idea completa cuenta una vez. Misma lógica de lectura que NinjaTrader (ganancia media ÷ pérdida media).
@@ -5019,7 +5156,51 @@ const chartTip = ({chart, tooltip}) => {
 };
 // Fecha corta para tooltips: "26 oct" (con año solo si no es el actual).
 const tipDate = d => { const [y, m, dd] = String(d).split('-').map(Number); if(!y) return d; return dd + ' ' + ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'][m - 1] + (y !== new Date().getFullYear() ? ' ' + y : ''); };
-function dc(id){ if(charts[id]){ if(charts[id].$tipEl) charts[id].$tipEl.remove(); charts[id].destroy();delete charts[id];} }
+function dc(id){ if(charts[id]){ if(charts[id].$tipEl) charts[id].$tipEl.remove(); try{ if(charts[id].$ro) charts[id].$ro.disconnect(); }catch(_){} charts[id].destroy();delete charts[id];} }
+
+// ── Guardián anti-distorsión para TODAS las gráficas de Chart.js ──────────────────────────────────────────
+// Síntoma: el lienzo se estira por CSS pero su bitmap interno quedó con un tamaño viejo (la gráfica sale elíptica,
+// borrosa o recortada). Pasa cuando el layout aún no se ha asentado al crear la gráfica (fuentes, tarjetas vecinas,
+// animaciones de entrada, secciones plegadas) y el ResizeObserver interno de Chart.js no llega a corregirlo.
+// Se compara el tamaño dibujado con el de su caja y se corrige siempre que difieran. (El anillo Win/Loss tiene su propia versión.)
+function tlChartMismatch(ch){
+  const c = ch && ch.canvas; if(!c || !ch.ctx || !c.isConnected) return false;
+  const box = c.parentNode; if(!box || !box.clientWidth) return false;               // oculta (sección plegada): no se mide
+  if(Math.abs(c.clientWidth - ch.width) > 1 || Math.abs(c.clientHeight - ch.height) > 1) return true;   // bitmap ≠ caja visible
+  const cs = getComputedStyle(box), pd = k => parseFloat(cs[k]) || 0;
+  const iw = box.clientWidth - pd('paddingLeft') - pd('paddingRight');
+  if(iw > 0 && Math.abs(iw - ch.width) > 1.5) return true;                          // la caja cambió y Chart.js no se enteró
+  if(ch.options.maintainAspectRatio === false){
+    const ih = box.clientHeight - pd('paddingTop') - pd('paddingBottom');
+    if(ih > 0 && Math.abs(ih - ch.height) > 1.5) return true;
+  }
+  return false;
+}
+function tlChartFix(ch){
+  if(!ch || !ch.canvas || !ch.ctx || ch._tlFixing || ch.canvas.id === 'wlChart') return;
+  if(!tlChartMismatch(ch)){ ch._tlFixN = 0; return; }
+  if((ch._tlFixN || 0) >= 4) return;                                                 // tope: evita bucles si algo externo fija otro tamaño
+  ch._tlFixing = true;
+  requestAnimationFrame(() => {
+    ch._tlFixing = false;
+    try{ if(!ch.canvas || !ch.ctx || !ch.canvas.parentNode.clientWidth) return; ch._tlFixN = (ch._tlFixN || 0) + 1; ch.resize(); }catch(e){}
+  });
+}
+try{
+  Chart.register({id:'tlSizeGuard',
+    afterInit(ch){
+      if(ch.canvas.id === 'wlChart') return;
+      const fix = () => tlChartFix(ch), box = ch.canvas.parentNode;
+      if(window.ResizeObserver && box){ ch.$ro = new ResizeObserver(fix); ch.$ro.observe(box); if(box.parentNode) ch.$ro.observe(box.parentNode); }
+      [0, 120, 400, 900, 1800, 3000].forEach(t => setTimeout(fix, t));              // el layout termina de asentarse tras las animaciones de entrada
+    },
+    afterDraw(ch){ const n = performance.now(); if(n - (ch._tlChk || 0) < 250) return; ch._tlChk = n; tlChartFix(ch); }
+  });
+  const all = () => Object.values(Chart.instances || {}).forEach(tlChartFix);
+  ['resize', 'orientationchange', 'load'].forEach(e => window.addEventListener(e, all));
+  document.addEventListener('visibilitychange', all);
+  if(document.fonts && document.fonts.ready) document.fonts.ready.then(all);
+}catch(e){}
 
 // ── VENTANA DESLIZABLE · Curva acumulada + Drawdown (siempre sincronizadas) ──────────────────────────────────
 // La ventana solo cambia lo que se VE: la curva sigue siendo el acumulado desde el inicio y el drawdown sigue
@@ -5496,9 +5677,12 @@ function renderCharts(m, sessions) {
       const big = Math.max(16, Math.min(46, free * 0.5));
       ctx.font = '700 ' + big + 'px "Clash Display","Inter",sans-serif'; ctx.fillStyle = wlLight ? '#0a1a2a' : '#ddeeff';
       ctx.fillText(String(wlTotal), cx, cy - big * 0.12);
-      ctx.font = '600 ' + Math.max(8, Math.min(12, free * 0.2)) + 'px "Inter","IBM Plex Mono",monospace'; ctx.fillStyle = wlLight ? '#3a5a7a' : '#c0d4e0';
-      try { ctx.letterSpacing = '2px'; } catch(e) {}
-      ctx.fillText('DÍAS', cx, cy + big * 0.62); ctx.restore();
+      ctx.fillStyle = wlLight ? '#3a5a7a' : '#c0d4e0';
+      let sm = Math.max(8, Math.min(12, free * 0.2)); const lbl = wlTotal === 1 ? 'DÍA OPERADO' : 'DÍAS OPERADOS', maxW = free * 1.6;
+      try { ctx.letterSpacing = (sm > 9 ? 2 : 1) + 'px'; } catch(e) {}
+      ctx.font = '600 ' + sm + 'px "Inter","IBM Plex Mono",monospace';
+      while(sm > 6 && ctx.measureText(lbl).width > maxW) { sm -= 0.5; ctx.font = '600 ' + sm + 'px "Inter","IBM Plex Mono",monospace'; }   // si no cabe en el hueco del anillo, la letra se reduce
+      ctx.fillText(lbl, cx, cy + big * 0.62); ctx.restore();
     }
   };
   charts['wl']=new Chart(document.getElementById('wlChart'),{
@@ -7870,7 +8054,7 @@ function _aiBuild(scope){
     let note=String(e.note||'').trim();
     if(scope==='all'&&date<recentCut&&note.length>350) note=note.slice(0,350)+'…';
     note=note.replace(/\s*\n\s*/g,' ⏎ ');
-    let out=`${date} | Neto del día (neto de comisión y swap): ${money(pnl)} (${dayClass(pnl)==='win'?'día ganador':dayClass(pnl)==='loss'?'día perdedor':'Break Even'}) | Comisiones del día: ${comm} | Swap del día: ${swp} | Posiciones cerradas ese día (dato secundario por posición): ${cnt} | MAE/MFE en puntos de precio (solo completas, por símbolo, no es dinero): ${pxd} | Etiqueta del día: ${_AI_TAGS[e.tag]||'Sin etiqueta'} | Nota: ${note||'(sin nota)'}`;
+    let out=`${date} | Neto del día (neto de comisión y swap): ${money(pnl)} (${dayClass(pnl)==='win'?'día ganador':dayClass(pnl)==='loss'?'día perdedor':'Break Even'}) | Comisiones del día: ${comm} | Swap del día: ${swp} | Posiciones cerradas ese día (dato secundario por posición): ${cnt} | MAE/MFE en puntos de precio (solo mediciones completas, por símbolo, unidades de precio, no es dinero): ${pxd} | Etiqueta del día: ${_AI_TAGS[e.tag]||'Sin etiqueta'} | Nota: ${note||'(sin nota)'}`;
     try{
       const dobj=_intraDays.find(x=>x.date===date);
       if(dobj){
@@ -8016,20 +8200,24 @@ function renderCoach(m, days, balance, deposit, campaigns) {
     if(m.cAvgMAE!=null) tips.push({c:'c',l:'Recorrido de Campañas',t:`MAE monetario medio de campaña ${fmt$(-m.cAvgMAE)} y MFE medio ${fmt$(m.cAvgMFE)} (extremos del resultado combinado, muestreados por la EA; ${m.cExcN} de ${m.cN} campañas).`});
   } else tips.push({c:'w',l:'Campañas no Disponibles',t:'No hay posiciones suficientes para reconstruir campañas; las conclusiones se limitan a posiciones y días.'});
 
-  // ── MAE/MFE en puntos de precio (por símbolo; solo calidad elegida; nunca se mezclan con dinero)
+  // ── MAE/MFE en puntos de precio (por símbolo; SOLO mediciones completas; nunca se mezclan con dinero)
   {
-    const c=m.pxCount||{}, calid=(c.PARTIAL||0)+(c.APPROXIMATE||0)+(c.PENDING||0);
-    const ent=Object.entries(m.pxSym||{});
+    const cv=pxCover(m.pxCount);
+    const ent=Object.entries(m.pxSym||{}).sort((a,b)=>b[1].n-a[1].n);
     const ok=ent.filter(([,o])=>o.n>=PX_MIN_N), poco=ent.filter(([,o])=>o.n<PX_MIN_N);
+    const cov=`Cobertura: ${cv.ok} de ${cv.meas} posiciones medibles con medición completa${cv.excl?`; ${cv.excl} excluidas por calidad (no se promedian)`:''}.`;
     if(ok.length){
       const lines=ok.map(([sy,o])=>{
-        let t=`${sy}: MAE medio ${o.mae.toFixed(o.dec)} pts y MFE medio ${o.mfe.toFixed(o.dec)} pts (n=${o.n})`;
-        if(o.wn>=PX_MIN_GROUP&&o.ln>=PX_MIN_GROUP) t+=` · ganadoras: MAE ${o.wmae.toFixed(o.dec)} / MFE ${o.wmfe.toFixed(o.dec)} pts (${o.wn}); perdedoras: MAE ${o.lmae.toFixed(o.dec)} / MFE ${o.lmfe.toFixed(o.dec)} pts (${o.ln})`;
+        const f=v=>pxV(v,o.dec);
+        let t=`${sy}: mediana MAE ${f(o.maeMed)} / MFE ${f(o.mfeMed)} pts (n=${o.n}, ${pxLevel(o.n).t.toLowerCase()})`;
+        if(o.capW!=null) t+=` · capturas el ${o.capW.toFixed(0)} % del MFE en las ganadoras`;
+        if(o.wMaeP90!=null) t+=` · el 90 % de tus ganadoras no pasó de ${f(o.wMaeP90)} pts en contra`;
+        if(o.lMfeMed!=null) t+=` · las perdedoras llegaron a ir ${f(o.lMfeMed)} pts a favor (mediana)`;
         return t;
       });
-      tips.push({c:calid?'w':'c',l:'Excursión de Precio (puntos) 📏',t:`${lines.join('<br>')}<br>Distancias de precio medidas con ticks (puntos de SYMBOL_POINT), distintas del dinero. Describen la muestra histórica, no garantizan extremos futuros y un promedio por sí solo no basta para fijar un stop.${m.pxMode!=='complete'?' El filtro actual incluye mediciones no completas.':''}${calid?` Hay ${calid} posiciones con cobertura parcial, aproximada o pendiente que no se tratan como completas.`:''}${poco.length?` Muestra insuficiente (<${PX_MIN_N}) en: ${poco.map(([sy,o])=>sy+' n='+o.n).join(', ')}.`:''}`});
+      tips.push({c:'c',l:'Excursión de Precio (puntos) 📏',t:`${lines.join('<br>')}<br>Distancias de precio medidas con ticks, en puntos de precio y distintas del dinero; solo mediciones completas. Describen la muestra histórica, no garantizan extremos futuros y no bastan por sí solas para fijar un stop. ${cov}${poco.length?` Muestra insuficiente (<${PX_MIN_N}) en: ${poco.map(([sy,o])=>sy+' n='+o.n).join(', ')}.`:''}`});
     } else {
-      tips.push({c:'w',l:'Excursión de Precio (puntos) 📏',t:`Aún no hay suficientes mediciones de precio válidas para concluir (mínimo ${PX_MIN_N} por símbolo con el filtro actual). Completas ${c.COMPLETE||0}, aproximadas ${c.APPROXIMATE||0}, parciales ${c.PARTIAL||0}, pendientes ${c.PENDING||0}, sin dato ${(c.UNAVAILABLE||0)+(c.NONE||0)}. Las operaciones anteriores a esta función no tienen MAE/MFE en puntos y no se estiman desde el dinero.`});
+      tips.push({c:'w',l:'Excursión de Precio (puntos) 📏',t:`Aún no hay suficientes mediciones completas para concluir (mínimo ${PX_MIN_N} por símbolo). ${cov} Aproximadas ${cv.ap}, parciales ${cv.pa}, pendientes ${cv.pe}, sin dato ${cv.un}. Las operaciones anteriores a esta función (${cv.old}) no tienen MAE/MFE en puntos y no se estiman desde el dinero.`});
     }
   }
 
@@ -8294,30 +8482,118 @@ function curSymbolOf(c){ c=String(c||'USD').toUpperCase(); return ({USD:'$',EUR:
 function mny(v,d=2){ v=Number(v); return isFinite(v) ? v.toLocaleString('en',{minimumFractionDigits:d,maximumFractionDigits:d}) : String(v); }   // dinero con comas de miles y punto decimal
 function fmt$(v){ if(!isFinite(Number(v))) return 'N/D'; const s=v>=0?_curSym:'-'+_curSym; return s+Math.abs(v).toLocaleString('en',{minimumFractionDigits:2,maximumFractionDigits:2}); }
 
-// ── EXCURSIÓN DE PRECIO (MAE/MFE en PUNTOS de SYMBOL_POINT) ──
+// ── EXCURSIÓN DE PRECIO (MAE/MFE en PUNTOS DE PRECIO; la EA mide en puntos MT5 y aquí se convierte con SYMBOL_POINT) ──
 // Unidad distinta del dinero: nunca se mezclan en promedios/ratios ni entre símbolos con puntos diferentes.
-const PX_MIN_N=20, PX_MIN_GROUP=5;
+// Criterio único (tarjeta, Coach y resumen diario): SOLO mediciones COMPLETE. Aproximadas (velas M1: el rango se infla porque la vela
+// incluye precio fuera de la operación) y parciales (cota inferior) no se promedian; solo se cuentan como cobertura.
+// Ganadora/perdedora = signo de los PUNTOS realizados (no del dinero neto, que incluye comisión). Neutras fuera de los grupos.
+// MFE capturado = Σ puntos realizados ÷ Σ MFE (razón de sumas: nunca divide por el MFE=0 de una posición; si Σ MFE = 0 → N/D).
+// Solo posiciones con UNA entrada (pxReal != null) y grupos con al menos PX_MIN_GROUP posiciones.
+// Stop de referencia = percentil 90 del MAE de las ganadoras (solo con PX_MIN_PCT o más ganadoras).
+const PX_MIN_N=20, PX_MIN_GROUP=10, PX_MIN_PCT=30, PX_SOLID_N=50;
 const PX_LBL={COMPLETE:'Completo',PARTIAL:'Parcial',APPROXIMATE:'Aproximado',PENDING:'Pendiente',UNAVAILABLE:'No disponible',NONE:'N/D (registro anterior)'};
 const PX_COV_OK=new Set(['COMPLETE','PARTIAL','APPROXIMATE','UNAVAILABLE']);
 function pxDecOf(pt){ return pt>0?Math.min(5,Math.max(0,Math.round(-Math.log10(pt)))):2; }   // decimales del precio del símbolo (0.01 → 2)
-function pxFmt(t){ const d=0; return t.pxMae==null?'N/D':`${t.pxMae.toFixed(d)} / ${t.pxMfe.toFixed(d)} pts`; }
+function pxDecShow(pt,ref){ const d=pxDecOf(pt); if(d>=3) return d; if(d===0) return ref>=10?0:1; return ref>=10?1:Math.min(2,d); }   // decimales a mostrar: 1 en índices (≥10 pts), el del precio en forex
+function pxV(v,d){ return v==null||!Number.isFinite(v)?'—':v.toFixed(d); }
+function pxEsc(x){ return String(x).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]); }
+function pxMean(a){ return a.length?a.reduce((s,v)=>s+v,0)/a.length:null; }
+function pxMedian(a){ if(!a.length) return null; const s=[...a].sort((x,y)=>x-y), k=s.length>>1; return s.length%2?s[k]:(s[k-1]+s[k])/2; }
+function pxPctl(a,p){ if(!a.length) return null; const s=[...a].sort((x,y)=>x-y), i=(s.length-1)*p, lo=Math.floor(i), hi=Math.ceil(i); return s[lo]+(s[hi]-s[lo])*(i-lo); }
+function pxLevel(n){ return n>=PX_SOLID_N?{k:'hi',t:'Fiable'}:n>=PX_MIN_N?{k:'mid',t:'Orientativo'}:{k:'lo',t:'Insuficiente'}; }
+function pxFmt(t){ if(t.pxMae==null) return 'N/D'; const d=pxDecShow(+t.pxPt,Math.abs(t.pxMae)); return `${t.pxMae.toFixed(d)} / ${t.pxMfe.toFixed(d)} pts`; }
 function pxTag(t){ return `${PX_LBL[t.pxQ]||t.pxQ}`; }
+// Agregación ÚNICA para un símbolo (filas = posiciones COMPLETE con pxMae/pxMfe). La usan la tarjeta, el Coach y pxDigest.
+function pxAgg(rows){
+  const stat=a=>({n:a.length,mae:pxMean(a.map(t=>t.pxMae)),maeMed:pxMedian(a.map(t=>t.pxMae)),mfe:pxMean(a.map(t=>t.pxMfe)),mfeMed:pxMedian(a.map(t=>t.pxMfe))});
+  const one=rows.filter(t=>t.pxReal!=null), w=one.filter(t=>t.pxReal>0), l=one.filter(t=>t.pxReal<0);
+  const sm=(a,f)=>a.reduce((s,t)=>s+f(t),0);
+  const cap=a=>{ if(a.length<PX_MIN_GROUP) return null; const mf=sm(a,t=>t.pxMfe); return mf>0?Math.min(100,sm(a,t=>t.pxReal)/mf*100):null; };
+  const pt=rows.find(t=>+t.pxPt>0), ptv=pt?+pt.pxPt:0, all=stat(rows);
+  const o=Object.assign({pt:ptv,dec:pxDecShow(ptv,Math.max(Math.abs(all.mae||0),Math.abs(all.mfe||0))),oneN:one.length},all);
+  o.w=stat(w); o.l=stat(l);
+  o.capW=cap(w); o.capAll=cap(one);
+  o.giveW=w.length>=PX_MIN_GROUP?pxMedian(w.map(t=>t.pxMfe-t.pxReal)):null;       // puntos de MFE que devuelve una ganadora típica
+  o.wMaeP90=w.length>=PX_MIN_PCT?pxPctl(w.map(t=>t.pxMae),0.9):null;
+  o.lMfeMed=l.length>=PX_MIN_GROUP?o.l.mfeMed:null;                              // cuánto estuvo a favor una perdedora típica
+  return o;
+}
+function pxAggBySym(rows){ const g={}; rows.forEach(t=>{ (g[t.sym]=g[t.sym]||[]).push(t); }); const r={}; Object.keys(g).forEach(k=>{ r[k]=pxAgg(g[k]); }); return r; }
+// Cobertura: «medibles» excluye los registros anteriores a la función (NONE), que nunca podrán tener medición.
+function pxCover(c){ c=c||{}; const g=k=>c[k]||0, ok=g('COMPLETE'), ap=g('APPROXIMATE'), pa=g('PARTIAL'), pe=g('PENDING'), un=g('UNAVAILABLE'), old=g('NONE'), excl=ap+pa+pe+un;
+  return {ok,ap,pa,pe,un,old,excl,meas:ok+excl,total:ok+excl+old}; }
+function pxRenderPanel(m){
+  const el=document.getElementById('pxCov'); if(!el) return;
+  const v=pxCover(m&&m.pxCount); if(!v.total){ el.innerHTML=''; return; }
+  const w=x=>(x/v.total*100).toFixed(2)+'%';
+  const chip=(cls,l,n,t)=>(n||cls==='ok')?`<span class="px-chip ${cls}" title="${t}">${l} <b>${n}</b></span>`:'';
+  const pl=(n,a,b)=>`${n} ${n===1?a:b}`;
+  const head=v.meas?`<b>${v.ok} de ${v.meas}</b> posiciones medibles tienen medición completa (${(v.ok/v.meas*100).toFixed(0)} %).`:'Aún no hay posiciones con medición de precio.';
+  const why=[]; if(v.ap) why.push(`<b>${pl(v.ap,'aproximada','aproximadas')}</b>: velas M1, el rango se infla`); if(v.pa) why.push(`<b>${pl(v.pa,'parcial','parciales')}</b>: huecos de ticks, valor mínimo conocido`); if(v.pe) why.push(`<b>${pl(v.pe,'pendiente','pendientes')}</b>: cierre aún sin conciliar`); if(v.un) why.push(`<b>${v.un} sin dato</b>: la EA no pudo medir`);
+  const exc=v.excl?`<div class="px-note">${pl(v.excl,'posición excluida','posiciones excluidas')} por calidad; no ${v.excl===1?'entra':'entran'} en ningún promedio.</div>${why.map(x=>`<div class="px-why">${x}</div>`).join('')}`:'';
+  const old=v.old?`<div class="px-why old"><b>${pl(v.old,'anterior','anteriores')}</b> a esta función: sin MAE/MFE en puntos (no se estiman desde el dinero)</div>`:'';
+  el.innerHTML=`<div class="px-bar" role="img" aria-label="Cobertura de mediciones: ${v.ok} completas, ${v.excl} excluidas, ${v.old} anteriores"><i class="ok" style="width:${w(v.ok)}"></i><i class="ex" style="width:${w(v.excl)}"></i><i class="old" style="width:${w(v.old)}"></i></div>`
+    +`<div class="px-chips">${chip('ok','Completas',v.ok,'Ticks continuos desde la apertura')}${chip('ex','Aproximadas',v.ap,'Relleno con velas M1')}${chip('ex','Parciales',v.pa,'Hueco de ticks: cota inferior')}${chip('ex','Pendientes',v.pe,'Cierre sin conciliar con el historial')}${chip('ex','Sin dato',v.un,'La EA no pudo medir')}${chip('','Anteriores',v.old,'Registros anteriores a esta función')}</div>`
+    +`<div class="px-notes"><div class="px-note">${head}</div>${exc}${old}</div>`;
+}
+function pxSymHtml(sy,o){
+  const L=pxLevel(o.n), f=v=>pxV(v,o.dec);
+  const hd=`<div class="pxc-hd"><span class="pxc-name">${pxEsc(sy)}</span><span class="r"><span class="pxc-n">n=${o.n}</span><span class="pxc-lvl ${L.k}">${L.t}</span></span></div>`;
+  if(o.n<PX_MIN_N) return `<div class="pxc-sym">${hd}<div class="pxc-box">Muestra insuficiente: n=${o.n} completas (mínimo ${PX_MIN_N} para mostrar valores). Con menos operaciones el dato no es fiable.</div></div>`;
+  const cell=(c,med,avg)=>`<span class="v ${c}"><b>${f(med)}</b><small>prom. ${f(avg)}</small></span>`;
+  const row=(lab,g,min)=>g.n<min
+    ?`<span class="l">${lab}<i>n=${g.n}</i></span><span class="pxc-m">Muestra insuficiente (mín. ${min})</span>`
+    :`<span class="l">${lab}<i>n=${g.n}</i></span>${cell('mae',g.maeMed,g.mae)}${cell('mfe',g.mfeMed,g.mfe)}`;
+  const tbl=`<div class="pxc-tw"><div class="pxc-tbl" role="group" aria-label="MAE y MFE de ${pxEsc(sy)} en puntos de precio"><span class="h"></span><span class="h">MAE · contra</span><span class="h">MFE · favor</span>`
+    +row('Todas',o,1)+row('Ganadoras',o.w,PX_MIN_GROUP)+row('Perdedoras',o.l,PX_MIN_GROUP)+`</div><div class="pxc-legend">Número grande: mediana · pequeño: promedio · unidad: pts de precio</div></div>`;
+  const pct=v=>v==null?`<div class="v na">Muestra insuficiente (mín. ${PX_MIN_GROUP})</div>`:`<div class="v">${v<0?'−':''}${Math.abs(v).toFixed(0)} %</div>`;
+  const st=(k,body,s)=>`<div class="pxc-st"><div class="k">${k}</div>${body}${s?`<div class="s">${s}</div>`:''}</div>`;
+  const stats=`<div class="pxc-stats">`
+    +st('Capturado · ganadoras',pct(o.capW),'pts realizados ÷ MFE')
+    +st('Capturado · todas',pct(o.capAll),'incluye perdedoras')
+    +st('Devuelto por ganadora',o.giveW==null?`<div class="v na">Muestra insuficiente (mín. ${PX_MIN_GROUP})</div>`:`<div class="v">${f(o.giveW)} pts</div>`,'MFE − resultado (mediana)')
+    +st('Stop de referencia',o.wMaeP90==null?`<div class="v na">Requiere ${PX_MIN_PCT}+ ganadoras (hay ${o.w.n})</div>`:`<div class="v">${f(o.wMaeP90)} pts</div>`,'P90 del MAE de ganadoras')
+    +`</div>`;
+  return `<div class="pxc-sym">${hd}${tbl}${stats}</div>`;
+}
 function pxKpi(m){
-  const syms=Object.entries(m.pxSym||{}).sort((a,b)=>b[1].n-a[1].n), c=m.pxCount||{};
-  const tip='Distancia máxima en contra (MAE) y a favor (MFE) en puntos de precio (redondeados al entero), no en dinero. Se promedia por símbolo y no se mezclan símbolos. Si el MFE supera mucho lo que capturas al cerrar, devuelves ganancia.';
-  if(!syms.length) return {l:'MAE / MFE medio · puntos',v:'N/D',cls:'neu',c:'w',icon:'📏',sub:'Sin mediciones completas',tip};
-  const [s0,o]=syms[0];
-  const warn=(c.PARTIAL||0)+(c.APPROXIMATE||0)+(c.PENDING||0)>0;
-  return {l:'MAE / MFE medio · puntos',v:`${o.mae.toFixed(o.dec)} / ${o.mfe.toFixed(o.dec)} pts`,cls:'neu',c:warn?'w':'c',icon:'📏',
-    sub:`${s0} · n=${o.n}${syms.length>1?` · +${syms.length-1} símbolo(s)`:''}`,tip};
+  const cv=pxCover(m.pxCount), ent=Object.entries(m.pxSym||{}).sort((a,b)=>b[1].n-a[1].n);
+  const tip='Distancia máxima en contra (MAE) y a favor (MFE) de cada posición, en puntos de precio (en índices 1 pt = 1,00), no en dinero. Solo entran mediciones completas y nunca se mezclan símbolos. Mediana y media: la mediana resiste los valores extremos. Ganadoras y perdedoras se clasifican por puntos realizados. «MFE capturado» = puntos realizados ÷ MFE (sumados; solo posiciones de una entrada). «Stop de referencia» = el 90 % de tus ganadoras no fue más en contra que ese valor. Si el MFE supera mucho lo que capturas al cerrar, devuelves ganancia.';
+  const foot=`<div class="pxc-foot">${cv.meas?`n=${cv.ok} de ${cv.meas} completas`:'Sin mediciones aún'}${cv.excl?` · ${cv.excl} posiciones excluidas por calidad`:''}${cv.old?` · ${cv.old} anteriores a esta función`:''}. Unidad: pts de precio.</div>`;
+  const body=ent.length?ent.map(([sy,o])=>pxSymHtml(sy,o)).join(''):`<div class="pxc-box">Aún no hay mediciones completas con las que calcular. Cada posición nueva se mide desde la apertura y aparecerá aquí.</div>`;
+  return {l:'MAE / MFE · puntos de precio',v:'',cls:'neu',c:'c',icon:'📏',html:`<div class="pxc">${body}${foot}</div>`,tip};
 }
 function pxDigest(days){
-  const m={};
-  (days||[]).forEach(d=>(d.tradeObjs||[]).forEach(t=>{ if(t.pxQ==='COMPLETE'&&t.pxMae!=null){ const o=m[t.sym]||(m[t.sym]={n:0,a:0,f:0,d:0}); o.n++; o.a+=t.pxMae; o.f+=t.pxMfe; } }));
-  const e=Object.entries(m);
-  return e.length?e.map(([k,o])=>`${k}: MAE medio ${(o.a/o.n).toFixed(o.d)} pts / MFE medio ${(o.f/o.n).toFixed(o.d)} pts (n=${o.n} completas)`).join('; '):'N/D (sin mediciones completas)';
+  const rows=[]; (days||[]).forEach(d=>(d.tradeObjs||[]).forEach(t=>{ if(t.pxQ==='COMPLETE'&&t.pxMae!=null) rows.push(t); }));
+  const e=Object.entries(pxAggBySym(rows));
+  return e.length?e.map(([k,o])=>{ const f=v=>pxV(v,o.dec); return `${k}: MAE mediano ${f(o.maeMed)} / MFE mediano ${f(o.mfeMed)} pts (medias ${f(o.mae)} / ${f(o.mfe)}; n=${o.n} completas)`; }).join('; '):'N/D (sin mediciones completas)';
 }
-function pxModeChanged(v){ _pxMode=v; if(_lastData) renderAll(_lastData); }
+
+// ── Capa anti-distorsión de la tarjeta MAE/MFE (equivalente a tlSizeGuard/tlChartFix de las gráficas) ──
+// La fuente de la página (ZeroPlain) carga tarde y las animaciones de entrada cambian el ancho: por eso el diseño se decide
+// por el ANCHO REAL de la tarjeta (data-w) y, si algo desborda, se compacta por pasos (tope de 2, sin bucles).
+// Se revisa en resize, rotación, carga, cambio de pestaña, carga de fuentes, ResizeObserver y tras el render.
+let _pxFitRAF=0;
+function pxFit(){
+  document.querySelectorAll('#kpiPx .pxc').forEach(el=>{
+    const w=el.clientWidth||0; if(!w) return;
+    const k=w<300?'xs':w<560?'sm':w<760?'md':'lg';
+    if(el.dataset.w!==k){ el.dataset.w=k; el.removeAttribute('data-tight'); el._pxN=0; }
+    const over=[...el.querySelectorAll('.pxc-tbl,.pxc-stats,.pxc-st,.pxc-hd,.pxc-tbl>*')].some(n=>n.scrollWidth>n.clientWidth+1);
+    if(over&&(el._pxN||0)<2){ el._pxN=(el._pxN||0)+1; el.dataset.tight=String(el._pxN); }
+  });
+}
+function pxFitSoon(){ if(_pxFitRAF) return; _pxFitRAF=requestAnimationFrame(()=>{ _pxFitRAF=0; try{ pxFit(); }catch(e){} }); }
+function pxFitBurst(){ [0,120,400,900,1800,3000].forEach(t=>setTimeout(pxFitSoon,t)); }
+(function pxGuardInit(){
+  try{
+    const box=document.getElementById('kpiPx');
+    if(window.ResizeObserver&&box){ const ro=new ResizeObserver(pxFitSoon); ro.observe(box); if(box.parentNode) ro.observe(box.parentNode); }
+    ['resize','orientationchange','load'].forEach(e=>window.addEventListener(e,pxFitSoon));
+    document.addEventListener('visibilitychange',pxFitSoon);
+    if(document.fonts&&document.fonts.ready) document.fonts.ready.then(pxFitSoon);
+  }catch(e){}
+})();
 </script>
 <script>
 // ── NOTIFICACIONES PUSH (servidor → teléfono, funcionan con la app cerrada) ───────────────────────────────────
@@ -8865,7 +9141,7 @@ if("serviceWorker" in navigator && location.protocol.startsWith("http")){
         var box = en.target; io.unobserve(box);
         var c = box.querySelector('canvas'); if(!c) return;
         c.classList.remove('tl-pre'); c.classList.add('tl-draw');
-        setTimeout(function(){ c.classList.remove('tl-draw'); }, 1200);
+        setTimeout(function(){ c.classList.remove('tl-draw'); }, 700);
       });
     }, {threshold:.15});
     document.querySelectorAll('.chart-box').forEach(function(box){
@@ -8878,7 +9154,7 @@ if("serviceWorker" in navigator && location.protocol.startsWith("http")){
         var r = c.getBoundingClientRect();
         if(r.width && r.top < window.innerHeight && r.bottom > 0) c.classList.remove('tl-pre');
       });
-    }, 4000);
+    }, 1500);
     window.addEventListener('scroll', function(){
       clearTimeout(initDraw._t);
       initDraw._t = setTimeout(function(){
@@ -8886,7 +9162,7 @@ if("serviceWorker" in navigator && location.protocol.startsWith("http")){
           var r = c.getBoundingClientRect();
           if(r.width && r.top < window.innerHeight*0.9 && r.bottom > 0) c.classList.remove('tl-pre');
         });
-      }, 1500);
+      }, 400);
     }, {passive:true});
   }
 
@@ -8936,6 +9212,11 @@ if("serviceWorker" in navigator && location.protocol.startsWith("http")){
       return r;
     };
   }
+
+  /* La animación de entrada de cada bloque corre una sola vez: sin esto, al volver a mostrar una sección plegada (display:none → block) se repetía con su retardo */
+  (function(){ var d = $('dashboard'); if(!d) return;
+    d.addEventListener('animationend', function(e){ if(e.animationName==='tlRise' && e.target.parentNode===d) e.target.style.animation = 'none'; });
+  })();
 
   bootOn();
   initGroups();
