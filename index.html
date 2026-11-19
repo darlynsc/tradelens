@@ -5434,10 +5434,36 @@ function renderCharts(m, sessions) {
   // Propuesta 2 · anillos concéntricos (afuera→adentro: Ganadores, Perdedores, Break Even), cada uno sobre su carril tenue; total de días al centro.
   const wlLight = document.body.classList.contains('light');
   const WLC = wlLight ? ['0,153,85','204,17,51','204,119,0'] : ['0,255,136','255,51,85','255,204,0'];
+  // ── Anti-distorsión del anillo ────────────────────────────────────────────────
+  // El canvas se estira por CSS al 100% de .wl-fill (PC), pero Chart.js a veces conserva el tamaño interno
+  // de cuando el layout aún no estaba asentado (fuentes, tarjeta vecina, animaciones de entrada, pestañas plegadas…)
+  // y el círculo se ve como una elipse. Se compara el bitmap con la caja real y se corrige siempre que difieran.
+  const wlMismatch = ch => {
+    const c = ch && ch.canvas; if(!c || !c.isConnected) return false;
+    const box = c.parentNode, bw = box.clientWidth, bh = box.clientHeight; if(!bw || !bh) return false;
+    const wantAspect = window.innerWidth <= 900;
+    if(!!ch.options.maintainAspectRatio !== wantAspect) return true;
+    if(wantAspect) return Math.abs(c.clientWidth - ch.width) > 1;
+    return Math.abs(bw - ch.width) > 1 || Math.abs(bh - ch.height) > 1 || Math.abs(c.clientWidth - bw) > 1 || Math.abs(c.clientHeight - bh) > 1;
+  };
+  const wlSync = ch => {
+    if(!ch || ch._wlSyncing) return; ch._wlSyncing = true;
+    requestAnimationFrame(() => {
+      ch._wlSyncing = false;
+      try{
+        if(!ch.canvas || !ch.canvas.isConnected || charts['wl'] !== ch) return;
+        ch.options.maintainAspectRatio = window.innerWidth <= 900;
+        const box = ch.canvas.parentNode;
+        if(!box.clientWidth || !box.clientHeight) return;
+        ch.resize(); ch.update('none');
+      }catch(e){}
+    });
+  };
   const wlRingPlugin = {
     id:'wlRing',
     afterDatasetsDraw(chart) {
       if(chart.canvas.id !== 'wlChart') return;
+      if(typeof wlSync === 'function' && wlMismatch(chart)) wlSync(chart);   // anti-distorsión: bitmap ≠ caja CSS → resincroniza
       const a0 = chart.getDatasetMeta(0).data[0]; if(!a0) return;
       const cx = a0.x, cy = a0.y, R1 = a0.outerRadius, ctx = chart.ctx, TAU = Math.PI * 2;
       if(!isFinite(cx) || !isFinite(cy) || !(R1 > 0)) return;
@@ -5487,6 +5513,19 @@ function renderCharts(m, sessions) {
     },
     plugins:[wlRingPlugin]
   });
+  { // Vigilancia del tamaño: el anillo nunca se queda con un tamaño desfasado
+    const wch = charts['wl'], fix = () => { if(charts['wl'] === wch && wlMismatch(wch)) wlSync(wch); };
+    const box = wch.canvas.parentNode;
+    try{ if(window._wlRO) window._wlRO.disconnect(); }catch(e){}
+    if(window.ResizeObserver){ window._wlRO = new ResizeObserver(fix); window._wlRO.observe(box); if(box.parentNode) window._wlRO.observe(box.parentNode); }
+    if(!window._wlBound){ window._wlBound = true;
+      const any = () => { const c = charts['wl']; if(c && wlMismatch(c)) wlSync(c); };
+      window.addEventListener('resize', any); window.addEventListener('orientationchange', any); window.addEventListener('load', any);
+      document.addEventListener('visibilitychange', any);
+      if(document.fonts && document.fonts.ready) document.fonts.ready.then(any);
+    }
+    [0, 120, 400, 900, 1800].forEach(t => setTimeout(fix, t));   // el layout termina de asentarse tras las animaciones de entrada
+  }
   { // Leyenda HUD: mismos datos que las etiquetas del gráfico; al pulsar oculta/muestra la porción (igual que la leyenda anterior)
     const lg = document.getElementById('wlLegend');
     if(lg) {
